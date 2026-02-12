@@ -34,8 +34,11 @@ struct TodoItem: Identifiable, Codable {
     var fromWho: String = ""  // Who this task is from
     var estimatedTime: TimeInterval = 0  // Estimated time to complete in seconds
     var subtasks: [Subtask] = []  // Subtasks for this todo
+    var createdAt: TimeInterval  // Epoch time when task was created
+    var startedAt: TimeInterval? = nil  // Epoch time when task timer was first started
+    var completedAt: TimeInterval? = nil  // Epoch time when task was marked completed
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = []) {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil) {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
@@ -48,6 +51,9 @@ struct TodoItem: Identifiable, Codable {
         self.fromWho = fromWho
         self.estimatedTime = estimatedTime
         self.subtasks = subtasks
+        self.createdAt = createdAt ?? Date().timeIntervalSince1970
+        self.startedAt = startedAt
+        self.completedAt = completedAt
     }
     
     var isRunning: Bool {
@@ -84,7 +90,8 @@ class TodoStorage {
                 "description": todo.description,
                 "isAdhoc": todo.isAdhoc,
                 "fromWho": todo.fromWho,
-                "estimatedTime": todo.estimatedTime
+                "estimatedTime": todo.estimatedTime,
+                "createdAt": todo.createdAt
             ]
             
             if let lastStartTime = todo.lastStartTime {
@@ -93,6 +100,14 @@ class TodoStorage {
             
             if let dueDate = todo.dueDate {
                 taskData["dueDate"] = dueDate.timeIntervalSince1970
+            }
+            
+            if let startedAt = todo.startedAt {
+                taskData["startedAt"] = startedAt
+            }
+            
+            if let completedAt = todo.completedAt {
+                taskData["completedAt"] = completedAt
             }
             
             // Save subtasks
@@ -148,6 +163,9 @@ class TodoStorage {
                 let isAdhoc = taskData["isAdhoc"] as? Bool ?? false
                 let fromWho = taskData["fromWho"] as? String ?? ""
                 let estimatedTime = taskData["estimatedTime"] as? TimeInterval ?? 0
+                let createdAt = taskData["createdAt"] as? TimeInterval ?? Date().timeIntervalSince1970
+                let startedAt = taskData["startedAt"] as? TimeInterval
+                let completedAt = taskData["completedAt"] as? TimeInterval
                 
                 var lastStartTime: Date? = nil
                 if let timestamp = taskData["lastStartTime"] as? TimeInterval {
@@ -174,7 +192,7 @@ class TodoStorage {
                     }
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks)
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt)
                 todos.append(todo)
             }
             
@@ -402,6 +420,13 @@ struct ContentView: View {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[index].isCompleted.toggle()
             
+            // Set or clear completedAt timestamp
+            if todos[index].isCompleted {
+                todos[index].completedAt = Date().timeIntervalSince1970
+            } else {
+                todos[index].completedAt = nil
+            }
+            
             // Save to persistent storage
             saveTodos()
         }
@@ -448,6 +473,11 @@ struct ContentView: View {
                 
                 // Start the timer for this task
                 todos[index].lastStartTime = Date()
+                
+                // Set startedAt timestamp if this is the first time starting
+                if todos[index].startedAt == nil {
+                    todos[index].startedAt = Date().timeIntervalSince1970
+                }
             }
             
             // Save to persistent storage
@@ -693,6 +723,33 @@ struct EditTodoSheet: View {
                     }
                 }
                 
+                Section(header: Text("Timestamps")) {
+                    HStack {
+                        Text("Created:")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(formatTimestamp(todo.createdAt))
+                    }
+                    
+                    if let startedAt = todo.startedAt {
+                        HStack {
+                            Text("Started:")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(formatTimestamp(startedAt))
+                        }
+                    }
+                    
+                    if let completedAt = todo.completedAt {
+                        HStack {
+                            Text("Completed:")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(formatTimestamp(completedAt))
+                        }
+                    }
+                }
+                
                 Section(header: Text("Estimate")) {
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -760,6 +817,14 @@ struct EditTodoSheet: View {
         
         onSave()
         dismiss()
+    }
+    
+    private func formatTimestamp(_ timestamp: TimeInterval) -> String {
+        let date = Date(timeIntervalSince1970: timestamp)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
     }
 }
 
