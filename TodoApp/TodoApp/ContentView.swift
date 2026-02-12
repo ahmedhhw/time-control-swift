@@ -423,6 +423,14 @@ struct ContentView: View {
             // Set or clear completedAt timestamp
             if todos[index].isCompleted {
                 todos[index].completedAt = Date().timeIntervalSince1970
+                
+                // Automatically pause timer when task is completed
+                if todos[index].isRunning {
+                    if let startTime = todos[index].lastStartTime {
+                        todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    }
+                    todos[index].lastStartTime = nil
+                }
             } else {
                 todos[index].completedAt = nil
             }
@@ -625,10 +633,11 @@ struct TodoRow: View {
             
             Button(action: onToggleTimer) {
                 Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                    .foregroundColor(todo.isRunning ? .orange : .blue)
+                    .foregroundColor(todo.isCompleted ? .gray : (todo.isRunning ? .orange : .blue))
                     .font(.title3)
             }
             .buttonStyle(.plain)
+            .disabled(todo.isCompleted)
             
             Button(action: onEdit) {
                 Image(systemName: "pencil")
