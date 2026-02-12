@@ -610,6 +610,18 @@ struct ContentView: View {
                 toggleTodo(todo)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PauseTaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID else {
+                return
+            }
+            
+            // Pause the task in the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                let todo = todos[todoIndex]
+                toggleTimer(todo)  // This will pause the timer and close the floating window
+            }
+        }
         .sheet(item: $editingTodo) { todoToEdit in
             if let index = todos.firstIndex(where: { $0.id == todoToEdit.id }) {
                 EditTodoSheet(todo: $todos[index], onSave: {
@@ -1389,11 +1401,30 @@ struct FloatingTaskWindowView: View {
                         }
                     }
                     
-                    // Complete button at the bottom
+                    // Pause and Complete buttons at the bottom
                     Spacer()
                     
-                    HStack {
+                    HStack(spacing: 12) {
                         Spacer()
+                        
+                        Button(action: {
+                            pauseTask()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "pause.circle.fill")
+                                    .font(.body)
+                                Text("Pause")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.orange)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Pause this task")
                         
                         Button(action: {
                             completeTask()
@@ -1470,6 +1501,15 @@ struct FloatingTaskWindowView: View {
         // Mark the task as complete in the main todos array
         NotificationCenter.default.post(
             name: NSNotification.Name("CompleteTaskFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": localTask.id]
+        )
+    }
+    
+    private func pauseTask() {
+        // Pause the task by notifying the main view to stop the timer
+        NotificationCenter.default.post(
+            name: NSNotification.Name("PauseTaskFromFloatingWindow"),
             object: nil,
             userInfo: ["taskId": localTask.id]
         )
