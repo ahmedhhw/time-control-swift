@@ -18,8 +18,9 @@ struct TodoItem: Identifiable, Codable {
     var dueDate: Date? = nil  // Due date and time
     var isAdhoc: Bool = false  // Whether this is an adhoc task
     var fromWho: String = ""  // Who this task is from
+    var estimatedTime: TimeInterval = 0  // Estimated time to complete in seconds
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "") {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0) {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
@@ -30,6 +31,7 @@ struct TodoItem: Identifiable, Codable {
         self.dueDate = dueDate
         self.isAdhoc = isAdhoc
         self.fromWho = fromWho
+        self.estimatedTime = estimatedTime
     }
     
     var isRunning: Bool {
@@ -65,7 +67,8 @@ class TodoStorage {
                 "totalTimeSpent": todo.totalTimeSpent,
                 "description": todo.description,
                 "isAdhoc": todo.isAdhoc,
-                "fromWho": todo.fromWho
+                "fromWho": todo.fromWho,
+                "estimatedTime": todo.estimatedTime
             ]
             
             if let lastStartTime = todo.lastStartTime {
@@ -116,6 +119,7 @@ class TodoStorage {
                 let description = taskData["description"] as? String ?? ""
                 let isAdhoc = taskData["isAdhoc"] as? Bool ?? false
                 let fromWho = taskData["fromWho"] as? String ?? ""
+                let estimatedTime = taskData["estimatedTime"] as? TimeInterval ?? 0
                 
                 var lastStartTime: Date? = nil
                 if let timestamp = taskData["lastStartTime"] as? TimeInterval {
@@ -127,7 +131,7 @@ class TodoStorage {
                     dueDate = Date(timeIntervalSince1970: timestamp)
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho)
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime)
                 todos.append(todo)
             }
             
@@ -444,6 +448,8 @@ struct EditTodoSheet: View {
     @State private var hasDueDate: Bool
     @State private var isAdhoc: Bool
     @State private var fromWho: String
+    @State private var estimateHours: Int
+    @State private var estimateMinutes: Int
     
     init(todo: Binding<TodoItem>, onSave: @escaping () -> Void) {
         self._todo = todo
@@ -456,6 +462,11 @@ struct EditTodoSheet: View {
         _hasDueDate = State(initialValue: todo.wrappedValue.dueDate != nil)
         _isAdhoc = State(initialValue: todo.wrappedValue.isAdhoc)
         _fromWho = State(initialValue: todo.wrappedValue.fromWho)
+        
+        // Convert estimated time from seconds to hours and minutes
+        let totalMinutes = Int(todo.wrappedValue.estimatedTime / 60)
+        _estimateHours = State(initialValue: totalMinutes / 60)
+        _estimateMinutes = State(initialValue: totalMinutes % 60)
     }
     
     var body: some View {
@@ -500,6 +511,41 @@ struct EditTodoSheet: View {
                     }
                 }
                 
+                Section(header: Text("Estimate")) {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Hours")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            TextField("0", value: $estimateHours, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 80)
+                        }
+                        
+                        Text(":")
+                            .font(.title2)
+                            .padding(.top, 16)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Minutes")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            TextField("0", value: $estimateMinutes, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 80)
+                                .onChange(of: estimateMinutes) { newValue in
+                                    // Keep minutes between 0 and 59
+                                    if newValue < 0 {
+                                        estimateMinutes = 0
+                                    } else if newValue >= 60 {
+                                        estimateHours += newValue / 60
+                                        estimateMinutes = newValue % 60
+                                    }
+                                }
+                        }
+                    }
+                }
+                
                 Section(header: Text("Due Date")) {
                     Toggle("Set Due Date", isOn: $hasDueDate)
                     
@@ -525,6 +571,11 @@ struct EditTodoSheet: View {
         todo.dueDate = hasDueDate ? dueDate : nil
         todo.isAdhoc = isAdhoc
         todo.fromWho = fromWho
+        
+        // Convert hours and minutes to seconds
+        let clampedHours = max(0, estimateHours)
+        let clampedMinutes = max(0, min(59, estimateMinutes))
+        todo.estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
         
         onSave()
         dismiss()
