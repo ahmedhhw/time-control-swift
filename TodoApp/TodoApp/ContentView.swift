@@ -339,7 +339,6 @@ struct ContentView: View {
                                                         onDelete: { deleteSubtask(subtask, from: todo) }
                                                     )
                                                     .padding(.horizontal, 12)
-                                                    .padding(.vertical, 2)
                                                 }
                                                 .padding(.bottom, 4)
                                             }
@@ -494,20 +493,19 @@ struct ContentView: View {
                                                                     .padding(.top, 8)
                                                                 }
                                                                 
-                                                                // Existing subtasks
-                                                                if !todo.subtasks.isEmpty {
-                                                                    ForEach(todo.subtasks) { subtask in
-                                                                        SubtaskRow(
-                                                                            subtask: subtask,
-                                                                            parentTodoCompleted: todo.isCompleted,
-                                                                            onToggle: { toggleSubtask(subtask, in: todo) },
-                                                                            onDelete: { deleteSubtask(subtask, from: todo) }
-                                                                        )
-                                                                        .padding(.horizontal, 12)
-                                                                        .padding(.vertical, 2)
-                                                                    }
-                                                                    .padding(.bottom, 4)
-                                                                }
+                                                // Existing subtasks
+                                                if !todo.subtasks.isEmpty {
+                                                    ForEach(todo.subtasks) { subtask in
+                                                        SubtaskRow(
+                                                            subtask: subtask,
+                                                            parentTodoCompleted: todo.isCompleted,
+                                                            onToggle: { toggleSubtask(subtask, in: todo) },
+                                                            onDelete: { deleteSubtask(subtask, from: todo) }
+                                                        )
+                                                        .padding(.horizontal, 12)
+                                                    }
+                                                    .padding(.bottom, 4)
+                                                }
                                                             }
                                                         }
                                                     }
@@ -797,7 +795,7 @@ struct TodoRow: View {
             Button(action: onToggleExpanded) {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                     .foregroundColor(.secondary)
-                    .font(.caption)
+                    .font(.body)
             }
             .buttonStyle(.plain)
             
@@ -1026,13 +1024,13 @@ struct SubtaskRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtask.title)
-                    .font(.subheadline)
+                    .font(.body)
                     .strikethrough(subtask.isCompleted)
                     .foregroundColor(subtask.isCompleted ? .secondary : .primary)
                 
                 if !subtask.description.isEmpty {
                     Text(subtask.description)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
