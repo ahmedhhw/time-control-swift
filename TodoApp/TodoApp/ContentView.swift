@@ -1202,20 +1202,6 @@ struct FloatingTaskWindowView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Collapse/expand button and Notes button at the top
             HStack {
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isCollapsed.toggle()
-                        resizeWindow()
-                    }
-                }) {
-                    Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                        .frame(width: 20, height: 20)
-                }
-                .buttonStyle(.plain)
-                .help(isCollapsed ? "Expand" : "Collapse")
-                
                 Spacer()
                 
                 Button(action: {
@@ -1231,6 +1217,20 @@ struct FloatingTaskWindowView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Take notes while working on this task")
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isCollapsed.toggle()
+                        resizeWindow()
+                    }
+                }) {
+                    Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .help(isCollapsed ? "Expand" : "Collapse")
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
