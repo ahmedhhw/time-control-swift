@@ -7,6 +7,20 @@
 
 import SwiftUI
 
+struct Subtask: Identifiable, Codable {
+    let id: UUID
+    var title: String
+    var description: String
+    var isCompleted: Bool
+    
+    init(id: UUID = UUID(), title: String, description: String = "", isCompleted: Bool = false) {
+        self.id = id
+        self.title = title
+        self.description = description
+        self.isCompleted = isCompleted
+    }
+}
+
 struct TodoItem: Identifiable, Codable {
     let id: UUID
     var text: String
@@ -19,8 +33,9 @@ struct TodoItem: Identifiable, Codable {
     var isAdhoc: Bool = false  // Whether this is an adhoc task
     var fromWho: String = ""  // Who this task is from
     var estimatedTime: TimeInterval = 0  // Estimated time to complete in seconds
+    var subtasks: [Subtask] = []  // Subtasks for this todo
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0) {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = []) {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
@@ -32,6 +47,7 @@ struct TodoItem: Identifiable, Codable {
         self.isAdhoc = isAdhoc
         self.fromWho = fromWho
         self.estimatedTime = estimatedTime
+        self.subtasks = subtasks
     }
     
     var isRunning: Bool {
@@ -78,6 +94,18 @@ class TodoStorage {
             if let dueDate = todo.dueDate {
                 taskData["dueDate"] = dueDate.timeIntervalSince1970
             }
+            
+            // Save subtasks
+            var subtasksArray: [[String: Any]] = []
+            for subtask in todo.subtasks {
+                subtasksArray.append([
+                    "id": subtask.id.uuidString,
+                    "title": subtask.title,
+                    "description": subtask.description,
+                    "isCompleted": subtask.isCompleted
+                ])
+            }
+            taskData["subtasks"] = subtasksArray
             
             tasksDict[todo.id.uuidString] = taskData
         }
@@ -131,7 +159,22 @@ class TodoStorage {
                     dueDate = Date(timeIntervalSince1970: timestamp)
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime)
+                // Load subtasks
+                var subtasks: [Subtask] = []
+                if let subtasksArray = taskData["subtasks"] as? [[String: Any]] {
+                    for subtaskData in subtasksArray {
+                        guard let subtaskIdString = subtaskData["id"] as? String,
+                              let subtaskId = UUID(uuidString: subtaskIdString),
+                              let subtaskTitle = subtaskData["title"] as? String else {
+                            continue
+                        }
+                        let subtaskDescription = subtaskData["description"] as? String ?? ""
+                        let subtaskIsCompleted = subtaskData["isCompleted"] as? Bool ?? false
+                        subtasks.append(Subtask(id: subtaskId, title: subtaskTitle, description: subtaskDescription, isCompleted: subtaskIsCompleted))
+                    }
+                }
+                
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks)
                 todos.append(todo)
             }
             
@@ -149,6 +192,8 @@ struct ContentView: View {
     @State private var newTodoText: String = ""
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timers
     @State private var editingTodo: TodoItem?  // Track which todo is being edited
+    @State private var editingSubtaskForTodo: TodoItem?  // Track which todo we're adding a subtask to
+    @State private var expandedTodos: Set<UUID> = []  // Track which todos have expanded subtasks
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -194,32 +239,56 @@ struct ContentView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(todos) { todo in
-                            TodoRow(
-                                todo: todo,
-                                timerUpdateTrigger: timerUpdateTrigger,
-                                onToggle: {
-                                    toggleTodo(todo)
-                                },
-                                onDelete: {
-                                    deleteTodo(todo)
-                                },
-                                onToggleTimer: {
-                                    toggleTimer(todo)
-                                },
-                                onEdit: {
-                                    editTodo(todo)
-                                }
-                            )
+                            VStack(spacing: 0) {
+                                TodoRow(
+                                    todo: todo,
+                                    timerUpdateTrigger: timerUpdateTrigger,
+                                    isExpanded: expandedTodos.contains(todo.id),
+                                    onToggle: {
+                                        toggleTodo(todo)
+                                    },
+                                    onDelete: {
+                                        deleteTodo(todo)
+                                    },
+                                    onToggleTimer: {
+                                        toggleTimer(todo)
+                                    },
+                                    onEdit: {
+                                        editTodo(todo)
+                                    },
+                                    onAddSubtask: {
+                                        addSubtask(to: todo)
+                                    },
+                                    onToggleExpanded: {
+                                        toggleExpanded(todo)
+                                    },
+                                    onToggleSubtask: { subtask in
+                                        toggleSubtask(subtask, in: todo)
+                                    },
+                                    onDeleteSubtask: { subtask in
+                                        deleteSubtask(subtask, from: todo)
+                                    },
+                                    onEditSubtask: { subtask in
+                                        editSubtask(subtask, in: todo)
+                                    }
+                                )
+                            }
                             .transition(.move(edge: .top).combined(with: .opacity))
                             .draggable(todo.id.uuidString) {
                                 // Preview shown while dragging
                                 TodoRow(
                                     todo: todo,
                                     timerUpdateTrigger: timerUpdateTrigger,
+                                    isExpanded: false,
                                     onToggle: {},
                                     onDelete: {},
                                     onToggleTimer: {},
-                                    onEdit: {}
+                                    onEdit: {},
+                                    onAddSubtask: {},
+                                    onToggleExpanded: {},
+                                    onToggleSubtask: { _ in },
+                                    onDeleteSubtask: { _ in },
+                                    onEditSubtask: { _ in }
                                 )
                                 .opacity(0.8)
                             }
@@ -272,6 +341,14 @@ struct ContentView: View {
                 EditTodoSheet(todo: $todos[index], onSave: {
                     saveTodos()
                     editingTodo = nil
+                })
+            }
+        }
+        .sheet(item: $editingSubtaskForTodo) { todo in
+            if let index = todos.firstIndex(where: { $0.id == todo.id }) {
+                AddSubtaskSheet(todo: $todos[index], onSave: {
+                    saveTodos()
+                    editingSubtaskForTodo = nil
                 })
             }
         }
@@ -364,15 +441,52 @@ struct ContentView: View {
         // Save to persistent storage (without animation)
         saveTodos()
     }
+    
+    private func addSubtask(to todo: TodoItem) {
+        editingSubtaskForTodo = todo
+    }
+    
+    private func toggleExpanded(_ todo: TodoItem) {
+        if expandedTodos.contains(todo.id) {
+            expandedTodos.remove(todo.id)
+        } else {
+            expandedTodos.insert(todo.id)
+        }
+    }
+    
+    private func toggleSubtask(_ subtask: Subtask, in todo: TodoItem) {
+        if let todoIndex = todos.firstIndex(where: { $0.id == todo.id }),
+           let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) {
+            todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
+            saveTodos()
+        }
+    }
+    
+    private func deleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
+        if let todoIndex = todos.firstIndex(where: { $0.id == todo.id }) {
+            todos[todoIndex].subtasks.removeAll { $0.id == subtask.id }
+            saveTodos()
+        }
+    }
+    
+    private func editSubtask(_ subtask: Subtask, in todo: TodoItem) {
+        editingSubtaskForTodo = todo
+    }
 }
 
 struct TodoRow: View {
     let todo: TodoItem
     let timerUpdateTrigger: Int  // Used to trigger UI updates
+    let isExpanded: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onToggleTimer: () -> Void
     let onEdit: () -> Void
+    let onAddSubtask: () -> Void
+    let onToggleExpanded: () -> Void
+    let onToggleSubtask: (Subtask) -> Void
+    let onDeleteSubtask: (Subtask) -> Void
+    let onEditSubtask: (Subtask) -> Void
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
         let hours = Int(timeInterval) / 3600
@@ -387,53 +501,94 @@ struct TodoRow: View {
     }
     
     var body: some View {
-        HStack {
-            Button(action: onToggle) {
-                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(todo.isCompleted ? .green : .secondary)
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(todo.text)
-                    .strikethrough(todo.isCompleted)
-                    .foregroundColor(todo.isCompleted ? .secondary : .primary)
-                
-                if todo.totalTimeSpent > 0 || todo.isRunning {
-                    Text(formatTime(todo.currentTimeSpent))
-                        .font(.caption)
-                        .foregroundColor(todo.isRunning ? .blue : .secondary)
-                        .monospacedDigit()
-                        .id(timerUpdateTrigger)  // Force update when trigger changes
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onToggle) {
+                    Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(todo.isCompleted ? .green : .secondary)
+                        .font(.title3)
                 }
+                .buttonStyle(.plain)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(todo.text)
+                        .strikethrough(todo.isCompleted)
+                        .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                    
+                    if todo.totalTimeSpent > 0 || todo.isRunning {
+                        Text(formatTime(todo.currentTimeSpent))
+                            .font(.caption)
+                            .foregroundColor(todo.isRunning ? .blue : .secondary)
+                            .monospacedDigit()
+                            .id(timerUpdateTrigger)  // Force update when trigger changes
+                    }
+                    
+                    if !todo.subtasks.isEmpty {
+                        Text("\(todo.subtasks.count) subtask\(todo.subtasks.count == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                // Chevron button to expand/collapse subtasks
+                if !todo.subtasks.isEmpty {
+                    Button(action: onToggleExpanded) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // Add subtask button
+                Button(action: onAddSubtask) {
+                    Image(systemName: "plus.circle")
+                        .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: onToggleTimer) {
+                    Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
+                        .foregroundColor(todo.isRunning ? .orange : .blue)
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(8)
             
-            Spacer()
-            
-            Button(action: onToggleTimer) {
-                Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                    .foregroundColor(todo.isRunning ? .orange : .blue)
-                    .font(.title3)
+            // Subtasks list
+            if isExpanded && !todo.subtasks.isEmpty {
+                VStack(spacing: 4) {
+                    ForEach(todo.subtasks) { subtask in
+                        SubtaskRow(
+                            subtask: subtask,
+                            onToggle: { onToggleSubtask(subtask) },
+                            onDelete: { onDeleteSubtask(subtask) }
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 2)
+                    }
+                }
+                .padding(.top, 4)
             }
-            .buttonStyle(.plain)
-            
-            Button(action: onEdit) {
-                Image(systemName: "pencil")
-                    .foregroundColor(.blue)
-            }
-            .buttonStyle(.plain)
-            
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
-            }
-            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
     }
 }
 
@@ -575,6 +730,117 @@ struct EditTodoSheet: View {
         let clampedHours = max(0, estimateHours)
         let clampedMinutes = max(0, min(59, estimateMinutes))
         todo.estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
+        
+        onSave()
+        dismiss()
+    }
+}
+
+struct SubtaskRow: View {
+    let subtask: Subtask
+    let onToggle: () -> Void
+    let onDelete: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Button(action: onToggle) {
+                Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(subtask.isCompleted ? .green : .secondary)
+                    .font(.subheadline)
+            }
+            .buttonStyle(.plain)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subtask.title)
+                    .font(.subheadline)
+                    .strikethrough(subtask.isCompleted)
+                    .foregroundColor(subtask.isCompleted ? .secondary : .primary)
+                
+                if !subtask.description.isEmpty {
+                    Text(subtask.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            
+            Spacer()
+            
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .cornerRadius(6)
+    }
+}
+
+struct AddSubtaskSheet: View {
+    @Binding var todo: TodoItem
+    let onSave: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var title: String = ""
+    @State private var description: String = ""
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("Add Subtask")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button("Add") {
+                    saveSubtask()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Form content
+            Form {
+                Section(header: Text("Subtask Details")) {
+                    TextField("Title", text: $title)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Description (optional)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextEditor(text: $description)
+                            .frame(minHeight: 100, maxHeight: 200)
+                            .border(Color.gray.opacity(0.2), width: 1)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+        }
+        .frame(minWidth: 400, minHeight: 300)
+    }
+    
+    private func saveSubtask() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
+        guard !trimmedTitle.isEmpty else { return }
+        
+        let newSubtask = Subtask(title: trimmedTitle, description: description)
+        todo.subtasks.append(newSubtask)
         
         onSave()
         dismiss()
