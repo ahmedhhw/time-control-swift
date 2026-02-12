@@ -1146,6 +1146,7 @@ class FloatingWindowManager: ObservableObject {
     static let shared = FloatingWindowManager()
     private var floatingWindow: NSWindow?
     @Published var currentTask: TodoItem?
+    private var windowDelegate: FloatingWindowDelegate?
     
     func showFloatingWindow(for task: TodoItem) {
         // Close existing window if any
@@ -1184,6 +1185,11 @@ class FloatingWindowManager: ObservableObject {
         window.hidesOnDeactivate = false
         window.minSize = NSSize(width: 100, height: 30)
         
+        // Set up the window delegate to handle close button
+        let delegate = FloatingWindowDelegate(taskId: task.id)
+        window.delegate = delegate
+        windowDelegate = delegate  // Keep a strong reference
+        
         floatingWindow = window
         window.orderFrontRegardless()
     }
@@ -1192,10 +1198,46 @@ class FloatingWindowManager: ObservableObject {
         floatingWindow?.close()
         floatingWindow = nil
         currentTask = nil
+        windowDelegate = nil
     }
     
     func updateTask(_ task: TodoItem) {
         currentTask = task
+    }
+}
+
+// Window delegate to handle window close button
+class FloatingWindowDelegate: NSObject, NSWindowDelegate {
+    let taskId: UUID
+    
+    init(taskId: UUID) {
+        self.taskId = taskId
+        super.init()
+    }
+    
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // Show confirmation dialog
+        let alert = NSAlert()
+        alert.messageText = "Pause Task?"
+        alert.informativeText = "Closing this window will pause the task timer. Are you sure?"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Pause Task")
+        alert.addButton(withTitle: "Cancel")
+        
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            // User clicked "Pause Task" - notify to pause the task
+            NotificationCenter.default.post(
+                name: NSNotification.Name("PauseTaskFromFloatingWindow"),
+                object: nil,
+                userInfo: ["taskId": taskId]
+            )
+            return true
+        } else {
+            // User clicked "Cancel" - don't close the window
+            return false
+        }
     }
 }
 
