@@ -214,6 +214,7 @@ struct ContentView: View {
     @State private var newSubtaskText: String = ""  // Text for new subtask
     @FocusState private var subtaskInputFocused: UUID?  // Track focused subtask input
     @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
+    @State private var runningTaskId: UUID?  // Track the currently running task for floating window
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -569,6 +570,13 @@ struct ContentView: View {
                 })
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            if let runningId = runningTaskId,
+               let runningTask = todos.first(where: { $0.id == runningId && $0.isRunning }) {
+                FloatingTaskWindow(task: runningTask)
+                    .padding(20)
+            }
+        }
     }
     
     private func addTodo() {
@@ -636,6 +644,7 @@ struct ContentView: View {
                     todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
                 todos[index].lastStartTime = nil
+                runningTaskId = nil  // Hide floating window
             } else {
                 // Pause any other running tasks first
                 for i in 0..<todos.count {
@@ -649,6 +658,7 @@ struct ContentView: View {
                 
                 // Start the timer for this task
                 todos[index].lastStartTime = Date()
+                runningTaskId = todo.id  // Show floating window
                 
                 // Set startedAt timestamp if this is the first time starting
                 if todos[index].startedAt == nil {
@@ -1050,6 +1060,30 @@ struct SubtaskRow: View {
         .padding(.vertical, 6)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
         .cornerRadius(6)
+    }
+}
+
+struct FloatingTaskWindow: View {
+    let task: TodoItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(task.text)
+                .font(.headline)
+                .lineLimit(2)
+            
+            if !task.description.isEmpty {
+                Text(task.description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+        }
+        .padding(12)
+        .frame(width: 250)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
+        .shadow(radius: 4)
     }
 }
 
