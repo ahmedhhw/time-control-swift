@@ -40,15 +40,6 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var completedAt: TimeInterval? = nil  // Epoch time when task was marked completed
     var notes: String = ""  // Notes taken while working on the task
     
-    static func == (lhs: TodoItem, rhs: TodoItem) -> Bool {
-        lhs.id == rhs.id &&
-        lhs.text == rhs.text &&
-        lhs.isCompleted == rhs.isCompleted &&
-        lhs.subtasks == rhs.subtasks &&
-        lhs.totalTimeSpent == rhs.totalTimeSpent &&
-        lhs.lastStartTime == rhs.lastStartTime
-    }
-    
     init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "") {
         self.id = id
         self.text = text
