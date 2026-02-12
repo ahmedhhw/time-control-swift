@@ -213,6 +213,7 @@ class TodoStorage {
 struct ContentView: View {
     @State private var todos: [TodoItem] = []
     @State private var newTodoText: String = ""
+    @State private var filterText: String = ""  // Text for filtering tasks
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timers
     @State private var editingTodo: TodoItem?  // Track which todo is being edited
     @State private var expandedTodos: Set<UUID> = []  // Track which todos have expanded subtasks (includes subtask input)
@@ -230,11 +231,45 @@ struct ContentView: View {
     
     // Computed properties to separate incomplete and completed todos
     private var incompleteTodos: [TodoItem] {
-        todos.filter { !$0.isCompleted }
+        let filtered = todos.filter { !$0.isCompleted }
+        return filterTodos(filtered)
     }
     
     private var completedTodos: [TodoItem] {
-        todos.filter { $0.isCompleted }
+        let filtered = todos.filter { $0.isCompleted }
+        return filterTodos(filtered)
+    }
+    
+    // Filter todos based on filter text (case insensitive)
+    private func filterTodos(_ items: [TodoItem]) -> [TodoItem] {
+        guard !filterText.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return items
+        }
+        
+        let searchText = filterText.lowercased()
+        return items.filter { todo in
+            // Search in task title
+            if todo.text.lowercased().contains(searchText) {
+                return true
+            }
+            
+            // Search in task description
+            if todo.description.lowercased().contains(searchText) {
+                return true
+            }
+            
+            // Search in subtask titles
+            if todo.subtasks.contains(where: { $0.title.lowercased().contains(searchText) }) {
+                return true
+            }
+            
+            // Search in subtask descriptions
+            if todo.subtasks.contains(where: { $0.description.lowercased().contains(searchText) }) {
+                return true
+            }
+            
+            return false
+        }
     }
     
     var body: some View {
@@ -255,6 +290,29 @@ struct ContentView: View {
                 .disabled(newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding()
+            
+            // Filter text field
+            HStack {
+                TextField("Filter tasks...", text: $filterText)
+                    .textFieldStyle(.roundedBorder)
+                
+                if !filterText.isEmpty {
+                    Button(action: {
+                        filterText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.title2)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                        .font(.title2)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.bottom)
             
             Divider()
             
