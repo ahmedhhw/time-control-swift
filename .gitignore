@@ -1,0 +1,67 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+!*.xcworkspace/xcshareddata/
+
+# Build artifacts
+TodoApp/build/
+TodoApp/dist/
+DerivedData/
+*.app
+*.dSYM.zip
+*.dSYM
+
+# DMG creation temporary files
+*.dmg.tmp
+*-rw.dmg
+
+# User-specific Xcode files
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+
+# Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+*.swiftpm
+
+# CocoaPods
+Pods/
+*.podspec
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code coverage
+*.gcov
+*.gcda
+*.gcno
+
+# Temporary files
+*.swp
+*.swo
+*~
+.*.sw?
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
