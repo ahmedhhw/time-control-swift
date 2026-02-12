@@ -1,6 +1,6 @@
-# TodoApp Test Suite
+# TimeControl Test Suite
 
-Comprehensive unit tests for the TodoApp macOS application.
+Comprehensive unit tests for the TimeControl macOS application.
 
 ## 📊 Test Statistics
 
@@ -124,20 +124,20 @@ Tests for time calculations and edge cases including:
 ## 🚀 Running the Tests
 
 ### In Xcode
-1. Open the project: `open TodoApp.xcodeproj`
+1. Open the project: `open TimeControl.xcodeproj`
 2. Press `Cmd+U` to run all tests
 3. Or use the Test Navigator to run individual test files/methods
 
 ### Command Line
 ```bash
 # Run all tests
-xcodebuild test -scheme TodoApp -destination 'platform=macOS'
+xcodebuild test -scheme TimeControl -destination 'platform=macOS'
 
 # With verbose output
-xcodebuild test -scheme TodoApp -destination 'platform=macOS' | xcpretty
+xcodebuild test -scheme TimeControl -destination 'platform=macOS' | xcpretty
 
 # Run specific test file
-xcodebuild test -scheme TodoApp -destination 'platform=macOS' -only-testing:TodoAppTests/TodoItemTests
+xcodebuild test -scheme TimeControl -destination 'platform=macOS' -only-testing:TimeControlTests/TodoItemTests
 ```
 
 ### Using Make (if configured)
@@ -230,7 +230,7 @@ Example CI configuration:
 ```yaml
 test:
   script:
-    - xcodebuild test -scheme TodoApp -destination 'platform=macOS'
+    - xcodebuild test -scheme TimeControl -destination 'platform=macOS'
 ```
 
 ## 📈 Future Test Coverage

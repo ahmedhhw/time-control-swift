@@ -1,6 +1,6 @@
-# DMG Creation Guide for TodoApp
+# DMG Creation Guide for TimeControl
 
-This guide explains how to create professional DMG (disk image) files for distributing TodoApp on macOS.
+This guide explains how to create professional DMG (disk image) files for distributing TimeControl on macOS.
 
 ## Table of Contents
 
@@ -17,16 +17,16 @@ This guide explains how to create professional DMG (disk image) files for distri
 ### Method 1: Using Make (Recommended)
 
 ```bash
-cd TodoApp
+cd TimeControl
 make dmg
 ```
 
-The DMG will be created at `dist/TodoApp.dmg`.
+The DMG will be created at `dist/TimeControl.dmg`.
 
 ### Method 2: Using the Script Directly
 
 ```bash
-cd TodoApp
+cd TimeControl
 ./scripts/make-dmg.sh
 ```
 
@@ -34,7 +34,7 @@ cd TodoApp
 
 A DMG (Disk Image) is the standard format for distributing macOS applications. When users open a DMG, they see:
 
-1. Your application (TodoApp.app)
+1. Your application (TimeControl.app)
 2. A link to the Applications folder
 3. A styled Finder window (optional but professional)
 
@@ -53,7 +53,7 @@ make dmg
 ```
 
 **Time:** ~30-60 seconds  
-**Output:** `dist/TodoApp.dmg`
+**Output:** `dist/TimeControl.dmg`
 
 ### Quick DMG (No Styling)
 
@@ -66,7 +66,7 @@ make dmg-quick
 ```
 
 **Time:** ~20-30 seconds  
-**Output:** `dist/TodoApp.dmg`
+**Output:** `dist/TimeControl.dmg`
 
 ### Versioned DMG
 
@@ -78,7 +78,7 @@ make dmg-version VERSION=1.0.0
 ./scripts/make-dmg.sh --version 1.0.0
 ```
 
-**Output:** `dist/TodoApp-1.0.0.dmg`
+**Output:** `dist/TimeControl-1.0.0.dmg`
 
 ### Skip Build Step
 
@@ -179,7 +179,7 @@ The image will be automatically resized to match the window dimensions.
 
 ### Volume Name
 
-The DMG volume name is set to "TodoApp" by default. To change it:
+The DMG volume name is set to "TimeControl" by default. To change it:
 
 ```bash
 # In make-dmg.sh, modify:
@@ -198,10 +198,10 @@ APP_NAME="YourAppName"
 make build
 
 # Check if the app exists
-ls -la build/Build/Products/Release/TodoApp.app
+ls -la build/Build/Products/Release/TimeControl.app
 
 # If build fails, check Xcode project
-xcodebuild -project TodoApp.xcodeproj -list
+xcodebuild -project TimeControl.xcodeproj -list
 ```
 
 ### Finder Styling Doesn't Apply
@@ -218,15 +218,15 @@ xcodebuild -project TodoApp.xcodeproj -list
 
 ### DMG Already Mounted
 
-**Problem:** `/Volumes/TodoApp` is already in use.
+**Problem:** `/Volumes/TimeControl` is already in use.
 
 **Solution:**
 ```bash
 # Manually unmount
-hdiutil detach /Volumes/TodoApp
+hdiutil detach /Volumes/TimeControl
 
 # Or force unmount
-hdiutil detach /Volumes/TodoApp -force
+hdiutil detach /Volumes/TimeControl -force
 ```
 
 ### Build Fails with Code Signing Error
@@ -263,7 +263,7 @@ chmod +x scripts/quick-dmg.sh
 df -h /tmp
 
 # Clean up old temporary files
-rm -rf /tmp/TodoApp*
+rm -rf /tmp/TimeControl*
 ```
 
 ## Best Practices
@@ -310,7 +310,7 @@ Keep timestamped archives of your builds:
 make archive
 ```
 
-This creates a copy with a timestamp like `TodoApp-20260211-143022.dmg`.
+This creates a copy with a timestamp like `TimeControl-20260211-143022.dmg`.
 
 ### Pre-Release Checklist
 
@@ -340,7 +340,7 @@ Before distributing:
 ## File Locations
 
 ```
-TodoApp/
+TimeControl/
 ├── Makefile                    # Build automation
 ├── scripts/
 │   ├── make-dmg.sh            # Main DMG creation script
@@ -348,10 +348,10 @@ TodoApp/
 │   └── README.md              # Scripts documentation
 ├── build/                     # Build artifacts (temporary)
 │   └── Build/Products/Release/
-│       └── TodoApp.app        # Compiled application
+│       └── TimeControl.app        # Compiled application
 └── dist/                      # Distribution files (output)
-    ├── TodoApp.dmg            # Standard DMG
-    └── TodoApp-1.0.0.dmg      # Versioned DMG
+    ├── TimeControl.dmg            # Standard DMG
+    └── TimeControl-1.0.0.dmg      # Versioned DMG
 ```
 
 ## Technical Details
@@ -406,8 +406,8 @@ make info
 For debugging, run xcodebuild directly:
 
 ```bash
-xcodebuild -project TodoApp.xcodeproj \
-  -scheme TodoApp \
+xcodebuild -project TimeControl.xcodeproj \
+  -scheme TimeControl \
   -configuration Release \
   clean build
 ```
@@ -420,4 +420,4 @@ xcodebuild -project TodoApp.xcodeproj \
 
 ## License
 
-These build scripts are part of the TodoApp project and follow the same license.
+These build scripts are part of the TimeControl project and follow the same license.

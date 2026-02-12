@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script to add a test target to TodoApp.xcodeproj
-This adds the TodoAppTests target and all test files to the Xcode project.
+Script to add a test target to TimeControl.xcodeproj
+This adds the TimeControlTests target and all test files to the Xcode project.
 """
 
 import os
@@ -47,10 +47,10 @@ for test_file in TEST_FILES:
 
 def read_project():
     """Read the project.pbxproj file"""
-    path = "TodoApp.xcodeproj/project.pbxproj"
+    path = "TimeControl.xcodeproj/project.pbxproj"
     if not os.path.exists(path):
         print(f"Error: {path} not found")
-        print("Please run this script from the TodoApp directory")
+        print("Please run this script from the TimeControl directory")
         sys.exit(1)
     
     with open(path, 'r') as f:
@@ -58,7 +58,7 @@ def read_project():
 
 def write_project(content):
     """Write the modified project.pbxproj file"""
-    path = "TodoApp.xcodeproj/project.pbxproj"
+    path = "TimeControl.xcodeproj/project.pbxproj"
     
     # Backup original
     backup_path = path + ".backup"
@@ -97,7 +97,7 @@ def add_test_target(content):
 \t\t\tcontainerPortal = A1000020000000000000001 /* Project object */;
 \t\t\tproxyType = 1;
 \t\t\tremoteGlobalIDString = A1000016000000000000001;
-\t\t\tremoteInfo = TodoApp;
+\t\t\tremoteInfo = TimeControl;
 \t\t}};
 /* End PBXContainerItemProxy section */
 """
@@ -107,7 +107,7 @@ def add_test_target(content):
     # 3. Add PBXFileReference entries for test files and test product
     file_ref_section = "/* End PBXFileReference section */"
     file_refs = [
-        f"\t\t{uuid_test_product_ref} /* TodoAppTests.xctest */ = {{isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TodoAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; }};"
+        f"\t\t{uuid_test_product_ref} /* TimeControlTests.xctest */ = {{isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeControlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; }};"
     ]
     for test_file in TEST_FILES:
         file_refs.append(
@@ -131,40 +131,40 @@ def add_test_target(content):
     content = content[:insert_pos] + frameworks_phase + content[insert_pos:]
     
     # 5. Add PBXGroup for test files and update Products group
-    # First, add TodoAppTests group
+    # First, add TimeControlTests group
     group_section = "/* End PBXGroup section */"
     test_files_list = ",\n".join([f"\t\t\t\t{test_file_uuids[test_file]} /* {test_file} */" for test_file in TEST_FILES])
-    test_group = f"""\t\t{uuid_test_group} /* TodoAppTests */ = {{
+    test_group = f"""\t\t{uuid_test_group} /* TimeControlTests */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
 {test_files_list},
 \t\t\t);
-\t\t\tpath = TodoAppTests;
+\t\t\tpath = TimeControlTests;
 \t\t\tsourceTree = \"<group>\";
 \t\t}};
 """
     insert_pos = content.find(group_section)
     content = content[:insert_pos] + test_group + content[insert_pos:]
     
-    # Update root group to include TodoAppTests
-    root_group_pattern = "A1000013000000000000001 /* TodoApp */,"
+    # Update root group to include TimeControlTests
+    root_group_pattern = "A1000013000000000000001 /* TimeControl */,"
     content = content.replace(
         root_group_pattern,
-        f"{root_group_pattern}\n\t\t\t\t{uuid_test_group} /* TodoAppTests */,"
+        f"{root_group_pattern}\n\t\t\t\t{uuid_test_group} /* TimeControlTests */,"
     )
     
     # Update Products group
-    products_pattern = "A1000009000000000000001 /* TodoApp.app */,"
+    products_pattern = "A1000009000000000000001 /* TimeControl.app */,"
     content = content.replace(
         products_pattern,
-        f"{products_pattern}\n\t\t\t\t{uuid_test_product_ref} /* TodoAppTests.xctest */,"
+        f"{products_pattern}\n\t\t\t\t{uuid_test_product_ref} /* TimeControlTests.xctest */,"
     )
     
     # 6. Add PBXNativeTarget for tests
     native_target_section = "/* End PBXNativeTarget section */"
-    test_target = f"""\t\t{uuid_test_target} /* TodoAppTests */ = {{
+    test_target = f"""\t\t{uuid_test_target} /* TimeControlTests */ = {{
 \t\t\tisa = PBXNativeTarget;
-\t\t\tbuildConfigurationList = {uuid_test_build_config_list} /* Build configuration list for PBXNativeTarget "TodoAppTests" */;
+\t\t\tbuildConfigurationList = {uuid_test_build_config_list} /* Build configuration list for PBXNativeTarget "TimeControlTests" */;
 \t\t\tbuildPhases = (
 \t\t\t\t{uuid_test_sources_phase} /* Sources */,
 \t\t\t\t{uuid_test_frameworks_phase} /* Frameworks */,
@@ -175,9 +175,9 @@ def add_test_target(content):
 \t\t\tdependencies = (
 \t\t\t\t{uuid_test_dependency} /* PBXTargetDependency */,
 \t\t\t);
-\t\t\tname = TodoAppTests;
-\t\t\tproductName = TodoAppTests;
-\t\t\tproductReference = {uuid_test_product_ref} /* TodoAppTests.xctest */;
+\t\t\tname = TimeControlTests;
+\t\t\tproductName = TimeControlTests;
+\t\t\tproductReference = {uuid_test_product_ref} /* TimeControlTests.xctest */;
 \t\t\tproductType = "com.apple.product-type.bundle.unit-test";
 \t\t}};
 """
@@ -185,10 +185,10 @@ def add_test_target(content):
     content = content[:insert_pos] + test_target + content[insert_pos:]
     
     # 7. Update PBXProject to include test target
-    project_targets = "A1000016000000000000001 /* TodoApp */,"
+    project_targets = "A1000016000000000000001 /* TimeControl */,"
     content = content.replace(
         project_targets,
-        f"{project_targets}\n\t\t\t\t{uuid_test_target} /* TodoAppTests */,"
+        f"{project_targets}\n\t\t\t\t{uuid_test_target} /* TimeControlTests */,"
     )
     
     # Update TargetAttributes
@@ -239,7 +239,7 @@ def add_test_target(content):
 /* Begin PBXTargetDependency section */
 \t\t{uuid_test_dependency} /* PBXTargetDependency */ = {{
 \t\t\tisa = PBXTargetDependency;
-\t\t\ttarget = A1000016000000000000001 /* TodoApp */;
+\t\t\ttarget = A1000016000000000000001 /* TimeControl */;
 \t\t\ttargetProxy = {uuid_test_container_proxy} /* PBXContainerItemProxy */;
 \t\t}};
 /* End PBXTargetDependency section */
@@ -257,11 +257,11 @@ def add_test_target(content):
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
 \t\t\t\tMARKETING_VERSION = 1.0;
-\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.example.TodoAppTests;
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.example.TimeControlTests;
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = NO;
 \t\t\t\tSWIFT_VERSION = 5.0;
-\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/TodoApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TodoApp";
+\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeControl.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TimeControl";
 \t\t\t}};
 \t\t\tname = Debug;
 \t\t}};
@@ -273,11 +273,11 @@ def add_test_target(content):
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
 \t\t\t\tMARKETING_VERSION = 1.0;
-\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.example.TodoAppTests;
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.example.TimeControlTests;
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = NO;
 \t\t\t\tSWIFT_VERSION = 5.0;
-\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/TodoApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TodoApp";
+\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeControl.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TimeControl";
 \t\t\t}};
 \t\t\tname = Release;
 \t\t}};
@@ -287,7 +287,7 @@ def add_test_target(content):
     
     # 12. Add XCConfigurationList for tests
     config_list_section = "/* End XCConfigurationList section */"
-    test_config_list = f"""\t\t{uuid_test_build_config_list} /* Build configuration list for PBXNativeTarget "TodoAppTests" */ = {{
+    test_config_list = f"""\t\t{uuid_test_build_config_list} /* Build configuration list for PBXNativeTarget "TimeControlTests" */ = {{
 \t\t\tisa = XCConfigurationList;
 \t\t\tbuildConfigurations = (
 \t\t\t\t{uuid_test_debug_config} /* Debug */,
@@ -305,21 +305,21 @@ def add_test_target(content):
 def main():
     """Main function"""
     print("=" * 50)
-    print("Adding Test Target to TodoApp")
+    print("Adding Test Target to TimeControl")
     print("=" * 50)
     print()
     
     # Check if we're in the right directory
-    if not os.path.exists("TodoApp.xcodeproj"):
-        print("❌ Error: TodoApp.xcodeproj not found")
-        print("Please run this script from the TodoApp directory")
+    if not os.path.exists("TimeControl.xcodeproj"):
+        print("❌ Error: TimeControl.xcodeproj not found")
+        print("Please run this script from the TimeControl directory")
         sys.exit(1)
     
     # Check if test files exist
     print("Checking test files...")
     missing = []
     for test_file in TEST_FILES:
-        path = f"TodoAppTests/{test_file}"
+        path = f"TimeControlTests/{test_file}"
         if os.path.exists(path):
             print(f"✅ {path}")
         else:
@@ -336,7 +336,7 @@ def main():
     content = read_project()
     
     # Check if test target already exists
-    if "TodoAppTests" in content:
+    if "TimeControlTests" in content:
         print("⚠️  Test target already exists in project")
         print("No changes made")
         sys.exit(0)
@@ -353,12 +353,12 @@ def main():
     print("=" * 50)
     print()
     print("Next steps:")
-    print("1. Open the project: open TodoApp.xcodeproj")
+    print("1. Open the project: open TimeControl.xcodeproj")
     print("2. Build the project: Cmd+B")
     print("3. Run tests: Cmd+U")
     print()
     print("Or run tests from command line:")
-    print("  xcodebuild test -scheme TodoApp -destination 'platform=macOS'")
+    print("  xcodebuild test -scheme TimeControl -destination 'platform=macOS'")
     print()
 
 if __name__ == "__main__":

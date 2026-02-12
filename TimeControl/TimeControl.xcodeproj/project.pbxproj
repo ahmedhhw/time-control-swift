@@ -7,23 +7,54 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1000001000000000000001 /* TodoAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000000000000001 /* TodoAppApp.swift */; };
+		A1000001000000000000001 /* TimeControlApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000000000000001 /* TimeControlApp.swift */; };
 		A1000003000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000004000000000000001 /* ContentView.swift */; };
 		A1000005000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000006000000000000001 /* Assets.xcassets */; };
 		A1000007000000000000001 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000008000000000000001 /* Preview Assets.xcassets */; };
+		A1000000000000000000113 /* CompilationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000112 /* CompilationTest.swift */; };
+		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
+		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
+		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
+		A1000000000000000000121 /* TodoOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000120 /* TodoOperationsTests.swift */; };
+		A1000000000000000000123 /* TimeFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000122 /* TimeFormattingTests.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A1000000000000000000108 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1000020000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1000016000000000000001;
+			remoteInfo = TimeControl;
+		};
+/* End PBXContainerItemProxy section */
+
+
 /* Begin PBXFileReference section */
-		A1000009000000000000001 /* TodoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TodoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A1000002000000000000001 /* TodoAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoAppApp.swift; sourceTree = "<group>"; };
+		A1000009000000000000001 /* TimeControl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeControl.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000002000000000000001 /* TimeControlApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeControlApp.swift; sourceTree = "<group>"; };
 		A1000004000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1000006000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1000008000000000000001 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		A1000010000000000000001 /* TodoApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TodoApp.entitlements; sourceTree = "<group>"; };
+		A1000010000000000000001 /* TimeControl.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeControl.entitlements; sourceTree = "<group>"; };
+		A1000000000000000000101 /* TimeControlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeControlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000112 /* CompilationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationTest.swift; sourceTree = "<group>"; };
+		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000120 /* TodoOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoOperationsTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000122 /* TimeFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormattingTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1000011000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1000000000000000000104 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -36,27 +67,29 @@
 		A1000012000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				A1000013000000000000001 /* TodoApp */,
+				A1000013000000000000001 /* TimeControl */,
+				A1000000000000000000102 /* TimeControlTests */,
 				A1000014000000000000001 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		A1000013000000000000001 /* TodoApp */ = {
+		A1000013000000000000001 /* TimeControl */ = {
 			isa = PBXGroup;
 			children = (
-				A1000002000000000000001 /* TodoAppApp.swift */,
+				A1000002000000000000001 /* TimeControlApp.swift */,
 				A1000004000000000000001 /* ContentView.swift */,
 				A1000006000000000000001 /* Assets.xcassets */,
-				A1000010000000000000001 /* TodoApp.entitlements */,
+				A1000010000000000000001 /* TimeControl.entitlements */,
 				A1000015000000000000001 /* Preview Content */,
 			);
-			path = TodoApp;
+			path = TimeControl;
 			sourceTree = "<group>";
 		};
 		A1000014000000000000001 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A1000009000000000000001 /* TodoApp.app */,
+				A1000009000000000000001 /* TimeControl.app */,
+				A1000000000000000000101 /* TimeControlTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -69,12 +102,25 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		A1000000000000000000102 /* TimeControlTests */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000112 /* CompilationTest.swift */,
+				A1000000000000000000114 /* TodoItemTests.swift */,
+				A1000000000000000000116 /* SubtaskTests.swift */,
+				A1000000000000000000118 /* TodoStorageTests.swift */,
+				A1000000000000000000120 /* TodoOperationsTests.swift */,
+				A1000000000000000000122 /* TimeFormattingTests.swift */,
+			);
+			path = TimeControlTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A1000016000000000000001 /* TodoApp */ = {
+		A1000016000000000000001 /* TimeControl */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A1000017000000000000001 /* Build configuration list for PBXNativeTarget "TodoApp" */;
+			buildConfigurationList = A1000017000000000000001 /* Build configuration list for PBXNativeTarget "TimeControl" */;
 			buildPhases = (
 				A1000018000000000000001 /* Sources */,
 				A1000011000000000000001 /* Frameworks */,
@@ -84,10 +130,28 @@
 			);
 			dependencies = (
 			);
-			name = TodoApp;
-			productName = TodoApp;
-			productReference = A1000009000000000000001 /* TodoApp.app */;
+			name = TimeControl;
+			productName = TimeControl;
+			productReference = A1000009000000000000001 /* TimeControl.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A1000000000000000000100 /* TimeControlTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000000000000000000109 /* Build configuration list for PBXNativeTarget "TimeControlTests" */;
+			buildPhases = (
+				A1000000000000000000103 /* Sources */,
+				A1000000000000000000104 /* Frameworks */,
+				A1000000000000000000105 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1000000000000000000106 /* PBXTargetDependency */,
+			);
+			name = TimeControlTests;
+			productName = TimeControlTests;
+			productReference = A1000000000000000000101 /* TimeControlTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -102,9 +166,13 @@
 					A1000016000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
 					};
+					A1000000000000000000100 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = A1000016000000000000001;
+					};
 				};
 			};
-			buildConfigurationList = A1000021000000000000001 /* Build configuration list for PBXProject "TodoApp" */;
+			buildConfigurationList = A1000021000000000000001 /* Build configuration list for PBXProject "TimeControl" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -117,7 +185,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A1000016000000000000001 /* TodoApp */,
+				A1000016000000000000001 /* TimeControl */,
+				A1000000000000000000100 /* TimeControlTests */,
 			);
 		};
 /* End PBXProject section */
@@ -132,6 +201,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1000000000000000000105 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -140,11 +216,33 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000003000000000000001 /* ContentView.swift in Sources */,
-				A1000001000000000000001 /* TodoAppApp.swift in Sources */,
+				A1000001000000000000001 /* TimeControlApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1000000000000000000103 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000113 /* CompilationTest.swift in Sources */,
+				A1000000000000000000115 /* TodoItemTests.swift in Sources */,
+				A1000000000000000000117 /* SubtaskTests.swift in Sources */,
+				A1000000000000000000119 /* TodoStorageTests.swift in Sources */,
+				A1000000000000000000121 /* TodoOperationsTests.swift in Sources */,
+				A1000000000000000000123 /* TimeFormattingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1000000000000000000106 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1000016000000000000001 /* TimeControl */;
+			targetProxy = A1000000000000000000108 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 
 /* Begin XCBuildConfiguration section */
 		A1000022000000000000001 /* Debug */ = {
@@ -270,11 +368,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TodoApp/TodoApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TimeControl/TimeControl.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"TodoApp/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"TimeControl/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -283,7 +381,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.TodoApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.TimeControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -295,11 +393,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TodoApp/TodoApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TimeControl/TimeControl.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"TodoApp/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"TimeControl/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -308,17 +406,49 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.TodoApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.TimeControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
+		A1000000000000000000110 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.TimeControlTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeControl.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TimeControl";
+			};
+			name = Debug;
+		};
+		A1000000000000000000111 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.TimeControlTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeControl.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TimeControl";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A1000017000000000000001 /* Build configuration list for PBXNativeTarget "TodoApp" */ = {
+		A1000017000000000000001 /* Build configuration list for PBXNativeTarget "TimeControl" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000024000000000000001 /* Debug */,
@@ -327,11 +457,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A1000021000000000000001 /* Build configuration list for PBXProject "TodoApp" */ = {
+		A1000021000000000000001 /* Build configuration list for PBXProject "TimeControl" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000022000000000000001 /* Debug */,
 				A1000023000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000109 /* Build configuration list for PBXNativeTarget "TimeControlTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000110 /* Debug */,
+				A1000000000000000000111 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

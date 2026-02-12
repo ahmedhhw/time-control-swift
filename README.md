@@ -1,10 +1,10 @@
-# TodoApp - macOS Todo List with Time Tracking
+# TimeControl - macOS Todo List with Time Tracking
 
 A comprehensive macOS todo list application built with SwiftUI, featuring advanced time tracking, task management, and productivity tools.
 
 ## Overview
 
-TodoApp is a native macOS application designed for productivity and time management. It combines traditional task management with sophisticated time tracking capabilities, including a floating timer window that stays visible across all applications. The app features hierarchical task organization with subtasks, detailed task metadata, and comprehensive timestamp tracking for analytics.
+TimeControl is a native macOS application designed for productivity and time management. It combines traditional task management with sophisticated time tracking capabilities, including a floating timer window that stays visible across all applications. The app features hierarchical task organization with subtasks, detailed task metadata, and comprehensive timestamp tracking for analytics.
 
 **Key Highlights:**
 - 🪟 **Floating Timer Window** - stays on top across all spaces and applications
@@ -108,11 +108,11 @@ TodoApp is a native macOS application designed for productivity and time managem
 
 ### Option 1: Using Xcode (GUI)
 
-1. Open `TodoApp/TodoApp.xcodeproj` in Xcode
+1. Open `TimeControl/TimeControl.xcodeproj` in Xcode
 2. Make sure the target is set to "My Mac" or your Mac device
 3. Press `Cmd + R` to build and run the app
 
-Alternatively, you can open the project from Finder by double-clicking the `TodoApp.xcodeproj` file.
+Alternatively, you can open the project from Finder by double-clicking the `TimeControl.xcodeproj` file.
 
 ### Option 2: Using Command Line (without Xcode IDE)
 
@@ -124,23 +124,23 @@ xcode-select --install
 **Build and run the app:**
 
 ```bash
-cd TodoApp
-xcodebuild -project TodoApp.xcodeproj -scheme TodoApp -configuration Debug
-open ~/Library/Developer/Xcode/DerivedData/TodoApp-*/Build/Products/Debug/TodoApp.app
+cd TimeControl
+xcodebuild -project TimeControl.xcodeproj -scheme TimeControl -configuration Debug
+open ~/Library/Developer/Xcode/DerivedData/TimeControl-*/Build/Products/Debug/TimeControl.app
 ```
 
 **Or build a release version:**
 
 ```bash
-cd TodoApp
-xcodebuild -project TodoApp.xcodeproj -scheme TodoApp -configuration Release
-open ~/Library/Developer/Xcode/DerivedData/TodoApp-*/Build/Products/Release/TodoApp.app
+cd TimeControl
+xcodebuild -project TimeControl.xcodeproj -scheme TimeControl -configuration Release
+open ~/Library/Developer/Xcode/DerivedData/TimeControl-*/Build/Products/Release/TimeControl.app
 ```
 
 **One-liner to build and run:**
 
 ```bash
-cd TodoApp && xcodebuild -project TodoApp.xcodeproj -scheme TodoApp -configuration Debug && open ~/Library/Developer/Xcode/DerivedData/TodoApp-*/Build/Products/Debug/TodoApp.app
+cd TimeControl && xcodebuild -project TimeControl.xcodeproj -scheme TimeControl -configuration Debug && open ~/Library/Developer/Xcode/DerivedData/TimeControl-*/Build/Products/Debug/TimeControl.app
 ```
 
 ## Build a DMG (Distribution)
@@ -150,7 +150,7 @@ cd TodoApp && xcodebuild -project TodoApp.xcodeproj -scheme TodoApp -configurati
 The easiest way to create a DMG is using the Makefile:
 
 ```bash
-cd TodoApp
+cd TimeControl
 make dmg              # Create styled DMG
 make dmg-quick        # Create DMG without styling (faster)
 make dmg-version VERSION=1.0.0  # Create versioned DMG
@@ -162,7 +162,7 @@ make release          # Clean build + create DMG
 You can also use the build script directly with more options:
 
 ```bash
-cd TodoApp
+cd TimeControl
 ./scripts/make-dmg.sh                    # Basic DMG creation
 ./scripts/make-dmg.sh --version 1.0.0    # Versioned DMG
 ./scripts/make-dmg.sh --skip-build       # Use existing build
@@ -184,10 +184,10 @@ make install        # Build DMG and open for installation
 ### Output
 
 DMG files are created in the `dist/` directory:
-- Default: `dist/TodoApp.dmg`
-- Versioned: `dist/TodoApp-1.0.0.dmg`
+- Default: `dist/TimeControl.dmg`
+- Versioned: `dist/TimeControl-1.0.0.dmg`
 
-For more details, see `TodoApp/scripts/README.md`
+For more details, see `TimeControl/scripts/README.md`
 
 ## Requirements
 
@@ -342,10 +342,10 @@ For more details, see `TodoApp/scripts/README.md`
 ## Project Structure
 
 ```
-TodoApp/
-├── TodoApp.xcodeproj/          # Xcode project file
-├── TodoApp/
-│   ├── TodoAppApp.swift        # Main app entry point
+TimeControl/
+├── TimeControl.xcodeproj/          # Xcode project file
+├── TimeControl/
+│   ├── TimeControlApp.swift        # Main app entry point
 │   ├── ContentView.swift       # Main UI with all components:
 │   │                           #   - TodoItem & Subtask models
 │   │                           #   - TodoStorage (JSON persistence)
@@ -356,7 +356,7 @@ TodoApp/
 │   │                           #   - FloatingWindowManager (floating window controller)
 │   │                           #   - FloatingTaskWindowView (floating window UI)
 │   │                           #   - NotesEditorView (notes editor)
-│   ├── TodoApp.entitlements    # App permissions
+│   ├── TimeControl.entitlements    # App permissions
 │   ├── Assets.xcassets/        # App icons and colors
 │   └── Preview Content/        # SwiftUI preview assets
 ├── Makefile                    # Build automation commands

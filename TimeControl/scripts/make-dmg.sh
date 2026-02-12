@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# make-dmg.sh - Create a distributable DMG for TodoApp
+# make-dmg.sh - Create a distributable DMG for TimeControl
 #
 # Usage:
 #   ./make-dmg.sh [options]
@@ -8,7 +8,7 @@
 # Options:
 #   --skip-build    Skip the Xcode build step (use existing .app)
 #   --no-style      Skip Finder window styling (faster)
-#   --version VER   Append version to DMG filename (e.g., TodoApp-1.0.0.dmg)
+#   --version VER   Append version to DMG filename (e.g., TimeControl-1.0.0.dmg)
 #   --help          Show this help message
 #
 # Example:
@@ -22,7 +22,7 @@ set -euo pipefail
 # ============================================================================
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="TodoApp"
+APP_NAME="TimeControl"
 XCODE_PROJECT="${ROOT_DIR}/${APP_NAME}.xcodeproj"
 SCHEME="${APP_NAME}"
 CONFIGURATION="Release"

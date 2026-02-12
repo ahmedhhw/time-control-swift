@@ -1,11 +1,11 @@
-# TodoApp - Quick Reference
+# TimeControl - Quick Reference
 
 ## 🚀 Quick Start
 
 ```bash
-cd TodoApp
+cd TimeControl
 make dmg          # Create distributable DMG
-open dist/TodoApp.dmg  # Open the DMG
+open dist/TimeControl.dmg  # Open the DMG
 ```
 
 ## 📦 Common Commands
@@ -63,11 +63,11 @@ make archive      # Create timestamped archive
 
 ## 📁 File Locations
 
-- **Source**: `TodoApp/TodoApp/`
-- **Xcode Project**: `TodoApp/TodoApp.xcodeproj`
-- **Build Output**: `TodoApp/build/`
-- **DMG Output**: `TodoApp/dist/`
-- **Scripts**: `TodoApp/scripts/`
+- **Source**: `TimeControl/TimeControl/`
+- **Xcode Project**: `TimeControl/TimeControl.xcodeproj`
+- **Build Output**: `TimeControl/build/`
+- **DMG Output**: `TimeControl/dist/`
+- **Scripts**: `TimeControl/scripts/`
 
 ## 🎯 Common Workflows
 
@@ -81,7 +81,7 @@ make run
 
 ```bash
 make dmg-quick
-open dist/TodoApp.dmg
+open dist/TimeControl.dmg
 ```
 
 ### Release Build
@@ -111,13 +111,13 @@ make build              # Try building again
 
 ```bash
 # Unmount stuck DMG
-hdiutil detach /Volumes/TodoApp -force
+hdiutil detach /Volumes/TimeControl -force
 
 # Check disk space
 df -h /tmp
 
 # Clean temporary files
-rm -rf /tmp/TodoApp*
+rm -rf /tmp/TimeControl*
 ```
 
 ### Permission Issues
@@ -145,13 +145,13 @@ chmod +x scripts/*.sh
 
 ```bash
 # Edit main app
-open TodoApp/ContentView.swift
+open TimeControl/ContentView.swift
 
 # Edit build script
 open scripts/make-dmg.sh
 
 # View Xcode project
-open TodoApp.xcodeproj
+open TimeControl.xcodeproj
 
 # Open build directory
 open build/

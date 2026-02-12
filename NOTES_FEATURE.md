@@ -47,7 +47,7 @@ Added a "Notes" button to the floating window that allows users to take notes wh
 - Notes are task-specific and remain with the task even after completion
 
 ## Files Modified
-- `/Users/ahmedhhw/repos/time-control/TodoApp/TodoApp/ContentView.swift`
+- `/Users/ahmedhhw/repos/time-control/TimeControl/TimeControl/ContentView.swift`
   - Added `notes` field to `TodoItem`
   - Updated storage save/load methods
   - Added `NotesEditorView` component

@@ -1,12 +1,12 @@
 //
 //  TimeFormattingTests.swift
-//  TodoAppTests
+//  TimeControlTests
 //
 //  Created on 2/11/26.
 //
 
 import XCTest
-@testable import TodoApp
+@testable import TimeControl
 
 final class TimeFormattingTests: XCTestCase {
     

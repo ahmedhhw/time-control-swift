@@ -1,31 +1,31 @@
 #!/bin/bash
 
-# Script to set up unit tests for TodoApp
+# Script to set up unit tests for TimeControl
 # This script helps verify test files and provides guidance
 
 set -e
 
 echo "======================================"
-echo "TodoApp Unit Test Setup"
+echo "TimeControl Unit Test Setup"
 echo "======================================"
 echo ""
 
 # Check if we're in the right directory
-if [ ! -d "TodoApp.xcodeproj" ]; then
-    echo "❌ Error: TodoApp.xcodeproj not found"
-    echo "Please run this script from the TodoApp directory"
+if [ ! -d "TimeControl.xcodeproj" ]; then
+    echo "❌ Error: TimeControl.xcodeproj not found"
+    echo "Please run this script from the TimeControl directory"
     exit 1
 fi
 
-echo "✅ Found TodoApp.xcodeproj"
+echo "✅ Found TimeControl.xcodeproj"
 
 # Check if test files exist
 TEST_FILES=(
-    "TodoAppTests/TodoItemTests.swift"
-    "TodoAppTests/SubtaskTests.swift"
-    "TodoAppTests/TodoStorageTests.swift"
-    "TodoAppTests/TodoOperationsTests.swift"
-    "TodoAppTests/TimeFormattingTests.swift"
+    "TimeControlTests/TodoItemTests.swift"
+    "TimeControlTests/SubtaskTests.swift"
+    "TimeControlTests/TodoStorageTests.swift"
+    "TimeControlTests/TodoOperationsTests.swift"
+    "TimeControlTests/TimeFormattingTests.swift"
 )
 
 echo ""
@@ -54,23 +54,23 @@ echo "Next Steps:"
 echo "======================================"
 echo ""
 echo "1. Open the project in Xcode:"
-echo "   open TodoApp.xcodeproj"
+echo "   open TimeControl.xcodeproj"
 echo ""
 echo "2. Add a test target if you don't have one:"
 echo "   File → New → Target → Unit Testing Bundle"
-echo "   Name: TodoAppTests"
+echo "   Name: TimeControlTests"
 echo ""
 echo "3. Add test files to the project:"
-echo "   - Right-click TodoAppTests folder"
-echo "   - Add Files to TodoApp..."
-echo "   - Select all 4 test files in TodoAppTests/"
-echo "   - Make sure 'TodoAppTests' target is checked"
+echo "   - Right-click TimeControlTests folder"
+echo "   - Add Files to TimeControl..."
+echo "   - Select all 4 test files in TimeControlTests/"
+echo "   - Make sure 'TimeControlTests' target is checked"
 echo ""
 echo "4. Run the tests:"
 echo "   Press Cmd+U or Product → Test"
 echo ""
 echo "Or try running from command line:"
-echo "   xcodebuild test -scheme TodoApp -destination 'platform=macOS'"
+echo "   xcodebuild test -scheme TimeControl -destination 'platform=macOS'"
 echo ""
 echo "======================================"
 echo "Test Coverage Summary:"

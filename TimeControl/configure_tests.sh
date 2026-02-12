@@ -1,33 +1,33 @@
 #!/bin/bash
 
-# Script to configure and run TodoApp tests
+# Script to configure and run TimeControl tests
 # This script opens Xcode and provides instructions for setting up the test target
 
 set -e
 
 echo "======================================"
-echo "TodoApp Test Configuration"
+echo "TimeControl Test Configuration"
 echo "======================================"
 echo ""
 
 # Check if we're in the right directory
-if [ ! -d "TodoApp.xcodeproj" ]; then
-    echo "❌ Error: TodoApp.xcodeproj not found"
-    echo "Please run this script from the TodoApp directory"
+if [ ! -d "TimeControl.xcodeproj" ]; then
+    echo "❌ Error: TimeControl.xcodeproj not found"
+    echo "Please run this script from the TimeControl directory"
     exit 1
 fi
 
-echo "✅ Found TodoApp.xcodeproj"
+echo "✅ Found TimeControl.xcodeproj"
 echo ""
 
 # Check if test files exist
 TEST_FILES=(
-    "TodoAppTests/CompilationTest.swift"
-    "TodoAppTests/TodoItemTests.swift"
-    "TodoAppTests/SubtaskTests.swift"
-    "TodoAppTests/TodoStorageTests.swift"
-    "TodoAppTests/TodoOperationsTests.swift"
-    "TodoAppTests/TimeFormattingTests.swift"
+    "TimeControlTests/CompilationTest.swift"
+    "TimeControlTests/TodoItemTests.swift"
+    "TimeControlTests/SubtaskTests.swift"
+    "TimeControlTests/TodoStorageTests.swift"
+    "TimeControlTests/TodoOperationsTests.swift"
+    "TimeControlTests/TimeFormattingTests.swift"
 )
 
 echo "Checking test files..."
@@ -51,19 +51,19 @@ echo "✅ All test files found!"
 echo ""
 
 # Check if test target exists in project
-if grep -q "TodoAppTests" TodoApp.xcodeproj/project.pbxproj; then
+if grep -q "TimeControlTests" TimeControl.xcodeproj/project.pbxproj; then
     echo "✅ Test target found in project"
     echo ""
     echo "Running tests..."
     echo ""
     
     # Try to run tests
-    xcodebuild test -scheme TodoApp -destination 'platform=macOS' 2>&1 | grep -E "(Test Suite|Test Case|passed|failed|error:)" || {
+    xcodebuild test -scheme TimeControl -destination 'platform=macOS' 2>&1 | grep -E "(Test Suite|Test Case|passed|failed|error:)" || {
         echo ""
         echo "⚠️  Tests couldn't run automatically"
         echo ""
         echo "Please try running tests manually in Xcode:"
-        echo "1. Open TodoApp.xcodeproj"
+        echo "1. Open TimeControl.xcodeproj"
         echo "2. Press Cmd+U to run tests"
     }
 else
@@ -78,25 +78,25 @@ else
     echo "📋 COPY THESE STEPS:"
     echo ""
     echo "1. Open the project:"
-    echo "   open TodoApp.xcodeproj"
+    echo "   open TimeControl.xcodeproj"
     echo ""
     echo "2. In Xcode, add a test target:"
     echo "   • File → New → Target"
     echo "   • Select 'Unit Testing Bundle' (under macOS)"
-    echo "   • Name: TodoAppTests"
-    echo "   • Target to be tested: TodoApp"
+    echo "   • Name: TimeControlTests"
+    echo "   • Target to be tested: TimeControl"
     echo "   • Click 'Finish'"
     echo ""
     echo "3. Add the test files:"
-    echo "   • Right-click 'TodoAppTests' folder in Project Navigator"
-    echo "   • Select 'Add Files to \"TodoApp\"...'"
-    echo "   • Navigate to TodoAppTests folder"
+    echo "   • Right-click 'TimeControlTests' folder in Project Navigator"
+    echo "   • Select 'Add Files to \"TimeControl\"...'"
+    echo "   • Navigate to TimeControlTests folder"
     echo "   • Select all .swift files"
-    echo "   • Make sure 'TodoAppTests' target is checked"
+    echo "   • Make sure 'TimeControlTests' target is checked"
     echo "   • Click 'Add'"
     echo ""
     echo "4. Delete the auto-generated test file (if exists):"
-    echo "   • Delete 'TodoAppTests.swift' if it was created"
+    echo "   • Delete 'TimeControlTests.swift' if it was created"
     echo ""
     echo "5. Run the tests:"
     echo "   • Press Cmd+U"
@@ -110,12 +110,12 @@ else
     if [[ "$response" =~ ^[Yy]$ ]]; then
         echo ""
         echo "Opening Xcode..."
-        open TodoApp.xcodeproj
+        open TimeControl.xcodeproj
         echo ""
         echo "✅ Xcode opened! Follow the steps above to add the test target."
     else
         echo ""
-        echo "You can open it later with: open TodoApp.xcodeproj"
+        echo "You can open it later with: open TimeControl.xcodeproj"
     fi
 fi
 
@@ -136,5 +136,5 @@ echo ""
 echo "For more details, see:"
 echo "  • ADD_TESTS_TO_PROJECT.md"
 echo "  • TEST_SUITE_SUMMARY.md"
-echo "  • TodoAppTests/README.md"
+echo "  • TimeControlTests/README.md"
 echo ""

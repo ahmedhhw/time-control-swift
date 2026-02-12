@@ -1,17 +1,17 @@
-# TodoApp Build Scripts
+# TimeControl Build Scripts
 
-This directory contains scripts for building and packaging the TodoApp macOS application.
+This directory contains scripts for building and packaging the TimeControl macOS application.
 
 ## Scripts
 
 ### `make-dmg.sh`
 
-Creates a distributable DMG (disk image) file for TodoApp with a styled Finder window.
+Creates a distributable DMG (disk image) file for TimeControl with a styled Finder window.
 
 #### Usage
 
 ```bash
-cd TodoApp
+cd TimeControl
 ./scripts/make-dmg.sh [options]
 ```
 
@@ -19,7 +19,7 @@ cd TodoApp
 
 - `--skip-build` - Skip the Xcode build step and use an existing .app bundle
 - `--no-style` - Skip Finder window styling (faster, but less polished)
-- `--version VER` - Append version to DMG filename (e.g., `TodoApp-1.0.0.dmg`)
+- `--version VER` - Append version to DMG filename (e.g., `TimeControl-1.0.0.dmg`)
 - `--help` - Show help message
 
 #### Examples
@@ -47,13 +47,13 @@ cd TodoApp
 #### Output
 
 The script creates a DMG file in the `dist/` directory:
-- Default: `dist/TodoApp.dmg`
-- With version: `dist/TodoApp-1.0.0.dmg`
+- Default: `dist/TimeControl.dmg`
+- With version: `dist/TimeControl-1.0.0.dmg`
 
 #### Features
 
 The DMG includes:
-- ✅ The TodoApp.app bundle
+- ✅ The TimeControl.app bundle
 - ✅ Applications folder symlink for easy installation
 - ✅ Styled Finder window with custom layout
 - ✅ Background image
@@ -79,7 +79,7 @@ The DMG includes:
 - Use `--no-style` to skip styling
 
 **DMG already mounted:**
-- Manually unmount: `hdiutil detach /Volumes/TodoApp`
+- Manually unmount: `hdiutil detach /Volumes/TimeControl`
 - The script will attempt to unmount automatically
 
 **Build fails:**
@@ -99,15 +99,15 @@ The DMG includes:
 ## Directory Structure
 
 ```
-TodoApp/
+TimeControl/
 ├── scripts/
 │   ├── make-dmg.sh          # Main DMG creation script
 │   └── README.md            # This file
 ├── dist/                    # Output directory (created by script)
-│   └── TodoApp.dmg          # Final DMG file
+│   └── TimeControl.dmg          # Final DMG file
 └── build/                   # Build artifacts (created by script)
     └── Build/Products/Release/
-        └── TodoApp.app      # Compiled application
+        └── TimeControl.app      # Compiled application
 ```
 
 ## Advanced Usage
@@ -140,7 +140,7 @@ The script is designed to work in automated environments:
 
 ```bash
 # In your CI/CD pipeline
-cd TodoApp
+cd TimeControl
 ./scripts/make-dmg.sh --version "${CI_BUILD_VERSION}" --no-style
 ```
 

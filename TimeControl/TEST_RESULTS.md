@@ -1,4 +1,4 @@
-# TodoApp Test Results
+# TimeControl Test Results
 
 **Date:** February 12, 2026  
 **Test Run:** Automated via xcodebuild
@@ -152,10 +152,10 @@ The 3 failing tests appear to be related to test expectations rather than actual
 
 **Test Command Used:**
 ```bash
-xcodebuild test -scheme TodoApp -destination 'platform=macOS'
+xcodebuild test -scheme TimeControl -destination 'platform=macOS'
 ```
 
-**Project:** TodoApp  
+**Project:** TimeControl  
 **Platform:** macOS 13.0+  
 **Test Framework:** XCTest  
 **Language:** Swift 5.0

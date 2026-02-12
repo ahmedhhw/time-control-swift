@@ -1,5 +1,5 @@
-# TodoApp Makefile
-# Convenient build targets for the TodoApp macOS application
+# TimeControl Makefile
+# Convenient build targets for the TimeControl macOS application
 
 .PHONY: help build run clean dmg dmg-quick dmg-version test install open-dmg
 
@@ -7,7 +7,7 @@
 .DEFAULT_GOAL := help
 
 # Variables
-APP_NAME = TodoApp
+APP_NAME = TimeControl
 XCODE_PROJECT = $(APP_NAME).xcodeproj
 BUILD_DIR = build
 DIST_DIR = dist
@@ -15,7 +15,7 @@ APP_PATH = $(BUILD_DIR)/Build/Products/Release/$(APP_NAME).app
 DMG_PATH = $(DIST_DIR)/$(APP_NAME).dmg
 
 help: ## Show this help message
-	@echo "TodoApp Build System"
+	@echo "TimeControl Build System"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""

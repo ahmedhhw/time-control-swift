@@ -5,16 +5,16 @@
 
 import Foundation
 
-print("🧪 TodoApp Test Verification")
+print("🧪 TimeControl Test Verification")
 print("============================\n")
 
 // Check if test files exist
 let testFiles = [
-    "TodoAppTests/TodoItemTests.swift",
-    "TodoAppTests/SubtaskTests.swift",
-    "TodoAppTests/TodoStorageTests.swift",
-    "TodoAppTests/TodoOperationsTests.swift",
-    "TodoAppTests/TimeFormattingTests.swift"
+    "TimeControlTests/TodoItemTests.swift",
+    "TimeControlTests/SubtaskTests.swift",
+    "TimeControlTests/TodoStorageTests.swift",
+    "TimeControlTests/TodoOperationsTests.swift",
+    "TimeControlTests/TimeFormattingTests.swift"
 ]
 
 var allFilesExist = true
@@ -35,10 +35,10 @@ if !allFilesExist {
 
 print("\n✅ All test files present!")
 print("\n📝 To run the tests:")
-print("   1. Open TodoApp.xcodeproj in Xcode")
+print("   1. Open TimeControl.xcodeproj in Xcode")
 print("   2. File → New → Target → Unit Testing Bundle")
-print("   3. Name it 'TodoAppTests'")
+print("   3. Name it 'TimeControlTests'")
 print("   4. Add the test files to the target")
 print("   5. Press Cmd+U to run tests")
 print("\nOr use the command:")
-print("   xcodebuild test -scheme TodoApp -destination 'platform=macOS'\n")
+print("   xcodebuild test -scheme TimeControl -destination 'platform=macOS'\n")

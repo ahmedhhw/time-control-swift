@@ -13,8 +13,8 @@
 !*.xcworkspace/xcshareddata/
 
 # Build artifacts
-TodoApp/build/
-TodoApp/dist/
+TimeControl/build/
+TimeControl/dist/
 DerivedData/
 *.app
 *.dSYM.zip

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  TodoApp
+//  TimeControl
 //
 //  Created on 2/11/26.
 //

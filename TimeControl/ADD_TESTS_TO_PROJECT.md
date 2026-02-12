@@ -1,8 +1,8 @@
-# Adding Unit Tests to TodoApp Project
+# Adding Unit Tests to TimeControl Project
 
 ## Test Files Created
 
-I've created comprehensive unit tests for the core functionalities of the TodoApp:
+I've created comprehensive unit tests for the core functionalities of the TimeControl:
 
 1. **TodoItemTests.swift** - Tests for the TodoItem model
    - Initialization tests
@@ -42,39 +42,39 @@ I've created comprehensive unit tests for the core functionalities of the TodoAp
 
 1. **Open the project in Xcode:**
    ```bash
-   cd /Users/ahmedhhw/repos/time-control/TodoApp
-   open TodoApp.xcodeproj
+   cd /Users/ahmedhhw/repos/time-control/TimeControl
+   open TimeControl.xcodeproj
    ```
 
 2. **Create a test target (if not exists):**
    - File → New → Target
    - Select "Unit Testing Bundle" under macOS
-   - Name it "TodoAppTests"
-   - Set the target to be tested: TodoApp
+   - Name it "TimeControlTests"
+   - Set the target to be tested: TimeControl
    - Click Finish
 
 3. **Add the test files:**
-   - Right-click on the TodoAppTests folder in the project navigator
-   - Select "Add Files to TodoApp..."
-   - Navigate to `/Users/ahmedhhw/repos/time-control/TodoApp/TodoAppTests/`
+   - Right-click on the TimeControlTests folder in the project navigator
+   - Select "Add Files to TimeControl..."
+   - Navigate to `/Users/ahmedhhw/repos/time-control/TimeControl/TimeControlTests/`
    - Select all 5 test files:
      - TodoItemTests.swift
      - SubtaskTests.swift
      - TodoStorageTests.swift
      - TodoOperationsTests.swift
      - TimeFormattingTests.swift
-   - Make sure "TodoAppTests" target is checked
+   - Make sure "TimeControlTests" target is checked
    - Click Add
 
 4. **Delete the default test file (if exists):**
-   - Delete `TodoAppTests.swift` if it was auto-generated
+   - Delete `TimeControlTests.swift` if it was auto-generated
 
 ### Option 2: Using Command Line
 
 If you prefer to add the test target via command line, you can use the following commands:
 
 ```bash
-cd /Users/ahmedhhw/repos/time-control/TodoApp
+cd /Users/ahmedhhw/repos/time-control/TimeControl
 
 # Create test target using xcodebuild (if not exists)
 # Note: This is more complex and GUI is recommended
@@ -84,21 +84,21 @@ cd /Users/ahmedhhw/repos/time-control/TodoApp
 
 ### In Xcode:
 1. Select the test navigator (diamond icon) in the left sidebar
-2. Click the play button next to "TodoAppTests" to run all tests
+2. Click the play button next to "TimeControlTests" to run all tests
 3. Or click individual test files/methods to run specific tests
 4. Use `Cmd + U` to run all tests
 
 ### From Command Line:
 ```bash
-cd /Users/ahmedhhw/repos/time-control/TodoApp
+cd /Users/ahmedhhw/repos/time-control/TimeControl
 
 # Run all tests
-xcodebuild test -scheme TodoApp -destination 'platform=macOS'
+xcodebuild test -scheme TimeControl -destination 'platform=macOS'
 
 # Or use xcodebuild with more specific options
 xcodebuild test \
-  -project TodoApp.xcodeproj \
-  -scheme TodoApp \
+  -project TimeControl.xcodeproj \
+  -scheme TimeControl \
   -destination 'platform=macOS,arch=arm64'
 ```
 

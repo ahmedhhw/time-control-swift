@@ -1,12 +1,12 @@
 //
 //  CompilationTest.swift
-//  TodoAppTests
+//  TimeControlTests
 //
 //  Simple compilation verification test
 //
 
 import XCTest
-@testable import TodoApp
+@testable import TimeControl
 
 /// This is a minimal test to verify the test target compiles correctly
 final class CompilationTest: XCTestCase {

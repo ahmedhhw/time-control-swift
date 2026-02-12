@@ -1,59 +1,59 @@
-# TodoApp Test Suite - Summary
+# TimeControl Test Suite - Summary
 
 ## Overview
 
-A comprehensive unit test suite has been created for the TodoApp macOS application, covering all core functionalities with 150+ test cases across 5 test files.
+A comprehensive unit test suite has been created for the TimeControl macOS application, covering all core functionalities with 150+ test cases across 5 test files.
 
 ## What Was Created
 
 ### Test Files (5 files)
 
 1. **TodoItemTests.swift** (45+ tests)
-   - Location: `TodoApp/TodoAppTests/TodoItemTests.swift`
+   - Location: `TimeControl/TimeControlTests/TodoItemTests.swift`
    - Purpose: Tests the `TodoItem` model structure and behavior
    - Key areas: Initialization, timer functionality, timestamps, properties, subtask integration
 
 2. **SubtaskTests.swift** (13+ tests)
-   - Location: `TodoApp/TodoAppTests/SubtaskTests.swift`
+   - Location: `TimeControl/TimeControlTests/SubtaskTests.swift`
    - Purpose: Tests the `Subtask` model
    - Key areas: Initialization, state management, equality checks
 
 3. **TodoStorageTests.swift** (25+ tests)
-   - Location: `TodoApp/TodoAppTests/TodoStorageTests.swift`
+   - Location: `TimeControl/TimeControlTests/TodoStorageTests.swift`
    - Purpose: Tests JSON persistence layer
    - Key areas: Save/load operations, data integrity, file handling
    - Note: Uses temporary files to avoid affecting production data
 
 4. **TodoOperationsTests.swift** (30+ tests)
-   - Location: `TodoApp/TodoAppTests/TodoOperationsTests.swift`
+   - Location: `TimeControl/TimeControlTests/TodoOperationsTests.swift`
    - Purpose: Tests core CRUD and timer operations
    - Key areas: Add/delete/toggle, timer management, reordering, filtering
 
 5. **TimeFormattingTests.swift** (37+ tests)
-   - Location: `TodoApp/TodoAppTests/TimeFormattingTests.swift`
+   - Location: `TimeControl/TimeControlTests/TimeFormattingTests.swift`
    - Purpose: Tests time calculations and edge cases
    - Key areas: Time calculations, progress tracking, boundary conditions
 
 ### Documentation Files (3 files)
 
 1. **README.md**
-   - Location: `TodoApp/TodoAppTests/README.md`
+   - Location: `TimeControl/TimeControlTests/README.md`
    - Purpose: Complete test suite documentation
    - Contents: Test statistics, file descriptions, patterns, best practices
 
 2. **ADD_TESTS_TO_PROJECT.md**
-   - Location: `TodoApp/ADD_TESTS_TO_PROJECT.md`
+   - Location: `TimeControl/ADD_TESTS_TO_PROJECT.md`
    - Purpose: Step-by-step instructions for adding tests to Xcode
    - Contents: GUI and CLI methods, running tests, verification
 
 3. **TEST_SUITE_SUMMARY.md** (this file)
-   - Location: `TodoApp/TEST_SUITE_SUMMARY.md`
+   - Location: `TimeControl/TEST_SUITE_SUMMARY.md`
    - Purpose: High-level overview of the test suite
 
 ### Helper Scripts (1 file)
 
 1. **setup_tests.sh**
-   - Location: `TodoApp/setup_tests.sh`
+   - Location: `TimeControl/setup_tests.sh`
    - Purpose: Automated verification of test file presence
    - Usage: `./setup_tests.sh`
 
@@ -122,21 +122,21 @@ Tests cover:
 
 ### Quick Start
 ```bash
-cd /Users/ahmedhhw/repos/time-control/TodoApp
+cd /Users/ahmedhhw/repos/time-control/TimeControl
 ./setup_tests.sh
 ```
 
 ### Add to Xcode Project
-1. Open `TodoApp.xcodeproj` in Xcode
+1. Open `TimeControl.xcodeproj` in Xcode
 2. Create a test target (File → New → Target → Unit Testing Bundle)
-3. Add all 5 test files from `TodoAppTests/` folder
+3. Add all 5 test files from `TimeControlTests/` folder
 4. Run tests with `Cmd+U`
 
 See `ADD_TESTS_TO_PROJECT.md` for detailed instructions.
 
 ### Run from Command Line
 ```bash
-xcodebuild test -scheme TodoApp -destination 'platform=macOS'
+xcodebuild test -scheme TimeControl -destination 'platform=macOS'
 ```
 
 ## Test Statistics
@@ -221,8 +221,8 @@ Potential areas for expansion:
 ## Files Summary
 
 ```
-TodoApp/
-├── TodoAppTests/
+TimeControl/
+├── TimeControlTests/
 │   ├── TodoItemTests.swift           (45+ tests)
 │   ├── SubtaskTests.swift            (13+ tests)
 │   ├── TodoStorageTests.swift        (25+ tests)
@@ -247,14 +247,14 @@ TodoApp/
 
 ## Getting Help
 
-1. **Test Documentation**: Read `TodoAppTests/README.md`
+1. **Test Documentation**: Read `TimeControlTests/README.md`
 2. **Setup Instructions**: Read `ADD_TESTS_TO_PROJECT.md`
 3. **Verification**: Run `./setup_tests.sh`
 4. **XCTest Docs**: [Apple XCTest Documentation](https://developer.apple.com/documentation/xctest)
 
 ## Conclusion
 
-This test suite provides comprehensive coverage of the TodoApp's core functionality with 150+ well-organized, isolated, and maintainable tests. The tests are production-safe, fast, and ready for continuous integration.
+This test suite provides comprehensive coverage of the TimeControl's core functionality with 150+ well-organized, isolated, and maintainable tests. The tests are production-safe, fast, and ready for continuous integration.
 
 ---
 
