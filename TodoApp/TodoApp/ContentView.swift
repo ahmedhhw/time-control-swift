@@ -203,6 +203,25 @@ struct ContentView: View {
                                 return true
                             }
                         }
+                        
+                        // Drop zone at the end for moving items to the last position
+                        Rectangle()
+                            .fill(Color.clear)
+                            .frame(height: 40)
+                            .dropDestination(for: String.self) { droppedItems, location in
+                                guard let droppedIdString = droppedItems.first,
+                                      let droppedId = UUID(uuidString: droppedIdString),
+                                      let fromIndex = todos.firstIndex(where: { $0.id == droppedId }) else {
+                                    return false
+                                }
+                                
+                                // Move to the last position
+                                let lastIndex = todos.count - 1
+                                if fromIndex != lastIndex {
+                                    moveTodo(from: fromIndex, to: lastIndex)
+                                }
+                                return true
+                            }
                     }
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: todos.map { $0.id })
                     .padding()
