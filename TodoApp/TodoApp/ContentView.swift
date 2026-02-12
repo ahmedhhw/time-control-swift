@@ -1128,7 +1128,7 @@ class FloatingWindowManager: ObservableObject {
         // Calculate position (bottom right of screen with padding)
         guard let screen = NSScreen.main else { return }
         let windowWidth: CGFloat = 300
-        let windowHeight: CGFloat = 200
+        let windowHeight: CGFloat = 300
         let padding: CGFloat = 20
         
         let xPos = screen.visibleFrame.maxX - windowWidth - padding
@@ -1149,7 +1149,7 @@ class FloatingWindowManager: ObservableObject {
         window.isFloatingPanel = true
         window.becomesKeyOnlyIfNeeded = true
         window.hidesOnDeactivate = false
-        window.minSize = NSSize(width: 250, height: 150)
+        window.minSize = NSSize(width: 100, height: 30)
         
         floatingWindow = window
         window.orderFrontRegardless()
@@ -1170,6 +1170,7 @@ struct FloatingTaskWindowView: View {
     let task: TodoItem
     @ObservedObject var windowManager: FloatingWindowManager
     @State private var localTask: TodoItem
+    @State private var isCollapsed: Bool = false
     
     init(task: TodoItem, windowManager: FloatingWindowManager) {
         self.task = task
@@ -1178,61 +1179,105 @@ struct FloatingTaskWindowView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Task title
-            Text(localTask.text)
-                .font(.headline)
-                .lineLimit(2)
-            
-            // Task description
-            if !localTask.description.isEmpty {
-                Text(localTask.description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-            }
-            
-            // Subtasks section
-            if !localTask.subtasks.isEmpty {
-                Divider()
+        VStack(alignment: .leading, spacing: 0) {
+            // Collapse/expand button at the top
+            HStack {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isCollapsed.toggle()
+                        resizeWindow()
+                    }
+                }) {
+                    Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .help(isCollapsed ? "Expand" : "Collapse")
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Subtasks")
-                            .font(.caption)
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            
+            // Content (hidden when collapsed)
+            if !isCollapsed {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Task title
+                    Text(localTask.text)
+                        .font(.headline)
+                        .lineLimit(2)
+                    
+                    // Task description
+                    if !localTask.description.isEmpty {
+                        Text(localTask.description)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .lineLimit(2)
+                    }
+                    
+                    // Subtasks section
+                    if !localTask.subtasks.isEmpty {
+                        Divider()
                         
-                        ForEach(localTask.subtasks) { subtask in
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    toggleSubtask(subtask)
-                                }) {
-                                    Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
-                                        .foregroundColor(subtask.isCompleted ? .green : .secondary)
-                                        .font(.subheadline)
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Subtasks")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                
+                                ForEach(localTask.subtasks) { subtask in
+                                    HStack(spacing: 8) {
+                                        Button(action: {
+                                            toggleSubtask(subtask)
+                                        }) {
+                                            Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                                .foregroundColor(subtask.isCompleted ? .green : .secondary)
+                                                .font(.subheadline)
+                                        }
+                                        .buttonStyle(.plain)
+                                        
+                                        Text(subtask.title)
+                                            .font(.body)
+                                            .strikethrough(subtask.isCompleted)
+                                            .foregroundColor(subtask.isCompleted ? .secondary : .primary)
+                                            .lineLimit(2)
+                                        
+                                        Spacer()
+                                    }
                                 }
-                                .buttonStyle(.plain)
-                                
-                                Text(subtask.title)
-                                    .font(.body)
-                                    .strikethrough(subtask.isCompleted)
-                                    .foregroundColor(subtask.isCompleted ? .secondary : .primary)
-                                    .lineLimit(2)
-                                
-                                Spacer()
                             }
                         }
                     }
                 }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onChange(of: windowManager.currentTask) { newTask in
             if let newTask = newTask {
                 localTask = newTask
             }
+        }
+    }
+    
+    private func resizeWindow() {
+        // Get the window from the view hierarchy
+        DispatchQueue.main.async {
+            guard let window = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
+            
+            let currentFrame = window.frame
+            let newHeight: CGFloat = isCollapsed ? 50 : 300
+            
+            // Keep the window anchored at the bottom-left corner and maintain width
+            let newY = currentFrame.maxY - newHeight
+            let newFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
+            
+            window.setFrame(newFrame, display: true, animate: true)
         }
     }
     
