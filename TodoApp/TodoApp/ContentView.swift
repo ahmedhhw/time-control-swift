@@ -179,6 +179,7 @@ struct ContentView: View {
                                     toggleTimer(todo)
                                 }
                             )
+                            .transition(.move(edge: .top).combined(with: .opacity))
                             .draggable(todo.id.uuidString) {
                                 // Preview shown while dragging
                                 TodoRow(
@@ -203,6 +204,7 @@ struct ContentView: View {
                             }
                         }
                     }
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: todos.map { $0.id })
                     .padding()
                 }
             }
@@ -285,16 +287,18 @@ struct ContentView: View {
     private func moveTodo(from sourceIndex: Int, to destinationIndex: Int) {
         guard sourceIndex != destinationIndex else { return }
         
-        // Move the item in the array
-        let movedTodo = todos.remove(at: sourceIndex)
-        todos.insert(movedTodo, at: destinationIndex)
-        
-        // Reindex all todos to maintain correct order
-        for (index, _) in todos.enumerated() {
-            todos[index].index = index
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            // Move the item in the array
+            let movedTodo = todos.remove(at: sourceIndex)
+            todos.insert(movedTodo, at: destinationIndex)
+            
+            // Reindex all todos to maintain correct order
+            for (index, _) in todos.enumerated() {
+                todos[index].index = index
+            }
         }
         
-        // Save to persistent storage
+        // Save to persistent storage (without animation)
         saveTodos()
     }
 }
