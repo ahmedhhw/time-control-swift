@@ -517,9 +517,13 @@ struct EditTodoSheet: View {
                             Text("Hours")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            TextField("0", value: $estimateHours, format: .number)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 80)
+                            Picker("", selection: $estimateHours) {
+                                ForEach(0..<24, id: \.self) { hour in
+                                    Text("\(hour)").tag(hour)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 80)
                         }
                         
                         Text(":")
@@ -530,18 +534,13 @@ struct EditTodoSheet: View {
                             Text("Minutes")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            TextField("0", value: $estimateMinutes, format: .number)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 80)
-                                .onChange(of: estimateMinutes) { newValue in
-                                    // Keep minutes between 0 and 59
-                                    if newValue < 0 {
-                                        estimateMinutes = 0
-                                    } else if newValue >= 60 {
-                                        estimateHours += newValue / 60
-                                        estimateMinutes = newValue % 60
-                                    }
+                            Picker("", selection: $estimateMinutes) {
+                                ForEach(0..<60, id: \.self) { minute in
+                                    Text("\(minute)").tag(minute)
                                 }
+                            }
+                            .labelsHidden()
+                            .frame(width: 80)
                         }
                     }
                 }
