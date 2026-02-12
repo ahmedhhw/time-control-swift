@@ -38,6 +38,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var createdAt: TimeInterval  // Epoch time when task was created
     var startedAt: TimeInterval? = nil  // Epoch time when task timer was first started
     var completedAt: TimeInterval? = nil  // Epoch time when task was marked completed
+    var notes: String = ""  // Notes taken while working on the task
     
     static func == (lhs: TodoItem, rhs: TodoItem) -> Bool {
         lhs.id == rhs.id &&
@@ -48,7 +49,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         lhs.lastStartTime == rhs.lastStartTime
     }
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil) {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "") {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
@@ -64,6 +65,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.createdAt = createdAt ?? Date().timeIntervalSince1970
         self.startedAt = startedAt
         self.completedAt = completedAt
+        self.notes = notes
     }
     
     var isRunning: Bool {
@@ -101,7 +103,8 @@ class TodoStorage {
                 "isAdhoc": todo.isAdhoc,
                 "fromWho": todo.fromWho,
                 "estimatedTime": todo.estimatedTime,
-                "createdAt": todo.createdAt
+                "createdAt": todo.createdAt,
+                "notes": todo.notes
             ]
             
             if let lastStartTime = todo.lastStartTime {
@@ -176,6 +179,7 @@ class TodoStorage {
                 let createdAt = taskData["createdAt"] as? TimeInterval ?? Date().timeIntervalSince1970
                 let startedAt = taskData["startedAt"] as? TimeInterval
                 let completedAt = taskData["completedAt"] as? TimeInterval
+                let notes = taskData["notes"] as? String ?? ""
                 
                 var lastStartTime: Date? = nil
                 if let timestamp = taskData["lastStartTime"] as? TimeInterval {
@@ -202,7 +206,7 @@ class TodoStorage {
                     }
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt)
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt, notes: notes)
                 todos.append(todo)
             }
             
@@ -587,6 +591,19 @@ struct ContentView: View {
                 
                 // Update the floating window with the new task state
                 FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateNotesFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID,
+                  let notes = userInfo["notes"] as? String else {
+                return
+            }
+            
+            // Update the notes in the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                todos[todoIndex].notes = notes
+                saveTodos()
             }
         }
         .sheet(item: $editingTodo) { todoToEdit in
@@ -1171,16 +1188,19 @@ struct FloatingTaskWindowView: View {
     @ObservedObject var windowManager: FloatingWindowManager
     @State private var localTask: TodoItem
     @State private var isCollapsed: Bool = false
+    @State private var showNotesEditor: Bool = false
+    @State private var notesText: String = ""
     
     init(task: TodoItem, windowManager: FloatingWindowManager) {
         self.task = task
         self.windowManager = windowManager
         self._localTask = State(initialValue: task)
+        self._notesText = State(initialValue: task.notes)
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Collapse/expand button at the top
+            // Collapse/expand button and Notes button at the top
             HStack {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -1197,6 +1217,20 @@ struct FloatingTaskWindowView: View {
                 .help(isCollapsed ? "Expand" : "Collapse")
                 
                 Spacer()
+                
+                Button(action: {
+                    showNotesEditor = true
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "note.text")
+                            .font(.caption)
+                        Text("Notes")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
+                .help("Take notes while working on this task")
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -1261,7 +1295,11 @@ struct FloatingTaskWindowView: View {
         .onChange(of: windowManager.currentTask) { newTask in
             if let newTask = newTask {
                 localTask = newTask
+                notesText = newTask.notes
             }
+        }
+        .sheet(isPresented: $showNotesEditor) {
+            NotesEditorView(notes: $notesText, taskId: localTask.id)
         }
     }
     
@@ -1293,6 +1331,74 @@ struct FloatingTaskWindowView: View {
                 userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
             )
         }
+    }
+}
+
+struct NotesEditorView: View {
+    @Binding var notes: String
+    let taskId: UUID
+    @Environment(\.dismiss) private var dismiss
+    @State private var localNotes: String
+    
+    init(notes: Binding<String>, taskId: UUID) {
+        self._notes = notes
+        self.taskId = taskId
+        self._localNotes = State(initialValue: notes.wrappedValue)
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("Task Notes")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button("Save") {
+                    saveNotes()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Notes editor
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Take notes while working on this task")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                TextEditor(text: $localNotes)
+                    .font(.body)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .border(Color.gray.opacity(0.2), width: 1)
+            }
+            .padding()
+        }
+        .frame(minWidth: 500, minHeight: 400)
+    }
+    
+    private func saveNotes() {
+        notes = localNotes
+        
+        // Update the stored todos in ContentView
+        NotificationCenter.default.post(
+            name: NSNotification.Name("UpdateNotesFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": taskId, "notes": localNotes]
+        )
+        
+        dismiss()
     }
 }
 
