@@ -8,7 +8,7 @@
 import SwiftUI
 import AppKit
 
-struct Subtask: Identifiable, Codable {
+struct Subtask: Identifiable, Codable, Equatable {
     let id: UUID
     var title: String
     var description: String
@@ -22,7 +22,7 @@ struct Subtask: Identifiable, Codable {
     }
 }
 
-struct TodoItem: Identifiable, Codable {
+struct TodoItem: Identifiable, Codable, Equatable {
     let id: UUID
     var text: String
     var isCompleted: Bool = false
@@ -38,6 +38,15 @@ struct TodoItem: Identifiable, Codable {
     var createdAt: TimeInterval  // Epoch time when task was created
     var startedAt: TimeInterval? = nil  // Epoch time when task timer was first started
     var completedAt: TimeInterval? = nil  // Epoch time when task was marked completed
+    
+    static func == (lhs: TodoItem, rhs: TodoItem) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.text == rhs.text &&
+        lhs.isCompleted == rhs.isCompleted &&
+        lhs.subtasks == rhs.subtasks &&
+        lhs.totalTimeSpent == rhs.totalTimeSpent &&
+        lhs.lastStartTime == rhs.lastStartTime
+    }
     
     init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil) {
         self.id = id
@@ -563,6 +572,23 @@ struct ContentView: View {
                 timerUpdateTrigger += 1
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ToggleSubtaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID,
+                  let subtaskId = userInfo["subtaskId"] as? UUID else {
+                return
+            }
+            
+            // Toggle the subtask in the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
+               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) {
+                todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
+                saveTodos()
+                
+                // Update the floating window with the new task state
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
+        }
         .sheet(item: $editingTodo) { todoToEdit in
             if let index = todos.firstIndex(where: { $0.id == todoToEdit.id }) {
                 EditTodoSheet(todo: $todos[index], onSave: {
@@ -710,6 +736,11 @@ struct ContentView: View {
             }
             
             saveTodos()
+            
+            // Update floating window if this task is currently running
+            if todo.id == runningTaskId {
+                FloatingWindowManager.shared.updateTask(todos[index])
+            }
         }
     }
     
@@ -733,6 +764,11 @@ struct ContentView: View {
            let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) {
             todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
             saveTodos()
+            
+            // Update floating window if this task is currently running
+            if todo.id == runningTaskId {
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
         }
     }
     
@@ -740,6 +776,11 @@ struct ContentView: View {
         if let todoIndex = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[todoIndex].subtasks.removeAll { $0.id == subtask.id }
             saveTodos()
+            
+            // Update floating window if this task is currently running
+            if todo.id == runningTaskId {
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
         }
     }
     
@@ -1068,22 +1109,26 @@ struct SubtaskRow: View {
 }
 
 // Floating window manager for showing task outside app borders
-class FloatingWindowManager {
+class FloatingWindowManager: ObservableObject {
     static let shared = FloatingWindowManager()
     private var floatingWindow: NSWindow?
+    @Published var currentTask: TodoItem?
     
     func showFloatingWindow(for task: TodoItem) {
         // Close existing window if any
         closeFloatingWindow()
         
+        // Store the current task
+        currentTask = task
+        
         // Create the SwiftUI view
-        let contentView = FloatingTaskWindowView(task: task)
+        let contentView = FloatingTaskWindowView(task: task, windowManager: self)
         let hostingView = NSHostingView(rootView: contentView)
         
         // Calculate position (bottom right of screen with padding)
         guard let screen = NSScreen.main else { return }
-        let windowWidth: CGFloat = 250
-        let windowHeight: CGFloat = 120
+        let windowWidth: CGFloat = 300
+        let windowHeight: CGFloat = 200
         let padding: CGFloat = 20
         
         let xPos = screen.visibleFrame.maxX - windowWidth - padding
@@ -1092,7 +1137,7 @@ class FloatingWindowManager {
         // Create a floating window
         let window = NSPanel(
             contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
-            styleMask: [.nonactivatingPanel, .titled, .closable],
+            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -1104,6 +1149,7 @@ class FloatingWindowManager {
         window.isFloatingPanel = true
         window.becomesKeyOnlyIfNeeded = true
         window.hidesOnDeactivate = false
+        window.minSize = NSSize(width: 250, height: 150)
         
         floatingWindow = window
         window.orderFrontRegardless()
@@ -1112,27 +1158,96 @@ class FloatingWindowManager {
     func closeFloatingWindow() {
         floatingWindow?.close()
         floatingWindow = nil
+        currentTask = nil
+    }
+    
+    func updateTask(_ task: TodoItem) {
+        currentTask = task
     }
 }
 
 struct FloatingTaskWindowView: View {
     let task: TodoItem
+    @ObservedObject var windowManager: FloatingWindowManager
+    @State private var localTask: TodoItem
+    
+    init(task: TodoItem, windowManager: FloatingWindowManager) {
+        self.task = task
+        self.windowManager = windowManager
+        self._localTask = State(initialValue: task)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(task.text)
+        VStack(alignment: .leading, spacing: 12) {
+            // Task title
+            Text(localTask.text)
                 .font(.headline)
                 .lineLimit(2)
             
-            if !task.description.isEmpty {
-                Text(task.description)
+            // Task description
+            if !localTask.description.isEmpty {
+                Text(localTask.description)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                    .lineLimit(3)
+                    .lineLimit(2)
+            }
+            
+            // Subtasks section
+            if !localTask.subtasks.isEmpty {
+                Divider()
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Subtasks")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        ForEach(localTask.subtasks) { subtask in
+                            HStack(spacing: 8) {
+                                Button(action: {
+                                    toggleSubtask(subtask)
+                                }) {
+                                    Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(subtask.isCompleted ? .green : .secondary)
+                                        .font(.subheadline)
+                                }
+                                .buttonStyle(.plain)
+                                
+                                Text(subtask.title)
+                                    .font(.body)
+                                    .strikethrough(subtask.isCompleted)
+                                    .foregroundColor(subtask.isCompleted ? .secondary : .primary)
+                                    .lineLimit(2)
+                                
+                                Spacer()
+                            }
+                        }
+                    }
+                }
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onChange(of: windowManager.currentTask) { newTask in
+            if let newTask = newTask {
+                localTask = newTask
+            }
+        }
+    }
+    
+    private func toggleSubtask(_ subtask: Subtask) {
+        // Find the subtask and toggle it
+        if let subtaskIndex = localTask.subtasks.firstIndex(where: { $0.id == subtask.id }) {
+            localTask.subtasks[subtaskIndex].isCompleted.toggle()
+            
+            // Update the stored todos in ContentView
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ToggleSubtaskFromFloatingWindow"),
+                object: nil,
+                userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
+            )
+        }
     }
 }
 
