@@ -1144,8 +1144,8 @@ class FloatingWindowManager: ObservableObject {
         
         // Calculate position (bottom right of screen with padding)
         guard let screen = NSScreen.main else { return }
-        let windowWidth: CGFloat = 300
-        let windowHeight: CGFloat = 300
+        let windowWidth: CGFloat = 350
+        let windowHeight: CGFloat = 400
         let padding: CGFloat = 20
         
         let xPos = screen.visibleFrame.maxX - windowWidth - padding
@@ -1190,12 +1190,27 @@ struct FloatingTaskWindowView: View {
     @State private var isCollapsed: Bool = false
     @State private var showNotesEditor: Bool = false
     @State private var notesText: String = ""
+    @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timer
+    
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     init(task: TodoItem, windowManager: FloatingWindowManager) {
         self.task = task
         self.windowManager = windowManager
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
+    }
+    
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
+        let seconds = Int(timeInterval) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
     }
     
     var body: some View {
@@ -1251,6 +1266,90 @@ struct FloatingTaskWindowView: View {
                             .lineLimit(2)
                     }
                     
+                    // Time tracking section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Divider()
+                        
+                        HStack(spacing: 16) {
+                            // Time elapsed
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Time Elapsed")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                Text(formatTime(localTask.currentTimeSpent))
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.blue)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
+                            }
+                            
+                            Spacer()
+                            
+                            // Estimated time (if set)
+                            if localTask.estimatedTime > 0 {
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    Text("Estimated")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .textCase(.uppercase)
+                                    Text(formatTime(localTask.estimatedTime))
+                                        .font(.title3)
+                                        .foregroundColor(.secondary)
+                                        .monospacedDigit()
+                                }
+                            }
+                        }
+                        
+                        // Progress bar (if estimated time is set)
+                        if localTask.estimatedTime > 0 {
+                            GeometryReader { geometry in
+                                ZStack(alignment: .leading) {
+                                    // Background
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(height: 6)
+                                        .cornerRadius(3)
+                                    
+                                    // Progress
+                                    let progress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
+                                    Rectangle()
+                                        .fill(progress > 1.0 ? Color.orange : Color.blue)
+                                        .frame(width: geometry.size.width * progress, height: 6)
+                                        .cornerRadius(3)
+                                        .id(timerUpdateTrigger)
+                                }
+                            }
+                            .frame(height: 6)
+                            
+                            // Over/under time indicator
+                            if localTask.currentTimeSpent > localTask.estimatedTime {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
+                                    Text("Over by \(formatTime(localTask.currentTimeSpent - localTask.estimatedTime))")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                        .monospacedDigit()
+                                        .id(timerUpdateTrigger)
+                                }
+                            } else {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                    Text("Remaining \(formatTime(localTask.estimatedTime - localTask.currentTimeSpent))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .monospacedDigit()
+                                        .id(timerUpdateTrigger)
+                                }
+                            }
+                        }
+                    }
+                    
                     // Subtasks section
                     if !localTask.subtasks.isEmpty {
                         Divider()
@@ -1292,6 +1391,10 @@ struct FloatingTaskWindowView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onReceive(timer) { _ in
+            // Update UI every second for running timer
+            timerUpdateTrigger += 1
+        }
         .onChange(of: windowManager.currentTask) { newTask in
             if let newTask = newTask {
                 localTask = newTask
@@ -1309,7 +1412,7 @@ struct FloatingTaskWindowView: View {
             guard let window = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
             
             let currentFrame = window.frame
-            let newHeight: CGFloat = isCollapsed ? 50 : 300
+            let newHeight: CGFloat = isCollapsed ? 50 : 400
             
             // Keep the window anchored at the bottom-left corner and maintain width
             let newY = currentFrame.maxY - newHeight
