@@ -12,12 +12,28 @@ struct TodoItem: Identifiable, Codable {
     var text: String
     var isCompleted: Bool = false
     var index: Int
+    var totalTimeSpent: TimeInterval = 0  // Total time spent in seconds
+    var lastStartTime: Date? = nil  // When the timer was last started
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0) {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil) {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
         self.index = index
+        self.totalTimeSpent = totalTimeSpent
+        self.lastStartTime = lastStartTime
+    }
+    
+    var isRunning: Bool {
+        lastStartTime != nil
+    }
+    
+    var currentTimeSpent: TimeInterval {
+        var time = totalTimeSpent
+        if let startTime = lastStartTime {
+            time += Date().timeIntervalSince(startTime)
+        }
+        return time
     }
 }
 
@@ -34,11 +50,17 @@ class TodoStorage {
         var tasksDict: [String: [String: Any]] = [:]
         
         for todo in todos {
-            let taskData: [String: Any] = [
+            var taskData: [String: Any] = [
                 "title": todo.text,
                 "index": todo.index,
-                "isCompleted": todo.isCompleted
+                "isCompleted": todo.isCompleted,
+                "totalTimeSpent": todo.totalTimeSpent
             ]
+            
+            if let lastStartTime = todo.lastStartTime {
+                taskData["lastStartTime"] = lastStartTime.timeIntervalSince1970
+            }
+            
             tasksDict[todo.id.uuidString] = taskData
         }
         
@@ -75,7 +97,14 @@ class TodoStorage {
                 }
                 
                 let isCompleted = taskData["isCompleted"] as? Bool ?? false
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index)
+                let totalTimeSpent = taskData["totalTimeSpent"] as? TimeInterval ?? 0
+                
+                var lastStartTime: Date? = nil
+                if let timestamp = taskData["lastStartTime"] as? TimeInterval {
+                    lastStartTime = Date(timeIntervalSince1970: timestamp)
+                }
+                
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime)
                 todos.append(todo)
             }
             
@@ -91,6 +120,9 @@ class TodoStorage {
 struct ContentView: View {
     @State private var todos: [TodoItem] = []
     @State private var newTodoText: String = ""
+    @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timers
+    
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     init() {
         // Load todos from storage on initialization
@@ -134,11 +166,19 @@ struct ContentView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(todos) { todo in
-                            TodoRow(todo: todo, onToggle: {
-                                toggleTodo(todo)
-                            }, onDelete: {
-                                deleteTodo(todo)
-                            })
+                            TodoRow(
+                                todo: todo,
+                                timerUpdateTrigger: timerUpdateTrigger,
+                                onToggle: {
+                                    toggleTodo(todo)
+                                },
+                                onDelete: {
+                                    deleteTodo(todo)
+                                },
+                                onToggleTimer: {
+                                    toggleTimer(todo)
+                                }
+                            )
                         }
                     }
                     .padding()
@@ -146,6 +186,12 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 400, minHeight: 300)
+        .onReceive(timer) { _ in
+            // Update UI every second if any timer is running
+            if todos.contains(where: { $0.isRunning }) {
+                timerUpdateTrigger += 1
+            }
+        }
     }
     
     private func addTodo() {
@@ -185,12 +231,54 @@ struct ContentView: View {
     private func saveTodos() {
         TodoStorage.save(todos: todos)
     }
+    
+    private func toggleTimer(_ todo: TodoItem) {
+        if let index = todos.firstIndex(where: { $0.id == todo.id }) {
+            if todos[index].isRunning {
+                // Stop the timer - accumulate time spent
+                if let startTime = todos[index].lastStartTime {
+                    todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[index].lastStartTime = nil
+            } else {
+                // Pause any other running tasks first
+                for i in 0..<todos.count {
+                    if todos[i].isRunning {
+                        if let startTime = todos[i].lastStartTime {
+                            todos[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                        }
+                        todos[i].lastStartTime = nil
+                    }
+                }
+                
+                // Start the timer for this task
+                todos[index].lastStartTime = Date()
+            }
+            
+            // Save to persistent storage
+            saveTodos()
+        }
+    }
 }
 
 struct TodoRow: View {
     let todo: TodoItem
+    let timerUpdateTrigger: Int  // Used to trigger UI updates
     let onToggle: () -> Void
     let onDelete: () -> Void
+    let onToggleTimer: () -> Void
+    
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
+        let seconds = Int(timeInterval) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
     
     var body: some View {
         HStack {
@@ -201,11 +289,28 @@ struct TodoRow: View {
             }
             .buttonStyle(.plain)
             
-            Text(todo.text)
-                .strikethrough(todo.isCompleted)
-                .foregroundColor(todo.isCompleted ? .secondary : .primary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(todo.text)
+                    .strikethrough(todo.isCompleted)
+                    .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                
+                if todo.totalTimeSpent > 0 || todo.isRunning {
+                    Text(formatTime(todo.currentTimeSpent))
+                        .font(.caption)
+                        .foregroundColor(todo.isRunning ? .blue : .secondary)
+                        .monospacedDigit()
+                        .id(timerUpdateTrigger)  // Force update when trigger changes
+                }
+            }
             
             Spacer()
+            
+            Button(action: onToggleTimer) {
+                Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
+                    .foregroundColor(todo.isRunning ? .orange : .blue)
+                    .font(.title3)
+            }
+            .buttonStyle(.plain)
             
             Button(action: onDelete) {
                 Image(systemName: "trash")
