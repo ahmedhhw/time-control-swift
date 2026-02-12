@@ -179,6 +179,28 @@ struct ContentView: View {
                                     toggleTimer(todo)
                                 }
                             )
+                            .draggable(todo.id.uuidString) {
+                                // Preview shown while dragging
+                                TodoRow(
+                                    todo: todo,
+                                    timerUpdateTrigger: timerUpdateTrigger,
+                                    onToggle: {},
+                                    onDelete: {},
+                                    onToggleTimer: {}
+                                )
+                                .opacity(0.8)
+                            }
+                            .dropDestination(for: String.self) { droppedItems, location in
+                                guard let droppedIdString = droppedItems.first,
+                                      let droppedId = UUID(uuidString: droppedIdString),
+                                      let fromIndex = todos.firstIndex(where: { $0.id == droppedId }),
+                                      let toIndex = todos.firstIndex(where: { $0.id == todo.id }) else {
+                                    return false
+                                }
+                                
+                                moveTodo(from: fromIndex, to: toIndex)
+                                return true
+                            }
                         }
                     }
                     .padding()
@@ -258,6 +280,22 @@ struct ContentView: View {
             // Save to persistent storage
             saveTodos()
         }
+    }
+    
+    private func moveTodo(from sourceIndex: Int, to destinationIndex: Int) {
+        guard sourceIndex != destinationIndex else { return }
+        
+        // Move the item in the array
+        let movedTodo = todos.remove(at: sourceIndex)
+        todos.insert(movedTodo, at: destinationIndex)
+        
+        // Reindex all todos to maintain correct order
+        for (index, _) in todos.enumerated() {
+            todos[index].index = index
+        }
+        
+        // Save to persistent storage
+        saveTodos()
     }
 }
 
