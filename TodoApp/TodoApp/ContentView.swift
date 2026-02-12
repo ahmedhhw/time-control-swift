@@ -597,6 +597,19 @@ struct ContentView: View {
                 saveTodos()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CompleteTaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID else {
+                return
+            }
+            
+            // Complete the task in the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                // Use the existing toggleTodo functionality to mark as complete
+                let todo = todos[todoIndex]
+                toggleTodo(todo)
+            }
+        }
         .sheet(item: $editingTodo) { todoToEdit in
             if let index = todos.firstIndex(where: { $0.id == todoToEdit.id }) {
                 EditTodoSheet(todo: $todos[index], onSave: {
@@ -1375,6 +1388,32 @@ struct FloatingTaskWindowView: View {
                             }
                         }
                     }
+                    
+                    // Complete button at the bottom
+                    Spacer()
+                    
+                    HStack {
+                        Spacer()
+                        
+                        Button(action: {
+                            completeTask()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.body)
+                                Text("Complete")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.green)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Mark this task as complete")
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)
@@ -1425,6 +1464,15 @@ struct FloatingTaskWindowView: View {
                 userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
             )
         }
+    }
+    
+    private func completeTask() {
+        // Mark the task as complete in the main todos array
+        NotificationCenter.default.post(
+            name: NSNotification.Name("CompleteTaskFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": localTask.id]
+        )
     }
 }
 
