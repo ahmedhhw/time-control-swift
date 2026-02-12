@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct Subtask: Identifiable, Codable {
     let id: UUID
@@ -570,13 +571,6 @@ struct ContentView: View {
                 })
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            if let runningId = runningTaskId,
-               let runningTask = todos.first(where: { $0.id == runningId && $0.isRunning }) {
-                FloatingTaskWindow(task: runningTask)
-                    .padding(20)
-            }
-        }
     }
     
     private func addTodo() {
@@ -606,6 +600,8 @@ struct ContentView: View {
                         todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
                     }
                     todos[index].lastStartTime = nil
+                    runningTaskId = nil
+                    FloatingWindowManager.shared.closeFloatingWindow()
                 }
             } else {
                 todos[index].completedAt = nil
@@ -617,6 +613,12 @@ struct ContentView: View {
     }
     
     private func deleteTodo(_ todo: TodoItem) {
+        // Close floating window if this task was running
+        if todo.id == runningTaskId {
+            runningTaskId = nil
+            FloatingWindowManager.shared.closeFloatingWindow()
+        }
+        
         todos.removeAll { $0.id == todo.id }
         
         // Reindex remaining todos
@@ -644,7 +646,8 @@ struct ContentView: View {
                     todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
                 todos[index].lastStartTime = nil
-                runningTaskId = nil  // Hide floating window
+                runningTaskId = nil
+                FloatingWindowManager.shared.closeFloatingWindow()
             } else {
                 // Pause any other running tasks first
                 for i in 0..<todos.count {
@@ -658,7 +661,8 @@ struct ContentView: View {
                 
                 // Start the timer for this task
                 todos[index].lastStartTime = Date()
-                runningTaskId = todo.id  // Show floating window
+                runningTaskId = todo.id
+                FloatingWindowManager.shared.showFloatingWindow(for: todos[index])
                 
                 // Set startedAt timestamp if this is the first time starting
                 if todos[index].startedAt == nil {
@@ -1063,7 +1067,55 @@ struct SubtaskRow: View {
     }
 }
 
-struct FloatingTaskWindow: View {
+// Floating window manager for showing task outside app borders
+class FloatingWindowManager {
+    static let shared = FloatingWindowManager()
+    private var floatingWindow: NSWindow?
+    
+    func showFloatingWindow(for task: TodoItem) {
+        // Close existing window if any
+        closeFloatingWindow()
+        
+        // Create the SwiftUI view
+        let contentView = FloatingTaskWindowView(task: task)
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Calculate position (bottom right of screen with padding)
+        guard let screen = NSScreen.main else { return }
+        let windowWidth: CGFloat = 250
+        let windowHeight: CGFloat = 120
+        let padding: CGFloat = 20
+        
+        let xPos = screen.visibleFrame.maxX - windowWidth - padding
+        let yPos = screen.visibleFrame.minY + padding
+        
+        // Create a floating window
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Current Task"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        
+        floatingWindow = window
+        window.orderFrontRegardless()
+    }
+    
+    func closeFloatingWindow() {
+        floatingWindow?.close()
+        floatingWindow = nil
+    }
+}
+
+struct FloatingTaskWindowView: View {
     let task: TodoItem
     
     var body: some View {
@@ -1080,10 +1132,7 @@ struct FloatingTaskWindow: View {
             }
         }
         .padding(12)
-        .frame(width: 250)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
-        .shadow(radius: 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
