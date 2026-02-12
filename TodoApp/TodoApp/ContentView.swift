@@ -213,12 +213,22 @@ struct ContentView: View {
     @State private var expandedTodos: Set<UUID> = []  // Track which todos have expanded subtasks (includes subtask input)
     @State private var newSubtaskText: String = ""  // Text for new subtask
     @FocusState private var subtaskInputFocused: UUID?  // Track focused subtask input
+    @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     init() {
         // Load todos from storage on initialization
         _todos = State(initialValue: TodoStorage.load())
+    }
+    
+    // Computed properties to separate incomplete and completed todos
+    private var incompleteTodos: [TodoItem] {
+        todos.filter { !$0.isCompleted }
+    }
+    
+    private var completedTodos: [TodoItem] {
+        todos.filter { $0.isCompleted }
     }
     
     var body: some View {
@@ -242,7 +252,7 @@ struct ContentView: View {
             
             Divider()
             
-            // Scrollable list of todos
+            // Main content area with incomplete todos
             if todos.isEmpty {
                 VStack {
                     Spacer()
@@ -255,9 +265,12 @@ struct ContentView: View {
                     Spacer()
                 }
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(todos) { todo in
+                VStack(spacing: 0) {
+                    // Scrollable incomplete todos
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            // Incomplete todos
+                            ForEach(incompleteTodos) { todo in
                             VStack(spacing: 0) {
                                 VStack(spacing: 0) {
                                     TodoRow(
@@ -380,9 +393,160 @@ struct ContentView: View {
                                 }
                                 return true
                             }
+                        }
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: todos.map { $0.id })
+                        .padding()
                     }
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: todos.map { $0.id })
-                    .padding()
+                    
+                    // Pinned completed section at the bottom
+                    if !completedTodos.isEmpty {
+                        VStack(spacing: 0) {
+                            Divider()
+                            
+                            VStack(spacing: 8) {
+                                // Completed section header
+                                Button(action: {
+                                    withAnimation {
+                                        isCompletedSectionExpanded.toggle()
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: isCompletedSectionExpanded ? "chevron.down" : "chevron.right")
+                                            .foregroundColor(.secondary)
+                                            .font(.caption)
+                                        
+                                        Text("Completed (\(completedTodos.count))")
+                                            .foregroundColor(.secondary)
+                                            .font(.headline)
+                                        
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(.plain)
+                                
+                                // Completed todos (shown when expanded) - scrollable if many items
+                                if isCompletedSectionExpanded {
+                                    ScrollView {
+                                        LazyVStack(spacing: 8) {
+                                            ForEach(completedTodos) { todo in
+                                                VStack(spacing: 0) {
+                                                    VStack(spacing: 0) {
+                                                        TodoRow(
+                                                            todo: todo,
+                                                            timerUpdateTrigger: timerUpdateTrigger,
+                                                            isExpanded: expandedTodos.contains(todo.id),
+                                                            onToggle: {
+                                                                toggleTodo(todo)
+                                                            },
+                                                            onDelete: {
+                                                                deleteTodo(todo)
+                                                            },
+                                                            onToggleTimer: {
+                                                                toggleTimer(todo)
+                                                            },
+                                                            onEdit: {
+                                                                editTodo(todo)
+                                                            },
+                                                            onToggleExpanded: {
+                                                                toggleExpanded(todo)
+                                                            },
+                                                            onToggleSubtask: { subtask in
+                                                                toggleSubtask(subtask, in: todo)
+                                                            },
+                                                            onDeleteSubtask: { subtask in
+                                                                deleteSubtask(subtask, from: todo)
+                                                            },
+                                                            onEditSubtask: { subtask in
+                                                                editSubtask(subtask, in: todo)
+                                                            }
+                                                        )
+                                                        
+                                                        // Expanded area with inline subtask input and existing subtasks
+                                                        if expandedTodos.contains(todo.id) {
+                                                            VStack(spacing: 4) {
+                                                                // Inline subtask input textbox
+                                                                HStack(spacing: 8) {
+                                                                    TextField("Subtask title...", text: $newSubtaskText)
+                                                                        .textFieldStyle(.roundedBorder)
+                                                                        .focused($subtaskInputFocused, equals: todo.id)
+                                                                        .onSubmit {
+                                                                            addSubtask(to: todo)
+                                                                        }
+                                                                    
+                                                                    Button(action: {
+                                                                        addSubtask(to: todo)
+                                                                    }) {
+                                                                        Image(systemName: "plus.circle.fill")
+                                                                            .foregroundColor(.blue)
+                                                                    }
+                                                                    .buttonStyle(.plain)
+                                                                    .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                                                                }
+                                                                .padding(.horizontal, 12)
+                                                                .padding(.top, 8)
+                                                                
+                                                                // Existing subtasks
+                                                                if !todo.subtasks.isEmpty {
+                                                                    ForEach(todo.subtasks) { subtask in
+                                                                        SubtaskRow(
+                                                                            subtask: subtask,
+                                                                            onToggle: { toggleSubtask(subtask, in: todo) },
+                                                                            onDelete: { deleteSubtask(subtask, from: todo) }
+                                                                        )
+                                                                        .padding(.horizontal, 12)
+                                                                        .padding(.vertical, 2)
+                                                                    }
+                                                                    .padding(.bottom, 4)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                .transition(.move(edge: .top).combined(with: .opacity))
+                                                .draggable(todo.id.uuidString) {
+                                                    // Preview shown while dragging
+                                                    TodoRow(
+                                                        todo: todo,
+                                                        timerUpdateTrigger: timerUpdateTrigger,
+                                                        isExpanded: false,
+                                                        onToggle: {},
+                                                        onDelete: {},
+                                                        onToggleTimer: {},
+                                                        onEdit: {},
+                                                        onToggleExpanded: {},
+                                                        onToggleSubtask: { _ in },
+                                                        onDeleteSubtask: { _ in },
+                                                        onEditSubtask: { _ in }
+                                                    )
+                                                    .opacity(0.8)
+                                                }
+                                                .dropDestination(for: String.self) { droppedItems, location in
+                                                    guard let droppedIdString = droppedItems.first,
+                                                          let droppedId = UUID(uuidString: droppedIdString),
+                                                          let fromIndex = todos.firstIndex(where: { $0.id == droppedId }),
+                                                          let toIndex = todos.firstIndex(where: { $0.id == todo.id }) else {
+                                                        return false
+                                                    }
+                                                    
+                                                    moveTodo(from: fromIndex, to: toIndex)
+                                                    return true
+                                                }
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                    .frame(maxHeight: 300)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal)
+                        }
+                        .background(Color(NSColor.windowBackgroundColor))
+                    }
                 }
             }
         }
