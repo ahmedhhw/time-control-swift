@@ -14,14 +14,22 @@ struct TodoItem: Identifiable, Codable {
     var index: Int
     var totalTimeSpent: TimeInterval = 0  // Total time spent in seconds
     var lastStartTime: Date? = nil  // When the timer was last started
+    var description: String = ""  // Detailed description
+    var dueDate: Date? = nil  // Due date and time
+    var isAdhoc: Bool = false  // Whether this is an adhoc task
+    var fromWho: String = ""  // Who this task is from
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil) {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "") {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
         self.index = index
         self.totalTimeSpent = totalTimeSpent
         self.lastStartTime = lastStartTime
+        self.description = description
+        self.dueDate = dueDate
+        self.isAdhoc = isAdhoc
+        self.fromWho = fromWho
     }
     
     var isRunning: Bool {
@@ -54,11 +62,18 @@ class TodoStorage {
                 "title": todo.text,
                 "index": todo.index,
                 "isCompleted": todo.isCompleted,
-                "totalTimeSpent": todo.totalTimeSpent
+                "totalTimeSpent": todo.totalTimeSpent,
+                "description": todo.description,
+                "isAdhoc": todo.isAdhoc,
+                "fromWho": todo.fromWho
             ]
             
             if let lastStartTime = todo.lastStartTime {
                 taskData["lastStartTime"] = lastStartTime.timeIntervalSince1970
+            }
+            
+            if let dueDate = todo.dueDate {
+                taskData["dueDate"] = dueDate.timeIntervalSince1970
             }
             
             tasksDict[todo.id.uuidString] = taskData
@@ -98,13 +113,21 @@ class TodoStorage {
                 
                 let isCompleted = taskData["isCompleted"] as? Bool ?? false
                 let totalTimeSpent = taskData["totalTimeSpent"] as? TimeInterval ?? 0
+                let description = taskData["description"] as? String ?? ""
+                let isAdhoc = taskData["isAdhoc"] as? Bool ?? false
+                let fromWho = taskData["fromWho"] as? String ?? ""
                 
                 var lastStartTime: Date? = nil
                 if let timestamp = taskData["lastStartTime"] as? TimeInterval {
                     lastStartTime = Date(timeIntervalSince1970: timestamp)
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime)
+                var dueDate: Date? = nil
+                if let timestamp = taskData["dueDate"] as? TimeInterval {
+                    dueDate = Date(timeIntervalSince1970: timestamp)
+                }
+                
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho)
                 todos.append(todo)
             }
             
@@ -121,6 +144,7 @@ struct ContentView: View {
     @State private var todos: [TodoItem] = []
     @State private var newTodoText: String = ""
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timers
+    @State private var editingTodo: TodoItem?  // Track which todo is being edited
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -177,6 +201,9 @@ struct ContentView: View {
                                 },
                                 onToggleTimer: {
                                     toggleTimer(todo)
+                                },
+                                onEdit: {
+                                    editTodo(todo)
                                 }
                             )
                             .transition(.move(edge: .top).combined(with: .opacity))
@@ -187,7 +214,8 @@ struct ContentView: View {
                                     timerUpdateTrigger: timerUpdateTrigger,
                                     onToggle: {},
                                     onDelete: {},
-                                    onToggleTimer: {}
+                                    onToggleTimer: {},
+                                    onEdit: {}
                                 )
                                 .opacity(0.8)
                             }
@@ -235,6 +263,14 @@ struct ContentView: View {
                 timerUpdateTrigger += 1
             }
         }
+        .sheet(item: $editingTodo) { todoToEdit in
+            if let index = todos.firstIndex(where: { $0.id == todoToEdit.id }) {
+                EditTodoSheet(todo: $todos[index], onSave: {
+                    saveTodos()
+                    editingTodo = nil
+                })
+            }
+        }
     }
     
     private func addTodo() {
@@ -273,6 +309,10 @@ struct ContentView: View {
     
     private func saveTodos() {
         TodoStorage.save(todos: todos)
+    }
+    
+    private func editTodo(_ todo: TodoItem) {
+        editingTodo = todo
     }
     
     private func toggleTimer(_ todo: TodoItem) {
@@ -328,6 +368,7 @@ struct TodoRow: View {
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onToggleTimer: () -> Void
+    let onEdit: () -> Void
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
         let hours = Int(timeInterval) / 3600
@@ -373,6 +414,12 @@ struct TodoRow: View {
             }
             .buttonStyle(.plain)
             
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .foregroundColor(.blue)
+            }
+            .buttonStyle(.plain)
+            
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .foregroundColor(.red)
@@ -383,6 +430,104 @@ struct TodoRow: View {
         .padding(.vertical, 8)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
+    }
+}
+
+struct EditTodoSheet: View {
+    @Binding var todo: TodoItem
+    let onSave: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var title: String
+    @State private var description: String
+    @State private var dueDate: Date
+    @State private var hasDueDate: Bool
+    @State private var isAdhoc: Bool
+    @State private var fromWho: String
+    
+    init(todo: Binding<TodoItem>, onSave: @escaping () -> Void) {
+        self._todo = todo
+        self.onSave = onSave
+        
+        // Initialize state from todo
+        _title = State(initialValue: todo.wrappedValue.text)
+        _description = State(initialValue: todo.wrappedValue.description)
+        _dueDate = State(initialValue: todo.wrappedValue.dueDate ?? Date())
+        _hasDueDate = State(initialValue: todo.wrappedValue.dueDate != nil)
+        _isAdhoc = State(initialValue: todo.wrappedValue.isAdhoc)
+        _fromWho = State(initialValue: todo.wrappedValue.fromWho)
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("Edit Task")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button("Save") {
+                    saveChanges()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Form content
+            Form {
+                Section(header: Text("Task Details")) {
+                    TextField("Title", text: $title)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Description")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextEditor(text: $description)
+                            .frame(minHeight: 100, maxHeight: 200)
+                            .border(Color.gray.opacity(0.2), width: 1)
+                    }
+                }
+                
+                Section(header: Text("Due Date")) {
+                    Toggle("Set Due Date", isOn: $hasDueDate)
+                    
+                    if hasDueDate {
+                        DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                    }
+                }
+                
+                Section(header: Text("Additional Information")) {
+                    Toggle("Adhoc Task", isOn: $isAdhoc)
+                    
+                    TextField("From Who?", text: $fromWho)
+                }
+            }
+            .formStyle(.grouped)
+        }
+        .frame(minWidth: 500, minHeight: 500)
+    }
+    
+    private func saveChanges() {
+        todo.text = title
+        todo.description = description
+        todo.dueDate = hasDueDate ? dueDate : nil
+        todo.isAdhoc = isAdhoc
+        todo.fromWho = fromWho
+        
+        onSave()
+        dismiss()
     }
 }
 
