@@ -306,32 +306,35 @@ struct ContentView: View {
                                     // Expanded area with inline subtask input and existing subtasks
                                     if expandedTodos.contains(todo.id) {
                                         VStack(spacing: 4) {
-                                            // Inline subtask input textbox
-                                            HStack(spacing: 8) {
-                                                TextField("Subtask title...", text: $newSubtaskText)
-                                                    .textFieldStyle(.roundedBorder)
-                                                    .focused($subtaskInputFocused, equals: todo.id)
-                                                    .onSubmit {
+                                            // Inline subtask input textbox (only show for incomplete tasks)
+                                            if !todo.isCompleted {
+                                                HStack(spacing: 8) {
+                                                    TextField("Subtask title...", text: $newSubtaskText)
+                                                        .textFieldStyle(.roundedBorder)
+                                                        .focused($subtaskInputFocused, equals: todo.id)
+                                                        .onSubmit {
+                                                            addSubtask(to: todo)
+                                                        }
+                                                    
+                                                    Button(action: {
                                                         addSubtask(to: todo)
+                                                    }) {
+                                                        Image(systemName: "plus.circle.fill")
+                                                            .foregroundColor(.blue)
                                                     }
-                                                
-                                                Button(action: {
-                                                    addSubtask(to: todo)
-                                                }) {
-                                                    Image(systemName: "plus.circle.fill")
-                                                        .foregroundColor(.blue)
+                                                    .buttonStyle(.plain)
+                                                    .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
                                                 }
-                                                .buttonStyle(.plain)
-                                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                                                .padding(.horizontal, 12)
+                                                .padding(.top, 8)
                                             }
-                                            .padding(.horizontal, 12)
-                                            .padding(.top, 8)
                                             
                                             // Existing subtasks
                                             if !todo.subtasks.isEmpty {
                                                 ForEach(todo.subtasks) { subtask in
                                                     SubtaskRow(
                                                         subtask: subtask,
+                                                        parentTodoCompleted: todo.isCompleted,
                                                         onToggle: { toggleSubtask(subtask, in: todo) },
                                                         onDelete: { deleteSubtask(subtask, from: todo) }
                                                     )
@@ -468,32 +471,35 @@ struct ContentView: View {
                                                         // Expanded area with inline subtask input and existing subtasks
                                                         if expandedTodos.contains(todo.id) {
                                                             VStack(spacing: 4) {
-                                                                // Inline subtask input textbox
-                                                                HStack(spacing: 8) {
-                                                                    TextField("Subtask title...", text: $newSubtaskText)
-                                                                        .textFieldStyle(.roundedBorder)
-                                                                        .focused($subtaskInputFocused, equals: todo.id)
-                                                                        .onSubmit {
+                                                                // Inline subtask input textbox (only show for incomplete tasks)
+                                                                if !todo.isCompleted {
+                                                                    HStack(spacing: 8) {
+                                                                        TextField("Subtask title...", text: $newSubtaskText)
+                                                                            .textFieldStyle(.roundedBorder)
+                                                                            .focused($subtaskInputFocused, equals: todo.id)
+                                                                            .onSubmit {
+                                                                                addSubtask(to: todo)
+                                                                            }
+                                                                        
+                                                                        Button(action: {
                                                                             addSubtask(to: todo)
+                                                                        }) {
+                                                                            Image(systemName: "plus.circle.fill")
+                                                                                .foregroundColor(.blue)
                                                                         }
-                                                                    
-                                                                    Button(action: {
-                                                                        addSubtask(to: todo)
-                                                                    }) {
-                                                                        Image(systemName: "plus.circle.fill")
-                                                                            .foregroundColor(.blue)
+                                                                        .buttonStyle(.plain)
+                                                                        .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
                                                                     }
-                                                                    .buttonStyle(.plain)
-                                                                    .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                                                                    .padding(.horizontal, 12)
+                                                                    .padding(.top, 8)
                                                                 }
-                                                                .padding(.horizontal, 12)
-                                                                .padding(.top, 8)
                                                                 
                                                                 // Existing subtasks
                                                                 if !todo.subtasks.isEmpty {
                                                                     ForEach(todo.subtasks) { subtask in
                                                                         SubtaskRow(
                                                                             subtask: subtask,
+                                                                            parentTodoCompleted: todo.isCompleted,
                                                                             onToggle: { toggleSubtask(subtask, in: todo) },
                                                                             onDelete: { deleteSubtask(subtask, from: todo) }
                                                                         )
@@ -805,15 +811,17 @@ struct TodoRow: View {
             
             Button(action: onEdit) {
                 Image(systemName: "pencil")
-                    .foregroundColor(.blue)
+                    .foregroundColor(todo.isCompleted ? .gray : .blue)
             }
             .buttonStyle(.plain)
+            .disabled(todo.isCompleted)
             
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundColor(.red)
+                    .foregroundColor(todo.isCompleted ? .gray : .red)
             }
             .buttonStyle(.plain)
+            .disabled(todo.isCompleted)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -1003,6 +1011,7 @@ struct EditTodoSheet: View {
 
 struct SubtaskRow: View {
     let subtask: Subtask
+    let parentTodoCompleted: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
     
@@ -1034,9 +1043,10 @@ struct SubtaskRow: View {
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(parentTodoCompleted ? .gray : .red)
             }
             .buttonStyle(.plain)
+            .disabled(parentTodoCompleted)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
