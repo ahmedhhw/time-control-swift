@@ -2787,6 +2787,7 @@ struct ExportAllTasksView: View {
 // Window delegate to handle window close button
 class FloatingWindowDelegate: NSObject, NSWindowDelegate {
     let taskId: UUID
+    private var pauseConfirmationWindow: NSPanel?
     
     init(taskId: UUID) {
         self.taskId = taskId
@@ -2802,28 +2803,121 @@ class FloatingWindowDelegate: NSObject, NSWindowDelegate {
             return true
         }
         
-        // If the task is running, show confirmation dialog
-        let alert = NSAlert()
-        alert.messageText = "Pause Task?"
-        alert.informativeText = "Do you want to pause the task timer?"
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Pause Task")
-        alert.addButton(withTitle: "Cancel")
-        
-        let response = alert.runModal()
-        
-        if response == .alertFirstButtonReturn {
-            // User clicked "Pause Task" - notify to pause the task and close window
-            NotificationCenter.default.post(
-                name: NSNotification.Name("PauseTaskFromFloatingWindow"),
-                object: nil,
-                userInfo: ["taskId": taskId, "keepWindowOpen": false]
-            )
-            return true
-        } else {
-            // User clicked "Cancel" - don't close the window
-            return false
+        // If the task is running, show confirmation panel (non-modal, non-activating)
+        showPauseConfirmationPanel(parentWindow: sender)
+        return false  // Don't close yet, wait for user response
+    }
+    
+    private func showPauseConfirmationPanel(parentWindow: NSWindow) {
+        // If a confirmation panel is already showing, don't create another
+        if pauseConfirmationWindow != nil {
+            pauseConfirmationWindow?.orderFrontRegardless()
+            return
         }
+        
+        let confirmationView = PauseTaskConfirmationView(
+            onPause: { [weak self] in
+                guard let self = self else { return }
+                // User clicked "Pause Task" - notify to pause the task and close window
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("PauseTaskFromFloatingWindow"),
+                    object: nil,
+                    userInfo: ["taskId": self.taskId, "keepWindowOpen": false]
+                )
+                self.pauseConfirmationWindow?.close()
+                self.pauseConfirmationWindow = nil
+                parentWindow.close()
+            },
+            onCancel: { [weak self] in
+                guard let self = self else { return }
+                // User clicked "Cancel" - just close the confirmation panel
+                self.pauseConfirmationWindow?.close()
+                self.pauseConfirmationWindow = nil
+            }
+        )
+        
+        let hostingView = NSHostingView(rootView: confirmationView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 300, height: 150)
+        
+        // Position near the parent window
+        let parentFrame = parentWindow.frame
+        let xPos = parentFrame.midX - 150  // Center horizontally relative to parent
+        let yPos = parentFrame.midY - 75   // Center vertically relative to parent
+        
+        // Create a non-activating panel (same as attention check)
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: 300, height: 150),
+            styleMask: [.nonactivatingPanel, .titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Pause Task?"
+        window.contentView = hostingView
+        window.level = .statusBar
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = false
+        window.hidesOnDeactivate = false
+        
+        pauseConfirmationWindow = window
+        window.orderFrontRegardless()
+        window.makeKey()
+    }
+}
+
+// SwiftUI view for pause task confirmation (similar to attention check)
+struct PauseTaskConfirmationView: View {
+    let onPause: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Pause Task?")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            Text("Do you want to pause the task timer?")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            HStack(spacing: 12) {
+                Button(action: {
+                    onCancel()
+                }) {
+                    Text("Cancel")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.gray)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
+                
+                Button(action: {
+                    onPause()
+                }) {
+                    Text("Pause Task")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.orange)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal)
+        }
+        .padding(.vertical, 20)
+        .frame(width: 300, height: 150)
     }
 }
 
