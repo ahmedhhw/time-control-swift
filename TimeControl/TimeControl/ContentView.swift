@@ -269,6 +269,10 @@ struct ContentView: View {
     @State private var isAdvancedMode: Bool = false  // Toggle for advanced mode
     @State private var sortOption: TaskSortOption = .creationDateNewest  // Sort option for tasks
     @State private var showingMassOperations: Bool = false  // Track if mass operations sheet is shown
+    @State private var showingSettings: Bool = false  // Track if settings sheet is shown
+    
+    // User Settings
+    @AppStorage("activateReminders") private var activateReminders: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -458,6 +462,17 @@ struct ContentView: View {
                         HStack {
                             Image(systemName: "square.and.arrow.up")
                             Text("Export All Tasks")
+                        }
+                        .font(.subheadline)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        HStack {
+                            Image(systemName: "gear")
+                            Text("Settings")
                         }
                         .font(.subheadline)
                     }
@@ -984,6 +999,9 @@ struct ContentView: View {
             MassOperationsSheet(todos: $todos, onSave: {
                 saveTodos()
             })
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsSheet(activateReminders: $activateReminders)
         }
     }
     
@@ -3544,6 +3562,59 @@ struct NotesEditorView: View {
         )
         
         onClose()
+    }
+}
+
+struct SettingsSheet: View {
+    @Binding var activateReminders: Bool
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("Settings")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button("Done") {
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Settings content
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Preferences")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                
+                Toggle("Activate reminders to stay on task", isOn: $activateReminders)
+                    .toggleStyle(.checkbox)
+                    .font(.body)
+                
+                Text("When enabled, you'll receive periodic reminders to help you stay focused on your current task.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(minWidth: 500, minHeight: 250)
     }
 }
 
