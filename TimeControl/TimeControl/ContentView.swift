@@ -1596,6 +1596,7 @@ struct EditTodoSheet: View {
     @State private var fromWho: String
     @State private var estimateHours: Int
     @State private var estimateMinutes: Int
+    @State private var notes: String
     
     init(todo: Binding<TodoItem>, onSave: @escaping () -> Void) {
         self._todo = todo
@@ -1608,6 +1609,7 @@ struct EditTodoSheet: View {
         _hasDueDate = State(initialValue: todo.wrappedValue.dueDate != nil)
         _isAdhoc = State(initialValue: todo.wrappedValue.isAdhoc)
         _fromWho = State(initialValue: todo.wrappedValue.fromWho)
+        _notes = State(initialValue: todo.wrappedValue.notes)
         
         // Convert estimated time from seconds to hours and minutes
         let totalMinutes = Int(todo.wrappedValue.estimatedTime / 60)
@@ -1653,6 +1655,15 @@ struct EditTodoSheet: View {
                             .foregroundColor(.secondary)
                         TextEditor(text: $description)
                             .frame(minHeight: 100, maxHeight: 200)
+                            .border(Color.gray.opacity(0.2), width: 1)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Notes")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextEditor(text: $notes)
+                            .frame(minHeight: 150, maxHeight: 300)
                             .border(Color.gray.opacity(0.2), width: 1)
                     }
                 }
@@ -1743,6 +1754,7 @@ struct EditTodoSheet: View {
         todo.dueDate = hasDueDate ? dueDate : nil
         todo.isAdhoc = isAdhoc
         todo.fromWho = fromWho
+        todo.notes = notes
         
         // Convert hours and minutes to seconds
         let clampedHours = max(0, estimateHours)
