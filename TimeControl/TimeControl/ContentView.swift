@@ -1059,13 +1059,23 @@ struct TodoRow: View {
                 Text(todo.text)
                     .strikethrough(todo.isCompleted)
                     .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                    .fontWeight(todo.isRunning ? .semibold : .regular)
                 
                 if todo.totalTimeSpent > 0 || todo.isRunning {
-                    Text(formatTime(todo.currentTimeSpent))
-                        .font(.caption)
-                        .foregroundColor(todo.isRunning ? .blue : .secondary)
-                        .monospacedDigit()
-                        .id(timerUpdateTrigger)  // Force update when trigger changes
+                    HStack(spacing: 4) {
+                        if todo.isRunning {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 6, height: 6)
+                                .opacity(0.8)
+                        }
+                        Text(formatTime(todo.currentTimeSpent))
+                            .font(.caption)
+                            .foregroundColor(todo.isRunning ? .orange : .secondary)
+                            .monospacedDigit()
+                            .fontWeight(todo.isRunning ? .semibold : .regular)
+                            .id(timerUpdateTrigger)  // Force update when trigger changes
+                    }
                 }
                 
                 if !todo.subtasks.isEmpty {
@@ -1109,8 +1119,21 @@ struct TodoRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(todo.isRunning ? 
+                      Color.orange.opacity(0.12) : 
+                      Color(NSColor.controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(
+                    todo.isRunning ? Color.orange.opacity(0.4) : Color.clear,
+                    lineWidth: 2
+                )
+        )
+        .shadow(color: todo.isRunning ? Color.orange.opacity(0.2) : Color.clear, 
+                radius: 4, x: 0, y: 2)
     }
 }
 
