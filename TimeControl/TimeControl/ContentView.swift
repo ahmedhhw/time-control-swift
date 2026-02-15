@@ -236,6 +236,7 @@ struct ContentView: View {
     @FocusState private var subtaskInputFocused: UUID?  // Track focused subtask input
     @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
     @State private var runningTaskId: UUID?  // Track the currently running task for floating window
+    @State private var isDetailedMode: Bool = false  // Toggle for detailed mode
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -327,6 +328,16 @@ struct ContentView: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 8)
+            
+            // Detailed mode toggle
+            HStack {
+                Toggle("Detailed mode", isOn: $isDetailedMode)
+                    .toggleStyle(.switch)
+                    .font(.subheadline)
+                Spacer()
+            }
+            .padding(.horizontal)
             .padding(.bottom)
             
             Divider()
@@ -356,6 +367,7 @@ struct ContentView: View {
                                         todo: todo,
                                         timerUpdateTrigger: timerUpdateTrigger,
                                         isExpanded: expandedTodos.contains(todo.id),
+                                        isDetailedMode: isDetailedMode,
                                         onToggle: {
                                             toggleTodo(todo)
                                         },
@@ -435,6 +447,7 @@ struct ContentView: View {
                                     todo: todo,
                                     timerUpdateTrigger: timerUpdateTrigger,
                                     isExpanded: false,
+                                    isDetailedMode: false,
                                     onToggle: {},
                                     onDelete: {},
                                     onToggleTimer: {},
@@ -523,6 +536,7 @@ struct ContentView: View {
                                                             todo: todo,
                                                             timerUpdateTrigger: timerUpdateTrigger,
                                                             isExpanded: expandedTodos.contains(todo.id),
+                                                            isDetailedMode: isDetailedMode,
                                                             onToggle: {
                                                                 toggleTodo(todo)
                                                             },
@@ -602,6 +616,7 @@ struct ContentView: View {
                                                         todo: todo,
                                                         timerUpdateTrigger: timerUpdateTrigger,
                                                         isExpanded: false,
+                                                        isDetailedMode: false,
                                                         onToggle: {},
                                                         onDelete: {},
                                                         onToggleTimer: {},
@@ -1025,6 +1040,7 @@ struct TodoRow: View {
     let todo: TodoItem
     let timerUpdateTrigger: Int  // Used to trigger UI updates
     let isExpanded: Bool
+    let isDetailedMode: Bool  // Show detailed information
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onToggleTimer: () -> Void
@@ -1046,79 +1062,327 @@ struct TodoRow: View {
         }
     }
     
+    private func formatDueDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    private func formatTimeRemaining(_ timeInterval: TimeInterval) -> String {
+        let absInterval = abs(timeInterval)
+        let days = Int(absInterval) / 86400
+        let hours = Int(absInterval) / 3600 % 24
+        let minutes = Int(absInterval) / 60 % 60
+        
+        if days > 0 {
+            return "\(days)d \(hours)h"
+        } else if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
+    private func dueDateProgress() -> (elapsed: TimeInterval, total: TimeInterval, isOverdue: Bool) {
+        guard let dueDate = todo.dueDate else {
+            return (0, 0, false)
+        }
+        
+        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
+        let now = Date()
+        let total = dueDate.timeIntervalSince(createdDate)
+        let elapsed = now.timeIntervalSince(createdDate)
+        let isOverdue = now > dueDate
+        
+        return (elapsed, total, isOverdue)
+    }
+    
     var body: some View {
-        HStack {
-            Button(action: onToggle) {
-                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(todo.isCompleted ? .green : .secondary)
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(todo.text)
-                    .strikethrough(todo.isCompleted)
-                    .foregroundColor(todo.isCompleted ? .secondary : .primary)
-                    .fontWeight(todo.isRunning ? .semibold : .regular)
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onToggle) {
+                    Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(todo.isCompleted ? .green : .secondary)
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
                 
-                if todo.totalTimeSpent > 0 || todo.isRunning {
-                    HStack(spacing: 4) {
-                        if todo.isRunning {
-                            Circle()
-                                .fill(Color.orange)
-                                .frame(width: 6, height: 6)
-                                .opacity(0.8)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(todo.text)
+                        .strikethrough(todo.isCompleted)
+                        .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                        .fontWeight(todo.isRunning ? .semibold : .regular)
+                    
+                    if todo.totalTimeSpent > 0 || todo.isRunning {
+                        HStack(spacing: 4) {
+                            if todo.isRunning {
+                                Circle()
+                                    .fill(Color.orange)
+                                    .frame(width: 6, height: 6)
+                                    .opacity(0.8)
+                            }
+                            Text(formatTime(todo.currentTimeSpent))
+                                .font(.caption)
+                                .foregroundColor(todo.isRunning ? .orange : .secondary)
+                                .monospacedDigit()
+                                .fontWeight(todo.isRunning ? .semibold : .regular)
+                                .id(timerUpdateTrigger)  // Force update when trigger changes
                         }
-                        Text(formatTime(todo.currentTimeSpent))
+                    }
+                    
+                    // Show estimate and time elapsed as numbers when detailed mode is on and not expanded
+                    if isDetailedMode && !isExpanded && todo.estimatedTime > 0 {
+                        HStack(spacing: 8) {
+                            Text("Est: \(formatTime(todo.estimatedTime))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .monospacedDigit()
+                            Text("•")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("Elapsed: \(formatTime(todo.currentTimeSpent))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .monospacedDigit()
+                                .id(timerUpdateTrigger)
+                        }
+                    }
+                    
+                    // Show due date information when detailed mode is on and not expanded
+                    if isDetailedMode && !isExpanded, let dueDate = todo.dueDate {
+                        let progress = dueDateProgress()
+                        let now = Date()
+                        let remaining = dueDate.timeIntervalSince(now)
+                        
+                        HStack(spacing: 8) {
+                            Text("Due: \(formatDueDate(dueDate))")
+                                .font(.caption)
+                                .foregroundColor(progress.isOverdue ? .red : .secondary)
+                            Text("•")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            if progress.isOverdue {
+                                Text("Overdue by \(formatTimeRemaining(remaining))")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            } else {
+                                Text("\(formatTimeRemaining(remaining)) left")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    
+                    if !todo.subtasks.isEmpty {
+                        Text("\(todo.subtasks.count) subtask\(todo.subtasks.count == 1 ? "" : "s")")
                             .font(.caption)
-                            .foregroundColor(todo.isRunning ? .orange : .secondary)
-                            .monospacedDigit()
-                            .fontWeight(todo.isRunning ? .semibold : .regular)
-                            .id(timerUpdateTrigger)  // Force update when trigger changes
+                            .foregroundColor(.secondary)
                     }
                 }
                 
-                if !todo.subtasks.isEmpty {
-                    Text("\(todo.subtasks.count) subtask\(todo.subtasks.count == 1 ? "" : "s")")
-                        .font(.caption)
+                Spacer()
+                
+                // Chevron button to toggle subtask area (input + existing subtasks)
+                Button(action: onToggleExpanded) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .foregroundColor(.secondary)
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: onToggleTimer) {
+                    Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
+                        .foregroundColor(todo.isCompleted ? .gray : (todo.isRunning ? .orange : .blue))
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+                .disabled(todo.isCompleted)
+                
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .foregroundColor(todo.isCompleted ? .gray : .blue)
+                }
+                .buttonStyle(.plain)
+                .disabled(todo.isCompleted)
+                
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundColor(todo.isCompleted ? .gray : .red)
+                }
+                .buttonStyle(.plain)
+                .disabled(todo.isCompleted)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            
+            // Progress bar (shown when expanded and detailed mode is on and estimated time is set)
+            if isDetailedMode && isExpanded && todo.estimatedTime > 0 {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 12)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Time indicators
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Elapsed")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                Text(formatTime(todo.currentTimeSpent))
+                                    .font(.title3)
+                                    .foregroundColor(.primary)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Estimated")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                Text(formatTime(todo.estimatedTime))
+                                    .font(.title3)
+                                    .foregroundColor(.secondary)
+                                    .monospacedDigit()
+                            }
+                        }
+                        
+                        // Progress bar
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                // Background
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.2))
+                                    .frame(height: 6)
+                                    .cornerRadius(3)
+                                
+                                // Progress
+                                let progress = min(todo.currentTimeSpent / todo.estimatedTime, 1.0)
+                                Rectangle()
+                                    .fill(progress > 1.0 ? Color.orange : Color.blue)
+                                    .frame(width: geometry.size.width * progress, height: 6)
+                                    .cornerRadius(3)
+                                    .id(timerUpdateTrigger)
+                            }
+                        }
+                        .frame(height: 6)
+                        
+                        // Over/under time indicator
+                        if todo.currentTimeSpent > todo.estimatedTime {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                                Text("Over by \(formatTime(todo.currentTimeSpent - todo.estimatedTime))")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
+                            }
+                        } else {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.green)
+                                Text("Remaining \(formatTime(todo.estimatedTime - todo.currentTimeSpent))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
                 }
             }
             
-            Spacer()
-            
-            // Chevron button to toggle subtask area (input + existing subtasks)
-            Button(action: onToggleExpanded) {
-                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .foregroundColor(.secondary)
-                    .font(.body)
+            // Due date progress bar (shown when expanded and detailed mode is on and due date is set)
+            if isDetailedMode && isExpanded, let dueDate = todo.dueDate {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 12)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        let progress = dueDateProgress()
+                        let now = Date()
+                        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
+                        
+                        // Time indicators
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Created")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                Text(formatDueDate(createdDate))
+                                    .font(.title3)
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Due")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                Text(formatDueDate(dueDate))
+                                    .font(.title3)
+                                    .foregroundColor(progress.isOverdue ? .red : .secondary)
+                            }
+                        }
+                        
+                        // Progress bar
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                // Background
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.2))
+                                    .frame(height: 6)
+                                    .cornerRadius(3)
+                                
+                                // Progress
+                                let progressValue = progress.total > 0 ? min(progress.elapsed / progress.total, 1.0) : 0
+                                Rectangle()
+                                    .fill(progress.isOverdue ? Color.red : Color.purple)
+                                    .frame(width: geometry.size.width * progressValue, height: 6)
+                                    .cornerRadius(3)
+                            }
+                        }
+                        .frame(height: 6)
+                        
+                        // Time remaining/overdue indicator
+                        let remaining = dueDate.timeIntervalSince(now)
+                        if progress.isOverdue {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.red)
+                                Text("Overdue by \(formatTimeRemaining(remaining))")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                        } else {
+                            HStack {
+                                Image(systemName: "clock.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.purple)
+                                Text("\(formatTimeRemaining(remaining)) remaining")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                }
             }
-            .buttonStyle(.plain)
-            
-            Button(action: onToggleTimer) {
-                Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                    .foregroundColor(todo.isCompleted ? .gray : (todo.isRunning ? .orange : .blue))
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            .disabled(todo.isCompleted)
-            
-            Button(action: onEdit) {
-                Image(systemName: "pencil")
-                    .foregroundColor(todo.isCompleted ? .gray : .blue)
-            }
-            .buttonStyle(.plain)
-            .disabled(todo.isCompleted)
-            
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .foregroundColor(todo.isCompleted ? .gray : .red)
-            }
-            .buttonStyle(.plain)
-            .disabled(todo.isCompleted)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(todo.isRunning ? 
