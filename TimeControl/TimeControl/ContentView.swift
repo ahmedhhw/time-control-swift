@@ -1115,7 +1115,7 @@ struct ContentView: View {
                 }
                 
                 runningTaskId = todo.id
-                FloatingWindowManager.shared.showFloatingWindow(for: todos[index])
+                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], activateReminders: activateReminders)
                 
                 // Set startedAt timestamp if this is the first time starting
                 if todos[index].startedAt == nil {
@@ -2639,7 +2639,7 @@ class FloatingWindowManager: ObservableObject {
     @Published var currentTask: TodoItem?
     private var windowDelegate: FloatingWindowDelegate?
     
-    func showFloatingWindow(for task: TodoItem) {
+    func showFloatingWindow(for task: TodoItem, activateReminders: Bool = false) {
         // Close existing window if any
         closeFloatingWindow()
         
@@ -2647,7 +2647,7 @@ class FloatingWindowManager: ObservableObject {
         currentTask = task
         
         // Create the SwiftUI view
-        let contentView = FloatingTaskWindowView(task: task, windowManager: self)
+        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders)
         let hostingView = NSHostingView(rootView: contentView)
         
         // Calculate position (bottom right of screen with padding)
@@ -2843,11 +2843,19 @@ struct FloatingTaskWindowView: View {
     @State private var timerJustCompleted: Bool = false  // Track if timer just completed
     @State private var showTimerCompletedMessage: Bool = false  // Show "Timer's up!" message
     
+    // Reminder functionality
+    let activateReminders: Bool  // User setting for reminders
+    @State private var lastReminderTime: Date? = nil  // When the last reminder was shown
+    @State private var showingReminder: Bool = false  // Show reminder popup
+    @State private var reminderResponseDeadline: Date? = nil  // When to auto-pause if no response
+    @State private var showTaskPausedAlert: Bool = false  // Show "Task Paused!" alert
+    
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    init(task: TodoItem, windowManager: FloatingWindowManager) {
+    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false) {
         self.task = task
         self.windowManager = windowManager
+        self.activateReminders = activateReminders
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         
@@ -2872,68 +2880,70 @@ struct FloatingTaskWindowView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Collapse/expand button and Notes button at the top
-            HStack {
-                                
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isCollapsed.toggle()
-                        resizeWindow()
+        ZStack(alignment: .top) {
+            // Main content
+            VStack(alignment: .leading, spacing: 0) {
+                // Collapse/expand button and Notes button at the top
+                HStack {
+                                    
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isCollapsed.toggle()
+                            resizeWindow()
+                        }
+                    }) {
+                        Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                            .frame(width: 20, height: 20)
                     }
-                }) {
-                    Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                        .frame(width: 20, height: 20)
-                }
-                .buttonStyle(.plain)
-                .help(isCollapsed ? "Expand" : "Collapse")
-                
-                Button(action: {
-                    openMainWindow()
-                }) {
-                    Image(systemName: "macwindow")
+                    .buttonStyle(.plain)
+                    .help(isCollapsed ? "Expand" : "Collapse")
+                    
+                    Button(action: {
+                        openMainWindow()
+                    }) {
+                        Image(systemName: "macwindow")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Open main window")
+                    
+                    Button(action: {
+                        openNotesWindow()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "note.text")
+                                .font(.caption)
+                            Text("Notes")
+                                .font(.caption)
+                        }
                         .foregroundColor(.blue)
-                        .font(.caption)
-                        .frame(width: 20, height: 20)
-                }
-                .buttonStyle(.plain)
-                .help("Open main window")
-                
-                Button(action: {
-                    openNotesWindow()
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "note.text")
-                            .font(.caption)
-                        Text("Notes")
-                            .font(.caption)
                     }
-                    .foregroundColor(.blue)
-                }
-                .buttonStyle(.plain)
-                .help("Take notes while working on this task")
-                
-                Spacer()
-                
-                Button(action: {
-                    showingTimerPicker = true
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "timer")
-                            .font(.caption)
-                        Text("Timer")
-                            .font(.caption)
+                    .buttonStyle(.plain)
+                    .help("Take notes while working on this task")
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showingTimerPicker = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "timer")
+                                .font(.caption)
+                            Text("Timer")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.orange)
                     }
-                    .foregroundColor(.orange)
-                }
-                .buttonStyle(.plain)
-                .help("Set a countdown timer")
+                    .buttonStyle(.plain)
+                    .help("Set a countdown timer")
 
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
             
             // Content (hidden when collapsed)
             if !isCollapsed {
@@ -2955,18 +2965,51 @@ struct FloatingTaskWindowView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Divider()
                         
-                        // Time elapsed
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Time Elapsed")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
-                            Text(formatTime(localTask.currentTimeSpent))
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.blue)
-                                .monospacedDigit()
-                                .id(timerUpdateTrigger)
+                        HStack(alignment: .top, spacing: 16) {
+                            // Time elapsed
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Time Elapsed")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                Text(formatTime(localTask.currentTimeSpent))
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.blue)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
+                            }
+                            
+                            Spacer()
+                            
+                            // Attention Check countdown (only shown when reminders are active and task is running)
+                            if activateReminders && localTask.isRunning && !showingReminder {
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    Text("Attention Check")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .textCase(.uppercase)
+                                    
+                                    if let lastReminder = lastReminderTime {
+                                        let elapsed = Date().timeIntervalSince(lastReminder)
+                                        let remaining = max(0, 120 - elapsed)  // 120 seconds = 2 minutes
+                                        
+                                        Text(formatTime(remaining))
+                                            .font(.title2)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(remaining < 30 ? .orange : .purple)
+                                            .monospacedDigit()
+                                            .id(timerUpdateTrigger)
+                                    } else {
+                                        Text(formatTime(120))
+                                            .font(.title2)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.purple)
+                                            .monospacedDigit()
+                                            .id(timerUpdateTrigger)
+                                    }
+                                }
+                            }
                         }
                     }
                     
@@ -3181,11 +3224,150 @@ struct FloatingTaskWindowView: View {
                 .padding(.bottom, 12)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            
+            // Reminder Alert (shown on top when activated)
+            if showingReminder {
+                VStack(spacing: 0) {
+                    VStack(spacing: 12) {
+                        Text("Are you still working on")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        Text("\"\(localTask.text)\"?")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                        
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                handleReminderResponse(.yes)
+                            }) {
+                                Text("Yes")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(Color.green)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button(action: {
+                                handleReminderResponse(.pause)
+                            }) {
+                                HStack(spacing: 4) {
+                                    Text("Pause")
+                                    if let deadline = reminderResponseDeadline {
+                                        let remaining = Int(ceil(deadline.timeIntervalSince(Date())))
+                                        if remaining > 0 {
+                                            Text("(\(remaining))")
+                                                .monospacedDigit()
+                                        }
+                                    }
+                                }
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(Color.orange)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button(action: {
+                                handleReminderResponse(.openTaskList)
+                            }) {
+                                Text("Open List")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(16)
+                    .background(Color(NSColor.windowBackgroundColor))
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .padding(20)
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black.opacity(0.1))
+                .transition(.opacity)
+            }
+            
+            // "Task Paused!" Alert (shown when auto-pause triggers)
+            if showTaskPausedAlert {
+                VStack {
+                    Spacer()
+                    
+                    HStack(spacing: 8) {
+                        Image(systemName: "pause.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                        
+                        Text("Task Paused!")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                    .background(Color.orange)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .padding(.bottom, 60)
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onReceive(timer) { _ in
             // Update UI every second for running timer
             timerUpdateTrigger += 1
+            
+            // Reminder functionality - check every second if we need to show reminder or auto-pause
+            if activateReminders && localTask.isRunning {
+                let now = Date()
+                
+                // Check if we need to show a reminder (every 2 minutes)
+                if !showingReminder {
+                    if lastReminderTime == nil {
+                        // First time - set the timer
+                        lastReminderTime = now
+                    } else if let lastReminder = lastReminderTime {
+                        let timeSinceLastReminder = now.timeIntervalSince(lastReminder)
+                        if timeSinceLastReminder >= 120 {  // 2 minutes = 120 seconds
+                            // Show the reminder
+                            withAnimation {
+                                showingReminder = true
+                            }
+                            reminderResponseDeadline = now.addingTimeInterval(10)  // 10 seconds to respond
+                        }
+                    }
+                }
+                
+                // Check if we need to auto-pause (10 seconds after showing reminder)
+                if showingReminder, let deadline = reminderResponseDeadline {
+                    if now >= deadline {
+                        // Auto-pause the task and show alert
+                        handleReminderResponse(.pause, isAutoPause: true)
+                    }
+                }
+            }
             
             // Check if countdown timer has completed
             if localTask.isRunning && localTask.countdownTime > 0 && !timerJustCompleted {
@@ -3220,6 +3402,23 @@ struct FloatingTaskWindowView: View {
         }
         .onChange(of: windowManager.currentTask) { newTask in
             if let newTask = newTask {
+                // Check if task running state changed
+                let wasRunning = localTask.isRunning
+                let isNowRunning = newTask.isRunning
+                
+                // Reset reminder timer when task state changes
+                if wasRunning != isNowRunning {
+                    if isNowRunning {
+                        // Task just started - reset reminder timer
+                        lastReminderTime = Date()
+                    } else {
+                        // Task paused - clear reminder state
+                        lastReminderTime = nil
+                        showingReminder = false
+                        reminderResponseDeadline = nil
+                    }
+                }
+                
                 // Don't overwrite localTask if timer just completed (let it finish the completion process)
                 if timerJustCompleted && localTask.countdownTime == 0 {
                     // Timer already cleared locally, just update other fields
@@ -3410,6 +3609,57 @@ struct FloatingTaskWindowView: View {
         
         showingTimerPicker = false
     }
+    
+    private func handleReminderResponse(_ response: ReminderResponse, isAutoPause: Bool = false) {
+        withAnimation {
+            showingReminder = false
+        }
+        reminderResponseDeadline = nil
+        lastReminderTime = Date()  // Reset the timer for the next reminder
+        
+        switch response {
+        case .yes:
+            // Do nothing - task continues running
+            break
+            
+        case .pause:
+            // Pause the task
+            pauseTask()
+            
+            // Show "Task Paused!" alert if this was an auto-pause
+            if isAutoPause {
+                withAnimation {
+                    showTaskPausedAlert = true
+                }
+                
+                // Hide the alert after 3 seconds with fade
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        showTaskPausedAlert = false
+                    }
+                    
+                    // Resize window if collapsed
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if isCollapsed {
+                            resizeWindow()
+                        }
+                    }
+                }
+            }
+            
+        case .openTaskList:
+            // Pause the task before opening the main window
+            pauseTask()
+            // Open the main window
+            openMainWindow()
+        }
+    }
+}
+
+enum ReminderResponse {
+    case yes
+    case pause
+    case openTaskList
 }
 
 struct TimerPickerSheet: View {
