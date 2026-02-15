@@ -1304,9 +1304,9 @@ struct FloatingTaskWindowView: View {
     @ObservedObject var windowManager: FloatingWindowManager
     @State private var localTask: TodoItem
     @State private var isCollapsed: Bool = false
-    @State private var showNotesEditor: Bool = false
     @State private var notesText: String = ""
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timer
+    @State private var notesWindow: NSWindow?
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1333,22 +1333,7 @@ struct FloatingTaskWindowView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Collapse/expand button and Notes button at the top
             HStack {
-                Spacer()
-                
-                Button(action: {
-                    showNotesEditor = true
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "note.text")
-                            .font(.caption)
-                        Text("Notes")
-                            .font(.caption)
-                    }
-                    .foregroundColor(.blue)
-                }
-                .buttonStyle(.plain)
-                .help("Take notes while working on this task")
-                
+                                
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isCollapsed.toggle()
@@ -1362,6 +1347,20 @@ struct FloatingTaskWindowView: View {
                 }
                 .buttonStyle(.plain)
                 .help(isCollapsed ? "Expand" : "Collapse")
+                Button(action: {
+                    openNotesWindow()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "note.text")
+                            .font(.caption)
+                        Text("Notes")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
+                .help("Take notes while working on this task")
+
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -1562,9 +1561,49 @@ struct FloatingTaskWindowView: View {
                 notesText = newTask.notes
             }
         }
-        .sheet(isPresented: $showNotesEditor) {
-            NotesEditorView(notes: $notesText, taskId: localTask.id)
-        }
+    }
+    
+    private func openNotesWindow() {
+        // Close existing notes window if any
+        notesWindow?.close()
+        
+        // Create the SwiftUI view for notes editor
+        let contentView = NotesEditorView(notes: $notesText, taskId: localTask.id, onClose: {
+            notesWindow?.close()
+            notesWindow = nil
+        })
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Calculate position (next to the floating task window)
+        guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
+        let taskFrame = taskWindow.frame
+        
+        let windowWidth: CGFloat = 500
+        let windowHeight: CGFloat = 400
+        
+        // Position to the left of the task window
+        let xPos = taskFrame.minX - windowWidth - 20
+        let yPos = taskFrame.minY
+        
+        // Create a floating window for notes
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Task Notes"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        window.minSize = NSSize(width: 300, height: 200)
+        
+        notesWindow = window
+        window.orderFrontRegardless()
     }
     
     private func resizeWindow() {
@@ -1619,12 +1658,13 @@ struct FloatingTaskWindowView: View {
 struct NotesEditorView: View {
     @Binding var notes: String
     let taskId: UUID
-    @Environment(\.dismiss) private var dismiss
+    let onClose: () -> Void
     @State private var localNotes: String
     
-    init(notes: Binding<String>, taskId: UUID) {
+    init(notes: Binding<String>, taskId: UUID, onClose: @escaping () -> Void) {
         self._notes = notes
         self.taskId = taskId
+        self.onClose = onClose
         self._localNotes = State(initialValue: notes.wrappedValue)
     }
     
@@ -1633,7 +1673,7 @@ struct NotesEditorView: View {
             // Custom toolbar
             HStack {
                 Button("Cancel") {
-                    dismiss()
+                    onClose()
                 }
                 .keyboardShortcut(.cancelAction)
                 
@@ -1680,7 +1720,7 @@ struct NotesEditorView: View {
             userInfo: ["taskId": taskId, "notes": localNotes]
         )
         
-        dismiss()
+        onClose()
     }
 }
 
