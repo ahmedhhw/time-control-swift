@@ -1,0 +1,41 @@
+---
+description: Don't automatically build or test code changes
+alwaysApply: true
+---
+
+# No Automatic Building or Testing
+
+Do NOT automatically build, compile, or test code changes unless explicitly requested by the user.
+
+## What NOT to Do
+
+- ❌ Don't run `xcodebuild`, `npm test`, `cargo build`, etc. after making changes
+- ❌ Don't run build scripts automatically
+- ❌ Don't run test suites to verify changes
+- ❌ Don't attempt to compile or validate code execution
+
+## What to Do Instead
+
+- ✅ Make the requested code changes
+- ✅ Check for linter errors with ReadLints if appropriate
+- ✅ Explain what was changed and why
+- ✅ Let the user decide when to build/test
+
+## When Building IS Allowed
+
+Only run build or test commands when:
+1. The user explicitly asks you to build/compile
+2. The user explicitly asks you to run tests
+3. The user asks you to verify the code works
+
+## Example
+
+```markdown
+User: "Add a new feature X"
+Assistant: *makes code changes* ✅
+Assistant: *does NOT run build* ✅
+Assistant: "I've added feature X by modifying files A and B. You can build and test when ready."
+
+User: "Build and run the app to test it"
+Assistant: *now runs build command* ✅
+```

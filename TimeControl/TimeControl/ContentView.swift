@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import AVFoundation
 
 struct Subtask: Identifiable, Codable, Equatable {
     let id: UUID
@@ -39,8 +40,11 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var startedAt: TimeInterval? = nil  // Epoch time when task timer was first started
     var completedAt: TimeInterval? = nil  // Epoch time when task was marked completed
     var notes: String = ""  // Notes taken while working on the task
+    var countdownTime: TimeInterval = 0  // Countdown timer duration in seconds
+    var countdownStartTime: Date? = nil  // When the countdown was started
+    var countdownElapsedAtPause: TimeInterval = 0  // Elapsed time when last paused
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "") {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "", countdownTime: TimeInterval = 0, countdownStartTime: Date? = nil, countdownElapsedAtPause: TimeInterval = 0) {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
@@ -57,6 +61,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.startedAt = startedAt
         self.completedAt = completedAt
         self.notes = notes
+        self.countdownTime = countdownTime
+        self.countdownStartTime = countdownStartTime
+        self.countdownElapsedAtPause = countdownElapsedAtPause
     }
     
     var isRunning: Bool {
@@ -69,6 +76,19 @@ struct TodoItem: Identifiable, Codable, Equatable {
             time += Date().timeIntervalSince(startTime)
         }
         return time
+    }
+    
+    var countdownElapsed: TimeInterval {
+        guard countdownTime > 0, let startTime = countdownStartTime else { return 0 }
+        
+        if isRunning {
+            // Task is currently running - add the paused elapsed time plus time since resume
+            let currentSessionElapsed = Date().timeIntervalSince(startTime)
+            return min(countdownElapsedAtPause + currentSessionElapsed, countdownTime)
+        } else {
+            // Task is paused - return the stored elapsed time
+            return min(countdownElapsedAtPause, countdownTime)
+        }
     }
 }
 
@@ -98,9 +118,9 @@ class TodoStorage {
                 "notes": todo.notes
             ]
             
-            if let lastStartTime = todo.lastStartTime {
-                taskData["lastStartTime"] = lastStartTime.timeIntervalSince1970
-            }
+            // Timer-related fields are NOT persisted to storage
+            // lastStartTime, countdownStartTime, countdownTime, and countdownElapsedAtPause
+            // should not survive app restarts or window closes
             
             if let dueDate = todo.dueDate {
                 taskData["dueDate"] = dueDate.timeIntervalSince1970
@@ -172,11 +192,6 @@ class TodoStorage {
                 let completedAt = taskData["completedAt"] as? TimeInterval
                 let notes = taskData["notes"] as? String ?? ""
                 
-                var lastStartTime: Date? = nil
-                if let timestamp = taskData["lastStartTime"] as? TimeInterval {
-                    lastStartTime = Date(timeIntervalSince1970: timestamp)
-                }
-                
                 var dueDate: Date? = nil
                 if let timestamp = taskData["dueDate"] as? TimeInterval {
                     dueDate = Date(timeIntervalSince1970: timestamp)
@@ -197,7 +212,7 @@ class TodoStorage {
                     }
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt, notes: notes)
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: nil, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt, notes: notes)
                 todos.append(todo)
             }
             
@@ -623,6 +638,9 @@ struct ContentView: View {
             // Update UI every second if any timer is running
             if todos.contains(where: { $0.isRunning }) {
                 timerUpdateTrigger += 1
+                
+                // Note: Timer completion is handled by the floating window
+                // The floating window will notify ContentView when to clear timer fields
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ToggleSubtaskFromFloatingWindow"))) { notification in
@@ -695,6 +713,38 @@ struct ContentView: View {
             if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
                 let todo = todos[todoIndex]
                 toggleTimer(todo)  // This will pause the timer and close the floating window
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SetCountdownFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID,
+                  let countdownTime = userInfo["countdownTime"] as? TimeInterval else {
+                return
+            }
+            
+            // Set the countdown timer for the task
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                todos[todoIndex].countdownTime = countdownTime
+                todos[todoIndex].countdownStartTime = Date()
+                todos[todoIndex].countdownElapsedAtPause = 0  // Reset elapsed time for new timer
+                saveTodos()
+                
+                // Update the floating window with the new task state
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ClearCountdownFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID else {
+                return
+            }
+            
+            // Clear the countdown timer for the task
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                todos[todoIndex].countdownTime = 0
+                todos[todoIndex].countdownStartTime = nil
+                todos[todoIndex].countdownElapsedAtPause = 0
+                saveTodos()
             }
         }
         .sheet(item: $editingTodo) { todoToEdit in
@@ -780,6 +830,14 @@ struct ContentView: View {
                     todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
                 todos[index].lastStartTime = nil
+                
+                // Update countdown elapsed time when pausing
+                if todos[index].countdownTime > 0, let countdownStart = todos[index].countdownStartTime {
+                    let sessionElapsed = Date().timeIntervalSince(countdownStart)
+                    todos[index].countdownElapsedAtPause += sessionElapsed
+                    todos[index].countdownStartTime = nil
+                }
+                
                 runningTaskId = nil
                 FloatingWindowManager.shared.closeFloatingWindow()
             } else {
@@ -790,11 +848,24 @@ struct ContentView: View {
                             todos[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                         }
                         todos[i].lastStartTime = nil
+                        
+                        // Update countdown elapsed time for the other task
+                        if todos[i].countdownTime > 0, let countdownStart = todos[i].countdownStartTime {
+                            let sessionElapsed = Date().timeIntervalSince(countdownStart)
+                            todos[i].countdownElapsedAtPause += sessionElapsed
+                            todos[i].countdownStartTime = nil
+                        }
                     }
                 }
                 
                 // Start the timer for this task
                 todos[index].lastStartTime = Date()
+                
+                // Resume countdown timer if it's set and not completed
+                if todos[index].countdownTime > 0 && todos[index].countdownElapsedAtPause < todos[index].countdownTime {
+                    todos[index].countdownStartTime = Date()
+                }
+                
                 runningTaskId = todo.id
                 FloatingWindowManager.shared.showFloatingWindow(for: todos[index])
                 
@@ -1326,6 +1397,11 @@ struct FloatingTaskWindowView: View {
     @State private var notesWindow: NSWindow?
     @State private var newSubtaskText: String = ""  // Text for new subtask
     @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
+    @State private var showingTimerPicker: Bool = false  // Show timer picker sheet
+    @State private var timerHours: Int = 0  // Hours for countdown timer
+    @State private var timerMinutes: Int = 25  // Minutes for countdown timer (default 25)
+    @State private var timerJustCompleted: Bool = false  // Track if timer just completed
+    @State private var showTimerCompletedMessage: Bool = false  // Show "Timer's up!" message
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1334,6 +1410,13 @@ struct FloatingTaskWindowView: View {
         self.windowManager = windowManager
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
+        
+        // Initialize timer hours/minutes from existing countdown time
+        if task.countdownTime > 0 {
+            let totalMinutes = Int(task.countdownTime / 60)
+            self._timerHours = State(initialValue: totalMinutes / 60)
+            self._timerMinutes = State(initialValue: totalMinutes % 60)
+        }
     }
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
@@ -1391,6 +1474,22 @@ struct FloatingTaskWindowView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Take notes while working on this task")
+                
+                Spacer()
+                
+                Button(action: {
+                    showingTimerPicker = true
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "timer")
+                            .font(.caption)
+                        Text("Timer")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.orange)
+                }
+                .buttonStyle(.plain)
+                .help("Set a countdown timer")
 
             }
             .padding(.horizontal, 8)
@@ -1492,6 +1591,108 @@ struct FloatingTaskWindowView: View {
                                         .monospacedDigit()
                                         .id(timerUpdateTrigger)
                                 }
+                            }
+                        }
+                    }
+                    
+                    // Timer's up! message (shown after timer completes and is cleared)
+                    if showTimerCompletedMessage {
+                        VStack(spacing: 8) {
+                            Divider()
+                            
+                            HStack {
+                                Spacer()
+                                VStack(spacing: 8) {
+                                    Image(systemName: "bell.badge.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.red)
+                                    
+                                    Text("Timer's up!")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.red)
+                                    
+                                    Button(action: {
+                                        withAnimation {
+                                            showTimerCompletedMessage = false
+                                        }
+                                    }) {
+                                        Text("Dismiss")
+                                            .font(.caption)
+                                            .foregroundColor(.blue)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                    
+                    // Countdown Timer section (if set)
+                    if localTask.countdownTime > 0 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Timer")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                
+                                HStack {
+                                    // Show elapsed time
+                                    Text(formatTime(localTask.countdownElapsed))
+                                        .font(.title2)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(localTask.countdownElapsed >= localTask.countdownTime ? .red : .orange)
+                                        .monospacedDigit()
+                                        .id(timerUpdateTrigger)
+                                    
+                                    Text("/")
+                                        .font(.title3)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text(formatTime(localTask.countdownTime))
+                                        .font(.title3)
+                                        .foregroundColor(.secondary)
+                                        .monospacedDigit()
+                                    
+                                    Spacer()
+                                    
+                                    if localTask.countdownElapsed >= localTask.countdownTime {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "bell.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.red)
+                                            Text("Time's up!")
+                                                .font(.caption)
+                                                .foregroundColor(.red)
+                                        }
+                                    }
+                                }
+                                
+                                // Progress bar for countdown (fills up as time progresses)
+                                GeometryReader { geometry in
+                                    ZStack(alignment: .leading) {
+                                        // Background
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.2))
+                                            .frame(height: 6)
+                                            .cornerRadius(3)
+                                        
+                                        // Progress (fills up as time elapses)
+                                        let progress = localTask.countdownTime > 0 ? min(localTask.countdownElapsed / localTask.countdownTime, 1.0) : 0
+                                        Rectangle()
+                                            .fill(progress >= 1.0 ? Color.red : Color.orange)
+                                            .frame(width: geometry.size.width * progress, height: 6)
+                                            .cornerRadius(3)
+                                            .id(timerUpdateTrigger)
+                                    }
+                                }
+                                .frame(height: 6)
                             }
                         }
                     }
@@ -1606,12 +1807,79 @@ struct FloatingTaskWindowView: View {
         .onReceive(timer) { _ in
             // Update UI every second for running timer
             timerUpdateTrigger += 1
+            
+            // Check if countdown timer has completed
+            if localTask.isRunning && localTask.countdownTime > 0 && !timerJustCompleted {
+                let elapsed = localTask.countdownElapsed
+                if elapsed >= localTask.countdownTime {
+                    // Countdown completed - mark as just completed
+                    timerJustCompleted = true
+                    
+                    // Play notification sound
+                    NSSound.beep()
+                    
+                    // Show the "Timer's up!" message with animation
+                    withAnimation {
+                        showTimerCompletedMessage = true
+                    }
+                    
+                    // Clear all timer fields locally after a brief delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        localTask.countdownTime = 0
+                        localTask.countdownStartTime = nil
+                        localTask.countdownElapsedAtPause = 0
+                        
+                        // Notify ContentView to clear timer fields in storage
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("ClearCountdownFromFloatingWindow"),
+                            object: nil,
+                            userInfo: ["taskId": localTask.id]
+                        )
+                    }
+                }
+            }
         }
         .onChange(of: windowManager.currentTask) { newTask in
             if let newTask = newTask {
-                localTask = newTask
-                notesText = newTask.notes
+                // Don't overwrite localTask if timer just completed (let it finish the completion process)
+                if timerJustCompleted && localTask.countdownTime == 0 {
+                    // Timer already cleared locally, just update other fields
+                    localTask.text = newTask.text
+                    localTask.description = newTask.description
+                    localTask.subtasks = newTask.subtasks
+                    localTask.totalTimeSpent = newTask.totalTimeSpent
+                    localTask.lastStartTime = newTask.lastStartTime
+                    localTask.estimatedTime = newTask.estimatedTime
+                    notesText = newTask.notes
+                } else {
+                    // Normal update
+                    localTask = newTask
+                    notesText = newTask.notes
+                }
+                
+                // If timer was cleared externally (from ContentView), reset completion flags
+                if newTask.countdownTime == 0 && timerJustCompleted {
+                    timerJustCompleted = false
+                }
+                
+                // If a new timer was set externally, reset flags
+                if newTask.countdownTime > 0 && newTask.countdownElapsedAtPause == 0 {
+                    timerJustCompleted = false
+                    showTimerCompletedMessage = false
+                }
             }
+        }
+        .sheet(isPresented: $showingTimerPicker) {
+            TimerPickerSheet(
+                hours: $timerHours,
+                minutes: $timerMinutes,
+                onSet: {
+                    setCountdownTimer()
+                },
+                onCancel: {
+                    showingTimerPicker = false
+                }
+            )
         }
     }
     
@@ -1735,6 +2003,108 @@ struct FloatingTaskWindowView: View {
             object: nil,
             userInfo: ["taskId": localTask.id]
         )
+    }
+    
+    private func setCountdownTimer() {
+        // Calculate total countdown time in seconds
+        let totalSeconds = TimeInterval((timerHours * 3600) + (timerMinutes * 60))
+        
+        // Reset completion flags when setting a new timer
+        timerJustCompleted = false
+        showTimerCompletedMessage = false
+        
+        // Notify ContentView to set the countdown timer
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SetCountdownFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": localTask.id, "countdownTime": totalSeconds]
+        )
+        
+        showingTimerPicker = false
+    }
+}
+
+struct TimerPickerSheet: View {
+    @Binding var hours: Int
+    @Binding var minutes: Int
+    let onSet: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    onCancel()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("Set Countdown Timer")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button("Set") {
+                    onSet()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(hours == 0 && minutes == 0)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Timer picker
+            VStack(spacing: 20) {
+                Text("Choose the countdown duration")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Hours")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Picker("", selection: $hours) {
+                            ForEach(0..<24, id: \.self) { hour in
+                                Text("\(hour)").tag(hour)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 80)
+                    }
+                    
+                    Text(":")
+                        .font(.title2)
+                        .padding(.top, 16)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Minutes")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Picker("", selection: $minutes) {
+                            ForEach(0..<60, id: \.self) { minute in
+                                Text("\(minute)").tag(minute)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 80)
+                    }
+                }
+                .padding(.vertical)
+                
+                if hours > 0 || minutes > 0 {
+                    Text("Timer will count down while the task is running")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+        }
+        .frame(minWidth: 400, minHeight: 250)
     }
 }
 
