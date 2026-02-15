@@ -1313,6 +1313,91 @@ struct TodoRow: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             
+            // Description (shown when expanded and advanced mode is on and description is not empty)
+            if isAdvancedMode && isExpanded && !todo.description.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 12)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Description")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        Text(todo.description)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                }
+            }
+            
+            // Notes (shown when expanded and advanced mode is on and notes is not empty)
+            if isAdvancedMode && isExpanded && !todo.notes.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 12)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notes")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        Text(todo.notes)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                }
+            }
+            
+            // Task metadata (shown when expanded and advanced mode is on)
+            if isAdvancedMode && isExpanded && (todo.isAdhoc || !todo.fromWho.isEmpty) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 12)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Task Info")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            if todo.isAdhoc {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "bolt.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                    Text("Adhoc Task")
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                            
+                            if !todo.fromWho.isEmpty {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "person.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                    Text("From: \(todo.fromWho)")
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                }
+            }
+            
             // Progress bar (shown when expanded and advanced mode is on and estimated time is set)
             if isAdvancedMode && isExpanded && todo.estimatedTime > 0 {
                 VStack(alignment: .leading, spacing: 8) {
