@@ -715,10 +715,56 @@ struct ContentView: View {
                 return
             }
             
+            let keepWindowOpen = userInfo["keepWindowOpen"] as? Bool ?? false
+            
             // Pause the task in the main todos array
             if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                let todo = todos[todoIndex]
-                toggleTimer(todo)  // This will pause the timer and close the floating window
+                // Stop the timer - accumulate time spent
+                if let startTime = todos[todoIndex].lastStartTime {
+                    todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[todoIndex].lastStartTime = nil
+                
+                // Update countdown elapsed time when pausing
+                if todos[todoIndex].countdownTime > 0, let countdownStart = todos[todoIndex].countdownStartTime {
+                    let sessionElapsed = Date().timeIntervalSince(countdownStart)
+                    todos[todoIndex].countdownElapsedAtPause += sessionElapsed
+                    todos[todoIndex].countdownStartTime = nil
+                }
+                
+                saveTodos()
+                
+                // Only close window if not keeping it open
+                if !keepWindowOpen {
+                    runningTaskId = nil
+                    FloatingWindowManager.shared.closeFloatingWindow()
+                } else {
+                    // Update the floating window with the paused state
+                    FloatingWindowManager.shared.updateTask(todos[todoIndex])
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResumeTaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID else {
+                return
+            }
+            
+            // Resume the task in the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                // Start the timer for this task
+                todos[todoIndex].lastStartTime = Date()
+                
+                // Resume countdown timer if it's set and not completed
+                if todos[todoIndex].countdownTime > 0 && todos[todoIndex].countdownElapsedAtPause < todos[todoIndex].countdownTime {
+                    todos[todoIndex].countdownStartTime = Date()
+                }
+                
+                runningTaskId = taskId
+                saveTodos()
+                
+                // Update the floating window with the resumed state
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SetCountdownFromFloatingWindow"))) { notification in
@@ -1368,10 +1414,18 @@ class FloatingWindowDelegate: NSObject, NSWindowDelegate {
     }
     
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        // Show confirmation dialog
+        // Check if the task is currently running
+        let isTaskRunning = FloatingWindowManager.shared.currentTask?.isRunning ?? false
+        
+        // If the task is already paused, just close the window without asking
+        if !isTaskRunning {
+            return true
+        }
+        
+        // If the task is running, show confirmation dialog
         let alert = NSAlert()
         alert.messageText = "Pause Task?"
-        alert.informativeText = "Closing this window will pause the task timer. Are you sure?"
+        alert.informativeText = "Do you want to pause the task timer?"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Pause Task")
         alert.addButton(withTitle: "Cancel")
@@ -1379,11 +1433,11 @@ class FloatingWindowDelegate: NSObject, NSWindowDelegate {
         let response = alert.runModal()
         
         if response == .alertFirstButtonReturn {
-            // User clicked "Pause Task" - notify to pause the task
+            // User clicked "Pause Task" - notify to pause the task and close window
             NotificationCenter.default.post(
                 name: NSNotification.Name("PauseTaskFromFloatingWindow"),
                 object: nil,
-                userInfo: ["taskId": taskId]
+                userInfo: ["taskId": taskId, "keepWindowOpen": false]
             )
             return true
         } else {
@@ -1759,30 +1813,34 @@ struct FloatingTaskWindowView: View {
                         }
                     }
                     
-                    // Pause and Complete buttons at the bottom
+                    // Pause/Resume and Complete buttons at the bottom
                     Spacer()
                     
                     HStack(spacing: 12) {
                         Spacer()
                         
                         Button(action: {
-                            pauseTask()
+                            if localTask.isRunning {
+                                pauseTask()
+                            } else {
+                                resumeTask()
+                            }
                         }) {
                             HStack(spacing: 6) {
-                                Image(systemName: "pause.circle.fill")
+                                Image(systemName: localTask.isRunning ? "pause.circle.fill" : "play.circle.fill")
                                     .font(.body)
-                                Text("Pause")
+                                Text(localTask.isRunning ? "Pause" : "Resume")
                                     .font(.body)
                                     .fontWeight(.medium)
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(Color.orange)
+                            .background(localTask.isRunning ? Color.orange : Color.blue)
                             .cornerRadius(8)
                         }
                         .buttonStyle(.plain)
-                        .help("Pause this task")
+                        .help(localTask.isRunning ? "Pause this task" : "Resume this task")
                         
                         Button(action: {
                             completeTask()
@@ -2003,9 +2061,18 @@ struct FloatingTaskWindowView: View {
     }
     
     private func pauseTask() {
-        // Pause the task by notifying the main view to stop the timer
+        // Pause the task by notifying the main view to stop the timer (but don't close window)
         NotificationCenter.default.post(
             name: NSNotification.Name("PauseTaskFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": localTask.id, "keepWindowOpen": true]
+        )
+    }
+    
+    private func resumeTask() {
+        // Resume the task by notifying the main view to restart the timer
+        NotificationCenter.default.post(
+            name: NSNotification.Name("ResumeTaskFromFloatingWindow"),
             object: nil,
             userInfo: ["taskId": localTask.id]
         )
