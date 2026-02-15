@@ -247,7 +247,7 @@ struct ContentView: View {
     @FocusState private var subtaskInputFocused: UUID?  // Track focused subtask input
     @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
     @State private var runningTaskId: UUID?  // Track the currently running task for floating window
-    @State private var isDetailedMode: Bool = false  // Toggle for detailed mode
+    @State private var isAdvancedMode: Bool = false  // Toggle for advanced mode
     @State private var sortOption: TaskSortOption = .creationDateNewest  // Sort option for tasks
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -272,8 +272,8 @@ struct ContentView: View {
     
     // Sort todos based on the selected sort option
     private func sortTodos(_ items: [TodoItem]) -> [TodoItem] {
-        guard isDetailedMode else {
-            // When not in detailed mode, maintain original order (by index)
+        guard isAdvancedMode else {
+            // When not in advanced mode, maintain original order (by index)
             return items.sorted { $0.index < $1.index }
         }
         
@@ -395,9 +395,9 @@ struct ContentView: View {
             .padding(.horizontal)
             .padding(.bottom, 8)
             
-            // Detailed mode toggle
+            // Advanced mode toggle
             HStack {
-                Toggle("Advanced mode", isOn: $isDetailedMode)
+                Toggle("Advanced mode", isOn: $isAdvancedMode)
                     .toggleStyle(.switch)
                     .font(.subheadline)
                 Spacer()
@@ -405,8 +405,8 @@ struct ContentView: View {
             .padding(.horizontal)
             .padding(.bottom, 8)
             
-            // Sort options (only shown when detailed mode is on)
-            if isDetailedMode {
+            // Sort options (only shown when advanced mode is on)
+            if isAdvancedMode {
                 HStack {
                     Text("Sort by:")
                         .font(.subheadline)
@@ -453,7 +453,7 @@ struct ContentView: View {
                                         todo: todo,
                                         timerUpdateTrigger: timerUpdateTrigger,
                                         isExpanded: expandedTodos.contains(todo.id),
-                                        isDetailedMode: isDetailedMode,
+                                        isAdvancedMode: isAdvancedMode,
                                         onToggle: {
                                             toggleTodo(todo)
                                         },
@@ -533,7 +533,7 @@ struct ContentView: View {
                                     todo: todo,
                                     timerUpdateTrigger: timerUpdateTrigger,
                                     isExpanded: false,
-                                    isDetailedMode: false,
+                                    isAdvancedMode: false,
                                     onToggle: {},
                                     onDelete: {},
                                     onToggleTimer: {},
@@ -622,7 +622,7 @@ struct ContentView: View {
                                                             todo: todo,
                                                             timerUpdateTrigger: timerUpdateTrigger,
                                                             isExpanded: expandedTodos.contains(todo.id),
-                                                            isDetailedMode: isDetailedMode,
+                                                            isAdvancedMode: isAdvancedMode,
                                                             onToggle: {
                                                                 toggleTodo(todo)
                                                             },
@@ -702,7 +702,7 @@ struct ContentView: View {
                                                         todo: todo,
                                                         timerUpdateTrigger: timerUpdateTrigger,
                                                         isExpanded: false,
-                                                        isDetailedMode: false,
+                                                        isAdvancedMode: false,
                                                         onToggle: {},
                                                         onDelete: {},
                                                         onToggleTimer: {},
@@ -1137,7 +1137,7 @@ struct TodoRow: View {
     let todo: TodoItem
     let timerUpdateTrigger: Int  // Used to trigger UI updates
     let isExpanded: Bool
-    let isDetailedMode: Bool  // Show detailed information
+    let isAdvancedMode: Bool  // Show advanced information
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onToggleTimer: () -> Void
@@ -1228,8 +1228,8 @@ struct TodoRow: View {
                         }
                     }
                     
-                    // Show estimate and time elapsed as numbers when detailed mode is on and not expanded
-                    if isDetailedMode && !isExpanded && todo.estimatedTime > 0 {
+                    // Show estimate and time elapsed as numbers when advanced mode is on and not expanded
+                    if isAdvancedMode && !isExpanded && todo.estimatedTime > 0 {
                         HStack(spacing: 8) {
                             Text("Est: \(formatTime(todo.estimatedTime))")
                                 .font(.caption)
@@ -1246,8 +1246,8 @@ struct TodoRow: View {
                         }
                     }
                     
-                    // Show due date information when detailed mode is on and not expanded
-                    if isDetailedMode && !isExpanded, let dueDate = todo.dueDate {
+                    // Show due date information when advanced mode is on and not expanded
+                    if isAdvancedMode && !isExpanded, let dueDate = todo.dueDate {
                         let progress = dueDateProgress()
                         let now = Date()
                         let remaining = dueDate.timeIntervalSince(now)
@@ -1313,8 +1313,8 @@ struct TodoRow: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             
-            // Progress bar (shown when expanded and detailed mode is on and estimated time is set)
-            if isDetailedMode && isExpanded && todo.estimatedTime > 0 {
+            // Progress bar (shown when expanded and advanced mode is on and estimated time is set)
+            if isAdvancedMode && isExpanded && todo.estimatedTime > 0 {
                 VStack(alignment: .leading, spacing: 8) {
                     Divider()
                         .padding(.horizontal, 12)
@@ -1398,8 +1398,8 @@ struct TodoRow: View {
                 }
             }
             
-            // Due date progress bar (shown when expanded and detailed mode is on and due date is set)
-            if isDetailedMode && isExpanded, let dueDate = todo.dueDate {
+            // Due date progress bar (shown when expanded and advanced mode is on and due date is set)
+            if isAdvancedMode && isExpanded, let dueDate = todo.dueDate {
                 VStack(alignment: .leading, spacing: 8) {
                     Divider()
                         .padding(.horizontal, 12)
