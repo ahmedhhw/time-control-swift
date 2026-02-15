@@ -3176,7 +3176,7 @@ struct FloatingTaskWindowView: View {
                             .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
-                    .floatingTooltip("Open main window")
+                    .floatingTooltip("Open task list")
                     
                     Button(action: {
                         openNotesWindow()
@@ -3184,8 +3184,7 @@ struct FloatingTaskWindowView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "note.text")
                                 .font(.caption)
-                            Text("Notes")
-                                .font(.caption)
+                         
                         }
                         .foregroundColor(.blue)
                     }
@@ -3198,10 +3197,9 @@ struct FloatingTaskWindowView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "timer")
                                 .font(.caption)
-                            Text("Timer")
-                                .font(.caption)
+                       
                         }
-                        .foregroundColor(.orange)
+                        .foregroundColor(.blue)
                     }
                     .buttonStyle(.plain)
                     .floatingTooltip("Set a countdown timer")
@@ -4006,7 +4004,7 @@ struct ReminderAlertView: View {
                 Button(action: {
                     onResponse(.openTaskList)
                 }) {
-                    Text("Open List")
+                    Text("Open Task List")
                         .font(.body)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
