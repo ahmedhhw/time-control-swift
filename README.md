@@ -766,3 +766,25 @@ The app automatically:
 3. **Collapse when done** - minimize floating window to reduce distraction
 4. **Regular cleanup** - periodically delete or archive old completed tasks
 5. **Backup JSON file** - copy `~/Documents/todos.json` for backup
+
+## License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+### What does this mean?
+
+- ✅ You can freely use, modify, and distribute this software
+- ✅ You can use it for commercial purposes
+- ⚠️ **If you modify and distribute this software, you MUST:**
+  - Share your source code under the same AGPL-3.0 license
+  - Keep the same open source license (no proprietary forks)
+  - Provide source code access even if you only run it as a web service
+- 🔒 **Strong copyleft protection** - derivative works must remain open source
+
+This "viral" license ensures that any fork or derivative work remains free and open source. If someone uses this code in their application, they must release their entire application's source code under AGPL-3.0.
+
+See the [LICENSE](LICENSE) file for the full license text.
+
+### Why AGPL-3.0?
+
+This license protects the open source nature of TimeControl and ensures that the community benefits from all improvements and modifications. It prevents others from taking this code, making proprietary modifications, and selling closed-source versions without contributing back to the community.
