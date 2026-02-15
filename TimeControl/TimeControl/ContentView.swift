@@ -43,8 +43,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var countdownTime: TimeInterval = 0  // Countdown timer duration in seconds
     var countdownStartTime: Date? = nil  // When the countdown was started
     var countdownElapsedAtPause: TimeInterval = 0  // Elapsed time when last paused
+    var lastPlayedAt: TimeInterval? = nil  // Epoch time when play button was last clicked
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "", countdownTime: TimeInterval = 0, countdownStartTime: Date? = nil, countdownElapsedAtPause: TimeInterval = 0) {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "", countdownTime: TimeInterval = 0, countdownStartTime: Date? = nil, countdownElapsedAtPause: TimeInterval = 0, lastPlayedAt: TimeInterval? = nil) {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
@@ -64,6 +65,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.countdownTime = countdownTime
         self.countdownStartTime = countdownStartTime
         self.countdownElapsedAtPause = countdownElapsedAtPause
+        self.lastPlayedAt = lastPlayedAt
     }
     
     var isRunning: Bool {
@@ -90,6 +92,15 @@ struct TodoItem: Identifiable, Codable, Equatable {
             return min(countdownElapsedAtPause, countdownTime)
         }
     }
+}
+
+enum TaskSortOption: String, CaseIterable, Identifiable {
+    case creationDateNewest = "Creation Date (Newest First)"
+    case creationDateOldest = "Creation Date (Oldest First)"
+    case recentlyPlayedNewest = "Recently Played (Newest First)"
+    case recentlyPlayedOldest = "Recently Played (Oldest First)"
+    
+    var id: String { self.rawValue }
 }
 
 // Storage Manager for JSON persistence
@@ -237,6 +248,7 @@ struct ContentView: View {
     @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
     @State private var runningTaskId: UUID?  // Track the currently running task for floating window
     @State private var isDetailedMode: Bool = false  // Toggle for detailed mode
+    @State private var sortOption: TaskSortOption = .creationDateNewest  // Sort option for tasks
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -248,12 +260,65 @@ struct ContentView: View {
     // Computed properties to separate incomplete and completed todos
     private var incompleteTodos: [TodoItem] {
         let filtered = todos.filter { !$0.isCompleted }
-        return filterTodos(filtered)
+        let filteredItems = filterTodos(filtered)
+        return sortTodos(filteredItems)
     }
     
     private var completedTodos: [TodoItem] {
         let filtered = todos.filter { $0.isCompleted }
-        return filterTodos(filtered)
+        let filteredItems = filterTodos(filtered)
+        return sortTodos(filteredItems)
+    }
+    
+    // Sort todos based on the selected sort option
+    private func sortTodos(_ items: [TodoItem]) -> [TodoItem] {
+        guard isDetailedMode else {
+            // When not in detailed mode, maintain original order (by index)
+            return items.sorted { $0.index < $1.index }
+        }
+        
+        switch sortOption {
+        case .creationDateNewest:
+            // Sort by creation date (newest first)
+            return items.sorted { $0.createdAt > $1.createdAt }
+        case .creationDateOldest:
+            // Sort by creation date (oldest first)
+            return items.sorted { $0.createdAt < $1.createdAt }
+        case .recentlyPlayedNewest:
+            // Sort by recently played (tasks that have been started) - newest first
+            // Tasks that have never been played go to the bottom
+            return items.sorted { todo1, todo2 in
+                let hasPlayed1 = todo1.lastPlayedAt != nil
+                let hasPlayed2 = todo2.lastPlayedAt != nil
+                
+                // If both have been played, sort by most recent play time (newest first)
+                if hasPlayed1 && hasPlayed2 {
+                    return (todo1.lastPlayedAt ?? 0) > (todo2.lastPlayedAt ?? 0)
+                }
+                // If only one has been played, prioritize it
+                if hasPlayed1 { return true }
+                if hasPlayed2 { return false }
+                // If neither has been played, sort by creation date (newest first)
+                return todo1.createdAt > todo2.createdAt
+            }
+        case .recentlyPlayedOldest:
+            // Sort by recently played (tasks that have been started) - oldest first
+            // Tasks that have never been played go to the bottom
+            return items.sorted { todo1, todo2 in
+                let hasPlayed1 = todo1.lastPlayedAt != nil
+                let hasPlayed2 = todo2.lastPlayedAt != nil
+                
+                // If both have been played, sort by oldest play time (oldest first)
+                if hasPlayed1 && hasPlayed2 {
+                    return (todo1.lastPlayedAt ?? 0) < (todo2.lastPlayedAt ?? 0)
+                }
+                // If only one has been played, prioritize it
+                if hasPlayed1 { return true }
+                if hasPlayed2 { return false }
+                // If neither has been played, sort by creation date (oldest first)
+                return todo1.createdAt < todo2.createdAt
+            }
+        }
     }
     
     // Filter todos based on filter text (case insensitive)
@@ -332,13 +397,34 @@ struct ContentView: View {
             
             // Detailed mode toggle
             HStack {
-                Toggle("Detailed mode", isOn: $isDetailedMode)
+                Toggle("Advanced mode", isOn: $isDetailedMode)
                     .toggleStyle(.switch)
                     .font(.subheadline)
                 Spacer()
             }
             .padding(.horizontal)
-            .padding(.bottom)
+            .padding(.bottom, 8)
+            
+            // Sort options (only shown when detailed mode is on)
+            if isDetailedMode {
+                HStack {
+                    Text("Sort by:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Picker("Sort", selection: $sortOption) {
+                        ForEach(TaskSortOption.allCases) { option in
+                            Text(option.rawValue).tag(option)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .font(.subheadline)
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
             
             Divider()
             
@@ -775,6 +861,14 @@ struct ContentView: View {
                     todos[todoIndex].countdownStartTime = Date()
                 }
                 
+                // Set startedAt timestamp if this is the first time starting
+                if todos[todoIndex].startedAt == nil {
+                    todos[todoIndex].startedAt = Date().timeIntervalSince1970
+                }
+                
+                // Update lastPlayedAt timestamp every time play is clicked (for "Recently Played" sorting)
+                todos[todoIndex].lastPlayedAt = Date().timeIntervalSince1970
+                
                 runningTaskId = taskId
                 saveTodos()
                 
@@ -940,6 +1034,9 @@ struct ContentView: View {
                 if todos[index].startedAt == nil {
                     todos[index].startedAt = Date().timeIntervalSince1970
                 }
+                
+                // Update lastPlayedAt timestamp every time play is clicked (for "Recently Played" sorting)
+                todos[index].lastPlayedAt = Date().timeIntervalSince1970
             }
             
             // Save to persistent storage
