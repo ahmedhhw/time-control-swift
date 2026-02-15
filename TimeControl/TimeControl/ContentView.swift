@@ -1366,6 +1366,18 @@ struct FloatingTaskWindowView: View {
                 }
                 .buttonStyle(.plain)
                 .help(isCollapsed ? "Expand" : "Collapse")
+                
+                Button(action: {
+                    openMainWindow()
+                }) {
+                    Image(systemName: "macwindow")
+                        .foregroundColor(.blue)
+                        .font(.caption)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .help("Open main window")
+                
                 Button(action: {
                     openNotesWindow()
                 }) {
@@ -1600,6 +1612,14 @@ struct FloatingTaskWindowView: View {
                 localTask = newTask
                 notesText = newTask.notes
             }
+        }
+    }
+    
+    private func openMainWindow() {
+        // Find and activate the main window
+        if let mainWindow = NSApp.windows.first(where: { $0.title == "TimeControl" || $0.isMainWindow }) {
+            mainWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
     
