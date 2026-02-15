@@ -1862,83 +1862,18 @@ struct FloatingTaskWindowView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Divider()
                         
-                        HStack(spacing: 16) {
-                            // Time elapsed
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Time Elapsed")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                Text(formatTime(localTask.currentTimeSpent))
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.blue)
-                                    .monospacedDigit()
-                                    .id(timerUpdateTrigger)
-                            }
-                            
-                            Spacer()
-                            
-                            // Estimated time (if set)
-                            if localTask.estimatedTime > 0 {
-                                VStack(alignment: .trailing, spacing: 4) {
-                                    Text("Estimated")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .textCase(.uppercase)
-                                    Text(formatTime(localTask.estimatedTime))
-                                        .font(.title3)
-                                        .foregroundColor(.secondary)
-                                        .monospacedDigit()
-                                }
-                            }
-                        }
-                        
-                        // Progress bar (if estimated time is set)
-                        if localTask.estimatedTime > 0 {
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    // Background
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.2))
-                                        .frame(height: 6)
-                                        .cornerRadius(3)
-                                    
-                                    // Progress
-                                    let progress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
-                                    Rectangle()
-                                        .fill(progress > 1.0 ? Color.orange : Color.blue)
-                                        .frame(width: geometry.size.width * progress, height: 6)
-                                        .cornerRadius(3)
-                                        .id(timerUpdateTrigger)
-                                }
-                            }
-                            .frame(height: 6)
-                            
-                            // Over/under time indicator
-                            if localTask.currentTimeSpent > localTask.estimatedTime {
-                                HStack {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.caption2)
-                                        .foregroundColor(.orange)
-                                    Text("Over by \(formatTime(localTask.currentTimeSpent - localTask.estimatedTime))")
-                                        .font(.caption)
-                                        .foregroundColor(.orange)
-                                        .monospacedDigit()
-                                        .id(timerUpdateTrigger)
-                                }
-                            } else {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.caption2)
-                                        .foregroundColor(.green)
-                                    Text("Remaining \(formatTime(localTask.estimatedTime - localTask.currentTimeSpent))")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .monospacedDigit()
-                                        .id(timerUpdateTrigger)
-                                }
-                            }
+                        // Time elapsed
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Time Elapsed")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+                            Text(formatTime(localTask.currentTimeSpent))
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.blue)
+                                .monospacedDigit()
+                                .id(timerUpdateTrigger)
                         }
                     }
                     
