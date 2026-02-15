@@ -94,6 +94,108 @@ struct TodoItem: Identifiable, Codable, Equatable {
     }
 }
 
+// Manages a separate NSWindow for tooltip display so it can extend beyond parent window bounds
+class TooltipWindowManager {
+    static let shared = TooltipWindowManager()
+    private var tooltipWindow: NSPanel?
+    
+    func show(text: String) {
+        hide()
+        
+        // Get current mouse location in screen coordinates
+        let mouseLocation = NSEvent.mouseLocation
+        
+        // Create the tooltip content
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 11)
+        label.textColor = .white
+        label.backgroundColor = .clear
+        label.sizeToFit()
+        
+        let padding: CGFloat = 12
+        let tooltipWidth = label.frame.width + padding
+        let tooltipHeight = label.frame.height + padding
+        
+        // Position: slightly below and to the right of the cursor
+        let offsetX: CGFloat = 10
+        let offsetY: CGFloat = -20
+        let tooltipX = mouseLocation.x + offsetX
+        let tooltipY = mouseLocation.y + offsetY
+        
+        let tooltipFrame = NSRect(x: tooltipX, y: tooltipY, width: tooltipWidth, height: tooltipHeight)
+        
+        let tipWindow = NSPanel(contentRect: tooltipFrame, styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
+        tipWindow.isOpaque = false
+        tipWindow.backgroundColor = .clear
+        tipWindow.level = .statusBar
+        tipWindow.isFloatingPanel = true
+        tipWindow.becomesKeyOnlyIfNeeded = false
+        tipWindow.hidesOnDeactivate = false
+        tipWindow.ignoresMouseEvents = true
+        tipWindow.hasShadow = true
+        tipWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        
+        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: tooltipWidth, height: tooltipHeight))
+        containerView.wantsLayer = true
+        containerView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.9).cgColor
+        containerView.layer?.cornerRadius = 6
+        
+        label.frame = NSRect(x: padding / 2, y: padding / 2, width: label.frame.width, height: label.frame.height)
+        containerView.addSubview(label)
+        
+        tipWindow.contentView = containerView
+        tipWindow.orderFront(nil)
+        tooltipWindow = tipWindow
+    }
+    
+    func hide() {
+        tooltipWindow?.orderOut(nil)
+        tooltipWindow = nil
+    }
+}
+
+// Custom tooltip that works in non-activating panels using a separate window
+struct FloatingTooltip: ViewModifier {
+    let text: String
+    @State private var isHovered = false
+    @State private var showTooltip = false
+    
+    func body(content: Content) -> some View {
+        content
+            .onHover { hovering in
+                isHovered = hovering
+                if hovering {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if isHovered {
+                            showTooltip = true
+                        }
+                    }
+                } else {
+                    showTooltip = false
+                    TooltipWindowManager.shared.hide()
+                }
+            }
+            .background(
+                GeometryReader { geometry in
+                    Color.clear
+                        .onChange(of: showTooltip) { visible in
+                            if visible {
+                                TooltipWindowManager.shared.show(text: text)
+                            } else {
+                                TooltipWindowManager.shared.hide()
+                            }
+                        }
+                }
+            )
+    }
+}
+
+extension View {
+    func floatingTooltip(_ text: String) -> some View {
+        self.modifier(FloatingTooltip(text: text))
+    }
+}
+
 enum TaskSortOption: String, CaseIterable, Identifiable {
     case creationDateNewest = "Newest First"
     case creationDateOldest = "Oldest First"
@@ -2740,7 +2842,7 @@ class FloatingWindowManager: ObservableObject {
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isFloatingPanel = true
-        window.becomesKeyOnlyIfNeeded = true
+        window.becomesKeyOnlyIfNeeded = false
         window.hidesOnDeactivate = false
         window.minSize = NSSize(width: 100, height: 30)
         
@@ -3063,7 +3165,7 @@ struct FloatingTaskWindowView: View {
                             .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
-                    .help(isCollapsed ? "Expand" : "Collapse")
+                    .floatingTooltip(isCollapsed ? "Expand" : "Collapse")
                     
                     Button(action: {
                         openMainWindow()
@@ -3074,7 +3176,7 @@ struct FloatingTaskWindowView: View {
                             .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
-                    .help("Open main window")
+                    .floatingTooltip("Open main window")
                     
                     Button(action: {
                         openNotesWindow()
@@ -3088,7 +3190,7 @@ struct FloatingTaskWindowView: View {
                         .foregroundColor(.blue)
                     }
                     .buttonStyle(.plain)
-                    .help("Take notes while working on this task")
+                    .floatingTooltip("Take notes while working on this task")
 
                     Button(action: {
                         showingTimerPicker = true
@@ -3102,7 +3204,7 @@ struct FloatingTaskWindowView: View {
                         .foregroundColor(.orange)
                     }
                     .buttonStyle(.plain)
-                    .help("Set a countdown timer")
+                    .floatingTooltip("Set a countdown timer")
                     
                     // Show time elapsed when collapsed and setting is enabled
                     if isCollapsed && showTimeWhenCollapsed {
@@ -3373,7 +3475,7 @@ struct FloatingTaskWindowView: View {
                             .cornerRadius(8)
                         }
                         .buttonStyle(.plain)
-                        .help(localTask.isRunning ? "Pause this task" : "Resume this task")
+                        .floatingTooltip(localTask.isRunning ? "Pause this task" : "Resume this task")
                         
                         Button(action: {
                             completeTask()
@@ -3392,7 +3494,7 @@ struct FloatingTaskWindowView: View {
                             .cornerRadius(8)
                         }
                         .buttonStyle(.plain)
-                        .help("Mark this task as complete")
+                        .floatingTooltip("Mark this task as complete")
                     }
                 }
                 .padding(.horizontal, 12)
