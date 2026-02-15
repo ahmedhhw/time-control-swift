@@ -95,10 +95,10 @@ struct TodoItem: Identifiable, Codable, Equatable {
 }
 
 enum TaskSortOption: String, CaseIterable, Identifiable {
-    case creationDateNewest = "Creation Date (Newest First)"
-    case creationDateOldest = "Creation Date (Oldest First)"
+    case creationDateNewest = "Newest First"
+    case creationDateOldest = "Oldest First"
     case recentlyPlayedNewest = "Recently Played (Newest First)"
-    case recentlyPlayedOldest = "Recently Played (Oldest First)"
+    case dueDateNearest = "Due Date (Nearest First)"
     
     var id: String { self.rawValue }
 }
@@ -301,22 +301,22 @@ struct ContentView: View {
                 // If neither has been played, sort by creation date (newest first)
                 return todo1.createdAt > todo2.createdAt
             }
-        case .recentlyPlayedOldest:
-            // Sort by recently played (tasks that have been started) - oldest first
-            // Tasks that have never been played go to the bottom
+        case .dueDateNearest:
+            // Sort by due date (nearest first)
+            // Tasks with due dates are prioritized, tasks without go to the bottom
             return items.sorted { todo1, todo2 in
-                let hasPlayed1 = todo1.lastPlayedAt != nil
-                let hasPlayed2 = todo2.lastPlayedAt != nil
+                let hasDueDate1 = todo1.dueDate != nil
+                let hasDueDate2 = todo2.dueDate != nil
                 
-                // If both have been played, sort by oldest play time (oldest first)
-                if hasPlayed1 && hasPlayed2 {
-                    return (todo1.lastPlayedAt ?? 0) < (todo2.lastPlayedAt ?? 0)
+                // If both have due dates, sort by nearest (earliest) date first
+                if hasDueDate1 && hasDueDate2 {
+                    return (todo1.dueDate ?? Date()) < (todo2.dueDate ?? Date())
                 }
-                // If only one has been played, prioritize it
-                if hasPlayed1 { return true }
-                if hasPlayed2 { return false }
-                // If neither has been played, sort by creation date (oldest first)
-                return todo1.createdAt < todo2.createdAt
+                // If only one has a due date, prioritize it
+                if hasDueDate1 { return true }
+                if hasDueDate2 { return false }
+                // If neither has a due date, sort by creation date (newest first)
+                return todo1.createdAt > todo2.createdAt
             }
         }
     }
