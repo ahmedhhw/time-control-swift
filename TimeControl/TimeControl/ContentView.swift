@@ -270,9 +270,12 @@ struct ContentView: View {
     @State private var sortOption: TaskSortOption = .creationDateNewest  // Sort option for tasks
     @State private var showingMassOperations: Bool = false  // Track if mass operations sheet is shown
     @State private var showingSettings: Bool = false  // Track if settings sheet is shown
+    @State private var todoToDelete: TodoItem?  // Track which todo is pending deletion
+    @State private var subtaskToDelete: (subtask: Subtask, parentTodo: TodoItem)?  // Track which subtask is pending deletion
     
     // User Settings
     @AppStorage("activateReminders") private var activateReminders: Bool = false
+    @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1009,7 +1012,43 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion)
+        }
+        .confirmationDialog(
+            "Delete Task",
+            isPresented: Binding(
+                get: { todoToDelete != nil },
+                set: { if !$0 { todoToDelete = nil } }
+            ),
+            presenting: todoToDelete
+        ) { todo in
+            Button("Delete", role: .destructive) {
+                performDeleteTodo(todo)
+                todoToDelete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                todoToDelete = nil
+            }
+        } message: { todo in
+            Text("Are you sure you want to delete '\(todo.text)'?")
+        }
+        .confirmationDialog(
+            "Delete Subtask",
+            isPresented: Binding(
+                get: { subtaskToDelete != nil },
+                set: { if !$0 { subtaskToDelete = nil } }
+            ),
+            presenting: subtaskToDelete
+        ) { data in
+            Button("Delete", role: .destructive) {
+                performDeleteSubtask(data.subtask, from: data.parentTodo)
+                subtaskToDelete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                subtaskToDelete = nil
+            }
+        } message: { data in
+            Text("Are you sure you want to delete the subtask '\(data.subtask.title)'?")
         }
     }
     
@@ -1053,6 +1092,14 @@ struct ContentView: View {
     }
     
     private func deleteTodo(_ todo: TodoItem) {
+        if confirmTaskDeletion {
+            todoToDelete = todo
+        } else {
+            performDeleteTodo(todo)
+        }
+    }
+    
+    private func performDeleteTodo(_ todo: TodoItem) {
         // Close floating window if this task was running
         if todo.id == runningTaskId {
             runningTaskId = nil
@@ -1211,6 +1258,14 @@ struct ContentView: View {
     }
     
     private func deleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
+        if confirmTaskDeletion {
+            subtaskToDelete = (subtask, todo)
+        } else {
+            performDeleteSubtask(subtask, from: todo)
+        }
+    }
+    
+    private func performDeleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
         if let todoIndex = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[todoIndex].subtasks.removeAll { $0.id == subtask.id }
             saveTodos()
@@ -4008,6 +4063,7 @@ struct NotesEditorView: View {
 
 struct SettingsSheet: View {
     @Binding var activateReminders: Bool
+    @Binding var confirmTaskDeletion: Bool
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -4050,12 +4106,23 @@ struct SettingsSheet: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
+                Divider()
+                    .padding(.vertical, 8)
+                
+                Toggle("Confirm before deleting tasks", isOn: $confirmTaskDeletion)
+                    .toggleStyle(.checkbox)
+                    .font(.body)
+                
+                Text("When enabled, you'll be asked to confirm before permanently deleting a task or subtask.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
                 Spacer()
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(minWidth: 500, minHeight: 250)
+        .frame(minWidth: 500, minHeight: 300)
     }
 }
 
