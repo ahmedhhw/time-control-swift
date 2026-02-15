@@ -276,6 +276,7 @@ struct ContentView: View {
     // User Settings
     @AppStorage("activateReminders") private var activateReminders: Bool = false
     @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
+    @AppStorage("showTimeWhenCollapsed") private var showTimeWhenCollapsed: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1012,7 +1013,7 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed)
         }
         .confirmationDialog(
             "Delete Task",
@@ -1170,7 +1171,7 @@ struct ContentView: View {
                 }
                 
                 runningTaskId = todo.id
-                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], activateReminders: activateReminders)
+                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed)
                 
                 // Set startedAt timestamp if this is the first time starting
                 if todos[index].startedAt == nil {
@@ -2706,7 +2707,7 @@ class FloatingWindowManager: ObservableObject {
     @Published var currentTask: TodoItem?
     private var windowDelegate: FloatingWindowDelegate?
     
-    func showFloatingWindow(for task: TodoItem, activateReminders: Bool = false) {
+    func showFloatingWindow(for task: TodoItem, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false) {
         // Close existing window if any
         closeFloatingWindow()
         
@@ -2714,7 +2715,7 @@ class FloatingWindowManager: ObservableObject {
         currentTask = task
         
         // Create the SwiftUI view
-        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders)
+        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed)
         let hostingView = NSHostingView(rootView: contentView)
         
         // Calculate position (bottom right of screen with padding)
@@ -3007,6 +3008,7 @@ struct FloatingTaskWindowView: View {
     
     // Reminder functionality
     let activateReminders: Bool  // User setting for reminders
+    let showTimeWhenCollapsed: Bool  // User setting for showing time when collapsed
     @State private var lastReminderTime: Date? = nil  // When the last reminder was shown
     @State private var showingReminder: Bool = false  // Show reminder popup
     @State private var reminderResponseDeadline: Date? = nil  // When to auto-pause if no response
@@ -3014,10 +3016,11 @@ struct FloatingTaskWindowView: View {
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false) {
+    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false) {
         self.task = task
         self.windowManager = windowManager
         self.activateReminders = activateReminders
+        self.showTimeWhenCollapsed = showTimeWhenCollapsed
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         
@@ -3086,9 +3089,7 @@ struct FloatingTaskWindowView: View {
                     }
                     .buttonStyle(.plain)
                     .help("Take notes while working on this task")
-                    
-                    Spacer()
-                    
+
                     Button(action: {
                         showingTimerPicker = true
                     }) {
@@ -3102,7 +3103,19 @@ struct FloatingTaskWindowView: View {
                     }
                     .buttonStyle(.plain)
                     .help("Set a countdown timer")
-
+                    
+                    // Show time elapsed when collapsed and setting is enabled
+                    if isCollapsed && showTimeWhenCollapsed {
+                        Spacer()
+                        
+                        Text(formatTime(localTask.currentTimeSpent))
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                            .monospacedDigit()
+                            .id(timerUpdateTrigger)
+                    }
+                    
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -4072,6 +4085,7 @@ struct NotesEditorView: View {
 struct SettingsSheet: View {
     @Binding var activateReminders: Bool
     @Binding var confirmTaskDeletion: Bool
+    @Binding var showTimeWhenCollapsed: Bool
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -4122,6 +4136,17 @@ struct SettingsSheet: View {
                     .font(.body)
                 
                 Text("When enabled, you'll be asked to confirm before permanently deleting a task or subtask.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                Toggle("Show time elapsed when task window is collapsed", isOn: $showTimeWhenCollapsed)
+                    .toggleStyle(.checkbox)
+                    .font(.body)
+                
+                Text("When enabled, the time elapsed timer will be visible even when the floating task window is collapsed.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
