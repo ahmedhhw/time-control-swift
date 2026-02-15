@@ -642,6 +642,23 @@ struct ContentView: View {
                 FloatingWindowManager.shared.updateTask(todos[todoIndex])
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AddSubtaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID,
+                  let subtaskTitle = userInfo["subtaskTitle"] as? String else {
+                return
+            }
+            
+            // Add the subtask to the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                let newSubtask = Subtask(title: subtaskTitle, description: "")
+                todos[todoIndex].subtasks.append(newSubtask)
+                saveTodos()
+                
+                // Update the floating window with the new task state
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateNotesFromFloatingWindow"))) { notification in
             guard let userInfo = notification.userInfo,
                   let taskId = userInfo["taskId"] as? UUID,
@@ -1307,6 +1324,8 @@ struct FloatingTaskWindowView: View {
     @State private var notesText: String = ""
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timer
     @State private var notesWindow: NSWindow?
+    @State private var newSubtaskText: String = ""  // Text for new subtask
+    @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1466,16 +1485,37 @@ struct FloatingTaskWindowView: View {
                     }
                     
                     // Subtasks section
-                    if !localTask.subtasks.isEmpty {
-                        Divider()
-                        
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Subtasks")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
+                    Divider()
+                    
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Subtasks")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+                            
+                            // Textfield and button for adding new subtasks
+                            HStack(spacing: 8) {
+                                TextField("Subtask title...", text: $newSubtaskText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .focused($subtaskInputFocused)
+                                    .onSubmit {
+                                        addSubtask()
+                                    }
                                 
+                                Button(action: {
+                                    addSubtask()
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.blue)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                            }
+                            .padding(.bottom, 4)
+                            
+                            // Existing subtasks
+                            if !localTask.subtasks.isEmpty {
                                 ForEach(localTask.subtasks) { subtask in
                                     HStack(spacing: 8) {
                                         Button(action: {
@@ -1633,6 +1673,29 @@ struct FloatingTaskWindowView: View {
                 object: nil,
                 userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
             )
+        }
+    }
+    
+    private func addSubtask() {
+        let trimmedTitle = newSubtaskText.trimmingCharacters(in: .whitespaces)
+        guard !trimmedTitle.isEmpty else { return }
+        
+        let newSubtask = Subtask(title: trimmedTitle, description: "")
+        localTask.subtasks.append(newSubtask)
+        
+        // Notify ContentView to add the subtask to the main todos array
+        NotificationCenter.default.post(
+            name: NSNotification.Name("AddSubtaskFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": localTask.id, "subtaskTitle": trimmedTitle]
+        )
+        
+        // Clear the input and refocus for rapid succession
+        newSubtaskText = ""
+        
+        // Refocus the textbox after a brief delay to ensure UI is updated
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            subtaskInputFocused = true
         }
     }
     
