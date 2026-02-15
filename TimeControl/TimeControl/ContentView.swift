@@ -605,6 +605,10 @@ struct ContentView: View {
                                     }
                                 }
                             }
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .strokeBorder(Color.gray.opacity(0.2), lineWidth: 1)
+                            )
                             .transition(.move(edge: .top).combined(with: .opacity))
                             .draggable(todo.id.uuidString) {
                                 // Preview shown while dragging
@@ -774,6 +778,10 @@ struct ContentView: View {
                                                         }
                                                     }
                                                 }
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .strokeBorder(Color.gray.opacity(0.2), lineWidth: 1)
+                                                )
                                                 .transition(.move(edge: .top).combined(with: .opacity))
                                                 .draggable(todo.id.uuidString) {
                                                     // Preview shown while dragging
@@ -2629,6 +2637,10 @@ struct SubtaskRow: View {
         .padding(.vertical, 6)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
         .cornerRadius(6)
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color.gray.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 
