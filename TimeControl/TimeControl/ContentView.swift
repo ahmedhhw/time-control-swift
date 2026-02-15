@@ -232,7 +232,7 @@ struct ContentView: View {
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timers
     @State private var editingTodo: TodoItem?  // Track which todo is being edited
     @State private var expandedTodos: Set<UUID> = []  // Track which todos have expanded subtasks (includes subtask input)
-    @State private var newSubtaskText: String = ""  // Text for new subtask
+    @State private var newSubtaskTexts: [UUID: String] = [:]  // Text for new subtask per todo
     @FocusState private var subtaskInputFocused: UUID?  // Track focused subtask input
     @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
     @State private var runningTaskId: UUID?  // Track the currently running task for floating window
@@ -388,7 +388,10 @@ struct ContentView: View {
                                             // Inline subtask input textbox (only show for incomplete tasks)
                                             if !todo.isCompleted {
                                                 HStack(spacing: 8) {
-                                                    TextField("Subtask title...", text: $newSubtaskText)
+                                                    TextField("Subtask title...", text: Binding(
+                                                        get: { newSubtaskTexts[todo.id] ?? "" },
+                                                        set: { newSubtaskTexts[todo.id] = $0 }
+                                                    ))
                                                         .textFieldStyle(.roundedBorder)
                                                         .focused($subtaskInputFocused, equals: todo.id)
                                                         .onSubmit {
@@ -402,7 +405,7 @@ struct ContentView: View {
                                                             .foregroundColor(.blue)
                                                     }
                                                     .buttonStyle(.plain)
-                                                    .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                                                    .disabled((newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
                                                 }
                                                 .padding(.horizontal, 12)
                                                 .padding(.top, 8)
@@ -552,7 +555,10 @@ struct ContentView: View {
                                                                 // Inline subtask input textbox (only show for incomplete tasks)
                                                                 if !todo.isCompleted {
                                                                     HStack(spacing: 8) {
-                                                                        TextField("Subtask title...", text: $newSubtaskText)
+                                                                        TextField("Subtask title...", text: Binding(
+                                                                            get: { newSubtaskTexts[todo.id] ?? "" },
+                                                                            set: { newSubtaskTexts[todo.id] = $0 }
+                                                                        ))
                                                                             .textFieldStyle(.roundedBorder)
                                                                             .focused($subtaskInputFocused, equals: todo.id)
                                                                             .onSubmit {
@@ -566,7 +572,7 @@ struct ContentView: View {
                                                                                 .foregroundColor(.blue)
                                                                         }
                                                                         .buttonStyle(.plain)
-                                                                        .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                                                                        .disabled((newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
                                                                     }
                                                                     .padding(.horizontal, 12)
                                                                     .padding(.top, 8)
@@ -899,15 +905,15 @@ struct ContentView: View {
     }
     
     private func addSubtask(to todo: TodoItem) {
-        let trimmedTitle = newSubtaskText.trimmingCharacters(in: .whitespaces)
+        let trimmedTitle = (newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
         
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             let newSubtask = Subtask(title: trimmedTitle, description: "")
             todos[index].subtasks.append(newSubtask)
             
-            // Clear the input and refocus for rapid succession
-            newSubtaskText = ""
+            // Clear the input for this specific task and refocus for rapid succession
+            newSubtaskTexts[todo.id] = ""
             
             // Refocus the textbox after a brief delay to ensure UI is updated
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -926,7 +932,7 @@ struct ContentView: View {
     private func toggleExpanded(_ todo: TodoItem) {
         if expandedTodos.contains(todo.id) {
             expandedTodos.remove(todo.id)
-            newSubtaskText = ""
+            newSubtaskTexts[todo.id] = ""
             subtaskInputFocused = nil
         } else {
             expandedTodos.insert(todo.id)
