@@ -398,28 +398,28 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Text field at the top for adding new todos
+            // Text fields and buttons in a single row
             HStack {
+                // Add new todo text field
                 TextField("Add a new todo...", text: $newTodoText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit {
                         addTodo()
                     }
                 
+                // Add new todo button
                 Button(action: addTodo) {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
                 }
                 .buttonStyle(.plain)
                 .disabled(newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            .padding()
-            
-            // Filter text field
-            HStack {
+                
+                // Filter text field
                 TextField("Filter tasks...", text: $filterText)
                     .textFieldStyle(.roundedBorder)
                 
+                // Filter button/icon
                 if !filterText.isEmpty {
                     Button(action: {
                         filterText = ""
@@ -435,8 +435,8 @@ struct ContentView: View {
                         .font(.title2)
                 }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 8)
+            .padding()
+            .padding(.bottom, -8)
             
             // Advanced mode toggle
             HStack {
@@ -3456,6 +3456,14 @@ struct FloatingTaskWindowView: View {
                 if elapsed >= localTask.countdownTime {
                     // Countdown completed - mark as just completed
                     timerJustCompleted = true
+                    
+                    // Expand window if collapsed
+                    if isCollapsed {
+                        withAnimation {
+                            isCollapsed = false
+                        }
+                        resizeWindow()
+                    }
                     
                     // Play notification sound
                     NSSound.beep()
