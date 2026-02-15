@@ -2835,6 +2835,7 @@ struct FloatingTaskWindowView: View {
     @State private var notesText: String = ""
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timer
     @State private var notesWindow: NSWindow?
+    @State private var reminderWindow: NSWindow?
     @State private var newSubtaskText: String = ""  // Text for new subtask
     @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
     @State private var showingTimerPicker: Bool = false  // Show timer picker sheet
@@ -3227,86 +3228,6 @@ struct FloatingTaskWindowView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             
-            // Reminder Alert (shown on top when activated)
-            if showingReminder {
-                VStack(spacing: 0) {
-                    VStack(spacing: 12) {
-                        Text("Are you still working on")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Text("\"\(localTask.text)\"?")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
-                        
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                handleReminderResponse(.yes)
-                            }) {
-                                Text("Yes")
-                                    .font(.body)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(Color.green)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: {
-                                handleReminderResponse(.pause)
-                            }) {
-                                HStack(spacing: 4) {
-                                    Text("Pause")
-                                    if let deadline = reminderResponseDeadline {
-                                        let remaining = Int(ceil(deadline.timeIntervalSince(Date())))
-                                        if remaining > 0 {
-                                            Text("(\(remaining))")
-                                                .monospacedDigit()
-                                        }
-                                    }
-                                }
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .background(Color.orange)
-                                .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: {
-                                handleReminderResponse(.openTaskList)
-                            }) {
-                                Text("Open List")
-                                    .font(.body)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(Color.blue)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(16)
-                    .background(Color(NSColor.windowBackgroundColor))
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
-                    .padding(20)
-                    
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black.opacity(0.1))
-                .transition(.opacity)
-            }
-            
             // "Task Paused!" Alert (shown when auto-pause triggers)
             if showTaskPausedAlert {
                 VStack {
@@ -3348,13 +3269,12 @@ struct FloatingTaskWindowView: View {
                     if lastReminderTime == nil {
                         // First time - set the timer
                         lastReminderTime = now
-                    } else if let lastReminder = lastReminderTime {
+                    } else                     if let lastReminder = lastReminderTime {
                         let timeSinceLastReminder = now.timeIntervalSince(lastReminder)
                         if timeSinceLastReminder >= 120 {  // 2 minutes = 120 seconds
-                            // Show the reminder
-                            withAnimation {
-                                showingReminder = true
-                            }
+                            // Show the reminder window
+                            showingReminder = true
+                            openReminderWindow()
                             reminderResponseDeadline = now.addingTimeInterval(10)  // 10 seconds to respond
                         }
                     }
@@ -3512,6 +3432,68 @@ struct FloatingTaskWindowView: View {
         window.orderFrontRegardless()
     }
     
+    private func openReminderWindow() {
+        // Close existing reminder window if any
+        reminderWindow?.close()
+        
+        // Create the SwiftUI view for reminder alert
+        let contentView = ReminderAlertView(
+            taskText: localTask.text,
+            reminderResponseDeadline: $reminderResponseDeadline,
+            timerUpdateTrigger: timerUpdateTrigger,
+            onResponse: { response in
+                handleReminderResponse(response)
+                reminderWindow?.close()
+                reminderWindow = nil
+            }
+        )
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Calculate position (centered on top of the task window)
+        let windowWidth: CGFloat = 400
+        let windowHeight: CGFloat = 200
+        
+        var xPos: CGFloat
+        var yPos: CGFloat
+        
+        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
+            let taskFrame = taskWindow.frame
+            // Position centered on top of the task window
+            xPos = taskFrame.midX - windowWidth / 2
+            yPos = taskFrame.midY - windowHeight / 2
+        } else {
+            // Center on screen
+            if let screen = NSScreen.main {
+                let screenFrame = screen.visibleFrame
+                xPos = screenFrame.midX - windowWidth / 2
+                yPos = screenFrame.midY - windowHeight / 2
+            } else {
+                xPos = 100
+                yPos = 100
+            }
+        }
+        
+        // Create a floating panel for the reminder
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Attention Check"
+        window.contentView = hostingView
+        window.level = .statusBar  // Higher than floating to ensure visibility
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = false
+        window.hidesOnDeactivate = false
+        
+        reminderWindow = window
+        window.orderFrontRegardless()
+        window.makeKey()  // Make it the key window to get focus
+    }
+    
     private func resizeWindow() {
         // Get the window from the view hierarchy
         DispatchQueue.main.async {
@@ -3611,9 +3593,10 @@ struct FloatingTaskWindowView: View {
     }
     
     private func handleReminderResponse(_ response: ReminderResponse, isAutoPause: Bool = false) {
-        withAnimation {
-            showingReminder = false
-        }
+        // Close the reminder window
+        reminderWindow?.close()
+        reminderWindow = nil
+        showingReminder = false
         reminderResponseDeadline = nil
         lastReminderTime = Date()  // Reset the timer for the next reminder
         
@@ -3626,6 +3609,14 @@ struct FloatingTaskWindowView: View {
             // Pause the task
             pauseTask()
             
+            // Expand window if collapsed
+            if isCollapsed {
+                withAnimation {
+                    isCollapsed = false
+                }
+                resizeWindow()
+            }
+            
             // Show "Task Paused!" alert if this was an auto-pause
             if isAutoPause {
                 withAnimation {
@@ -3637,19 +3628,21 @@ struct FloatingTaskWindowView: View {
                     withAnimation(.easeOut(duration: 0.5)) {
                         showTaskPausedAlert = false
                     }
-                    
-                    // Resize window if collapsed
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if isCollapsed {
-                            resizeWindow()
-                        }
-                    }
                 }
             }
             
         case .openTaskList:
             // Pause the task before opening the main window
             pauseTask()
+            
+            // Expand window if collapsed
+            if isCollapsed {
+                withAnimation {
+                    isCollapsed = false
+                }
+                resizeWindow()
+            }
+            
             // Open the main window
             openMainWindow()
         }
@@ -3660,6 +3653,98 @@ enum ReminderResponse {
     case yes
     case pause
     case openTaskList
+}
+
+struct ReminderAlertView: View {
+    let taskText: String
+    @Binding var reminderResponseDeadline: Date?
+    let timerUpdateTrigger: Int
+    let onResponse: (ReminderResponse) -> Void
+    
+    @State private var countdown: Int = 10
+    
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Are you still working on")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            Text("\"\(taskText)\"?")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            HStack(spacing: 12) {
+                Button(action: {
+                    onResponse(.yes)
+                }) {
+                    Text("Yes")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.green)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.defaultAction)
+                
+                Button(action: {
+                    onResponse(.pause)
+                }) {
+                    HStack(spacing: 4) {
+                        Text("Pause")
+                        if let deadline = reminderResponseDeadline {
+                            let remaining = Int(ceil(deadline.timeIntervalSince(Date())))
+                            if remaining > 0 {
+                                Text("(\(remaining))")
+                                    .monospacedDigit()
+                                    .id(countdown)
+                            }
+                        }
+                    }
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.orange)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("p", modifiers: .command)
+                
+                Button(action: {
+                    onResponse(.openTaskList)
+                }) {
+                    Text("Open List")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("l", modifiers: .command)
+            }
+            .padding(.horizontal)
+        }
+        .padding(.vertical, 20)
+        .frame(width: 400, height: 200)
+        .onReceive(timer) { _ in
+            if let deadline = reminderResponseDeadline {
+                let remaining = Int(ceil(deadline.timeIntervalSince(Date())))
+                countdown = max(0, remaining)
+            }
+        }
+    }
 }
 
 struct TimerPickerSheet: View {
