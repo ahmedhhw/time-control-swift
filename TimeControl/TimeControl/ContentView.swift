@@ -416,7 +416,24 @@ struct ContentView: View {
                 Toggle("Advanced mode", isOn: $isAdvancedMode)
                     .toggleStyle(.switch)
                     .font(.subheadline)
-                Spacer()
+                
+                if isAdvancedMode {
+                    Spacer()
+                    
+                    Button(action: {
+                        let exportText = generateExportTextForAllTasks()
+                        ExportWindowManager.shared.showExportWindow(with: exportText)
+                    }) {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Export All Tasks")
+                        }
+                        .font(.subheadline)
+                    }
+                    .buttonStyle(.bordered)
+                } else {
+                    Spacer()
+                }
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
@@ -1143,6 +1160,200 @@ struct ContentView: View {
         }
     }
     
+    private func generateExportTextForTask(_ todo: TodoItem) -> String {
+        var text = ""
+        
+        // Title
+        text += "TASK: \(todo.text)\n"
+        text += String(repeating: "=", count: todo.text.count + 6) + "\n\n"
+        
+        // Status
+        text += "Status: \(todo.isCompleted ? "✓ Completed" : "○ In Progress")\n"
+        if todo.isRunning {
+            text += "Currently Running: Yes\n"
+        }
+        text += "\n"
+        
+        // Description
+        if !todo.description.isEmpty {
+            text += "Description:\n"
+            text += todo.description + "\n\n"
+        }
+        
+        // Task Info
+        if todo.isAdhoc || !todo.fromWho.isEmpty {
+            text += "Task Info:\n"
+            if todo.isAdhoc {
+                text += "  • Type: Adhoc Task\n"
+            }
+            if !todo.fromWho.isEmpty {
+                text += "  • From: \(todo.fromWho)\n"
+            }
+            text += "\n"
+        }
+        
+        // Time tracking
+        text += "Time Tracking:\n"
+        text += "  • Time Spent: \(formatTime(todo.currentTimeSpent))\n"
+        if todo.estimatedTime > 0 {
+            text += "  • Estimated: \(formatTime(todo.estimatedTime))\n"
+            let progress = (todo.currentTimeSpent / todo.estimatedTime) * 100
+            text += "  • Progress: \(String(format: "%.1f", progress))%\n"
+            if todo.currentTimeSpent > todo.estimatedTime {
+                let over = todo.currentTimeSpent - todo.estimatedTime
+                text += "  • Over by: \(formatTime(over))\n"
+            }
+        }
+        if todo.countdownTime > 0 {
+            text += "  • Countdown: \(formatTime(todo.countdownTime))\n"
+            text += "  • Countdown Elapsed: \(formatTime(todo.countdownElapsed))\n"
+        }
+        text += "\n"
+        
+        // Dates
+        text += "Important Dates:\n"
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+        
+        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
+        text += "  • Created: \(dateFormatter.string(from: createdDate))\n"
+        
+        if let startedAt = todo.startedAt {
+            let startedDate = Date(timeIntervalSince1970: startedAt)
+            text += "  • First Started: \(dateFormatter.string(from: startedDate))\n"
+        }
+        
+        if let lastPlayedAt = todo.lastPlayedAt {
+            let lastPlayedDate = Date(timeIntervalSince1970: lastPlayedAt)
+            text += "  • Last Played: \(dateFormatter.string(from: lastPlayedDate))\n"
+        }
+        
+        if let dueDate = todo.dueDate {
+            text += "  • Due: \(dateFormatter.string(from: dueDate))\n"
+            let now = Date()
+            if now > dueDate {
+                let overdue = now.timeIntervalSince(dueDate)
+                text += "  • Status: Overdue by \(formatTimeRemaining(overdue))\n"
+            } else {
+                let remaining = dueDate.timeIntervalSince(now)
+                text += "  • Time Remaining: \(formatTimeRemaining(remaining))\n"
+            }
+        }
+        
+        if let completedAt = todo.completedAt {
+            let completedDate = Date(timeIntervalSince1970: completedAt)
+            text += "  • Completed: \(dateFormatter.string(from: completedDate))\n"
+        }
+        text += "\n"
+        
+        // Subtasks
+        if !todo.subtasks.isEmpty {
+            let completedCount = todo.subtasks.filter { $0.isCompleted }.count
+            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed):\n"
+            for (index, subtask) in todo.subtasks.enumerated() {
+                let checkbox = subtask.isCompleted ? "✓" : "○"
+                text += "  \(index + 1). \(checkbox) \(subtask.title)\n"
+                if !subtask.description.isEmpty {
+                    text += "     \(subtask.description)\n"
+                }
+            }
+            text += "\n"
+        }
+        
+        // Notes
+        if !todo.notes.isEmpty {
+            text += "Notes:\n"
+            text += todo.notes + "\n\n"
+        }
+        
+        return text
+    }
+    
+    private func generateExportTextForAllTasks() -> String {
+        var text = ""
+        
+        // Header
+        text += String(repeating: "=", count: 80) + "\n"
+        text += "TIME CONTROL - ALL TASKS EXPORT\n"
+        text += String(repeating: "=", count: 80) + "\n\n"
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .full
+        dateFormatter.timeStyle = .long
+        text += "Exported on: \(dateFormatter.string(from: Date()))\n"
+        text += "Total tasks: \(todos.count)\n"
+        
+        let completedCount = todos.filter { $0.isCompleted }.count
+        text += "Completed: \(completedCount)\n"
+        text += "In progress: \(todos.count - completedCount)\n"
+        
+        let totalTimeSpent = todos.reduce(0) { $0 + $1.currentTimeSpent }
+        text += "Total time spent: \(formatTime(totalTimeSpent))\n\n"
+        
+        text += String(repeating: "=", count: 80) + "\n\n"
+        
+        // Incomplete tasks first
+        let incompleteTasks = todos.filter { !$0.isCompleted }
+        if !incompleteTasks.isEmpty {
+            text += "INCOMPLETE TASKS (\(incompleteTasks.count))\n"
+            text += String(repeating: "-", count: 80) + "\n\n"
+            
+            for (index, todo) in incompleteTasks.enumerated() {
+                text += "[\(index + 1)/\(incompleteTasks.count)]\n\n"
+                text += generateExportTextForTask(todo)
+                text += String(repeating: "-", count: 80) + "\n\n"
+            }
+        }
+        
+        // Completed tasks
+        let completedTasks = todos.filter { $0.isCompleted }
+        if !completedTasks.isEmpty {
+            text += "COMPLETED TASKS (\(completedTasks.count))\n"
+            text += String(repeating: "-", count: 80) + "\n\n"
+            
+            for (index, todo) in completedTasks.enumerated() {
+                text += "[\(index + 1)/\(completedTasks.count)]\n\n"
+                text += generateExportTextForTask(todo)
+                text += String(repeating: "-", count: 80) + "\n\n"
+            }
+        }
+        
+        // Footer
+        text += String(repeating: "=", count: 80) + "\n"
+        text += "END OF EXPORT\n"
+        text += String(repeating: "=", count: 80) + "\n"
+        
+        return text
+    }
+    
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
+        let seconds = Int(timeInterval) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+    
+    private func formatTimeRemaining(_ timeInterval: TimeInterval) -> String {
+        let absInterval = abs(timeInterval)
+        let days = Int(absInterval) / 86400
+        let hours = Int(absInterval) / 3600 % 24
+        let minutes = Int(absInterval) / 60 % 60
+        
+        if days > 0 {
+            return "\(days)d \(hours)h"
+        } else if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
     private func editSubtask(_ subtask: Subtask, in todo: TodoItem) {
         // Subtask editing can be implemented if needed in the future
         // For now, users can delete and re-add subtasks
@@ -1162,6 +1373,8 @@ struct TodoRow: View {
     let onToggleSubtask: (Subtask) -> Void
     let onDeleteSubtask: (Subtask) -> Void
     let onEditSubtask: (Subtask) -> Void
+    
+    @State private var showExportText: Bool = false
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
         let hours = Int(timeInterval) / 3600
@@ -1209,6 +1422,120 @@ struct TodoRow: View {
         let isOverdue = now > dueDate
         
         return (elapsed, total, isOverdue)
+    }
+    
+    private func generateExportText() -> String {
+        var text = ""
+        
+        // Title
+        text += "TASK: \(todo.text)\n"
+        text += String(repeating: "=", count: todo.text.count + 6) + "\n\n"
+        
+        // Status
+        text += "Status: \(todo.isCompleted ? "✓ Completed" : "○ In Progress")\n"
+        if todo.isRunning {
+            text += "Currently Running: Yes\n"
+        }
+        text += "\n"
+        
+        // Description
+        if !todo.description.isEmpty {
+            text += "Description:\n"
+            text += todo.description + "\n\n"
+        }
+        
+        // Task Info
+        if todo.isAdhoc || !todo.fromWho.isEmpty {
+            text += "Task Info:\n"
+            if todo.isAdhoc {
+                text += "  • Type: Adhoc Task\n"
+            }
+            if !todo.fromWho.isEmpty {
+                text += "  • From: \(todo.fromWho)\n"
+            }
+            text += "\n"
+        }
+        
+        // Time tracking
+        text += "Time Tracking:\n"
+        text += "  • Time Spent: \(formatTime(todo.currentTimeSpent))\n"
+        if todo.estimatedTime > 0 {
+            text += "  • Estimated: \(formatTime(todo.estimatedTime))\n"
+            let progress = (todo.currentTimeSpent / todo.estimatedTime) * 100
+            text += "  • Progress: \(String(format: "%.1f", progress))%\n"
+            if todo.currentTimeSpent > todo.estimatedTime {
+                let over = todo.currentTimeSpent - todo.estimatedTime
+                text += "  • Over by: \(formatTime(over))\n"
+            }
+        }
+        if todo.countdownTime > 0 {
+            text += "  • Countdown: \(formatTime(todo.countdownTime))\n"
+            text += "  • Countdown Elapsed: \(formatTime(todo.countdownElapsed))\n"
+        }
+        text += "\n"
+        
+        // Dates
+        text += "Important Dates:\n"
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+        
+        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
+        text += "  • Created: \(dateFormatter.string(from: createdDate))\n"
+        
+        if let startedAt = todo.startedAt {
+            let startedDate = Date(timeIntervalSince1970: startedAt)
+            text += "  • First Started: \(dateFormatter.string(from: startedDate))\n"
+        }
+        
+        if let lastPlayedAt = todo.lastPlayedAt {
+            let lastPlayedDate = Date(timeIntervalSince1970: lastPlayedAt)
+            text += "  • Last Played: \(dateFormatter.string(from: lastPlayedDate))\n"
+        }
+        
+        if let dueDate = todo.dueDate {
+            text += "  • Due: \(dateFormatter.string(from: dueDate))\n"
+            let now = Date()
+            if now > dueDate {
+                let overdue = now.timeIntervalSince(dueDate)
+                text += "  • Status: Overdue by \(formatTimeRemaining(overdue))\n"
+            } else {
+                let remaining = dueDate.timeIntervalSince(now)
+                text += "  • Time Remaining: \(formatTimeRemaining(remaining))\n"
+            }
+        }
+        
+        if let completedAt = todo.completedAt {
+            let completedDate = Date(timeIntervalSince1970: completedAt)
+            text += "  • Completed: \(dateFormatter.string(from: completedDate))\n"
+        }
+        text += "\n"
+        
+        // Subtasks
+        if !todo.subtasks.isEmpty {
+            let completedCount = todo.subtasks.filter { $0.isCompleted }.count
+            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed):\n"
+            for (index, subtask) in todo.subtasks.enumerated() {
+                let checkbox = subtask.isCompleted ? "✓" : "○"
+                text += "  \(index + 1). \(checkbox) \(subtask.title)\n"
+                if !subtask.description.isEmpty {
+                    text += "     \(subtask.description)\n"
+                }
+            }
+            text += "\n"
+        }
+        
+        // Notes
+        if !todo.notes.isEmpty {
+            text += "Notes:\n"
+            text += todo.notes + "\n\n"
+        }
+        
+        // Footer
+        text += String(repeating: "-", count: 50) + "\n"
+        text += "Exported on: \(dateFormatter.string(from: Date()))\n"
+        
+        return text
     }
     
     var body: some View {
@@ -1580,6 +1907,47 @@ struct TodoRow: View {
                     .padding(.bottom, 8)
                 }
             }
+            
+            // Export to text section (shown when expanded and advanced mode is on)
+            if isAdvancedMode && isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 12)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(action: {
+                            showExportText.toggle()
+                        }) {
+                            HStack {
+                                Image(systemName: showExportText ? "chevron.down" : "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("Export to Text")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        
+                        if showExportText {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Copy the text below:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                TextEditor(text: .constant(generateExportText()))
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(height: 300)
+                                    .border(Color.gray.opacity(0.3), width: 1)
+                                    .cornerRadius(4)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                }
+            }
         }
         .background(
             RoundedRectangle(cornerRadius: 8)
@@ -1898,6 +2266,93 @@ class FloatingWindowManager: ObservableObject {
     
     func updateTask(_ task: TodoItem) {
         currentTask = task
+    }
+}
+
+class ExportWindowManager: ObservableObject {
+    static let shared = ExportWindowManager()
+    private var exportWindow: NSWindow?
+    
+    func showExportWindow(with exportText: String) {
+        // Close existing window if any
+        closeExportWindow()
+        
+        // Create the SwiftUI view
+        let contentView = ExportAllTasksView(exportText: exportText)
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Calculate position (center of screen)
+        guard let screen = NSScreen.main else { return }
+        let windowWidth: CGFloat = 800
+        let windowHeight: CGFloat = 600
+        
+        let xPos = screen.visibleFrame.midX - windowWidth / 2
+        let yPos = screen.visibleFrame.midY - windowHeight / 2
+        
+        // Create a standard window
+        let window = NSWindow(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Export All Tasks"
+        window.contentView = hostingView
+        window.minSize = NSSize(width: 400, height: 300)
+        
+        exportWindow = window
+        window.makeKeyAndOrderFront(nil)
+    }
+    
+    func closeExportWindow() {
+        exportWindow?.close()
+        exportWindow = nil
+    }
+}
+
+struct ExportAllTasksView: View {
+    let exportText: String
+    @State private var isCopied: Bool = false
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                Text("Export All Tasks")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                Spacer()
+                Button(action: {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(exportText, forType: .string)
+                    isCopied = true
+                    
+                    // Reset the copied state after 2 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        isCopied = false
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                        Text(isCopied ? "Copied!" : "Copy All")
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding()
+            
+            Divider()
+            
+            // Text content
+            ScrollView {
+                TextEditor(text: .constant(exportText))
+                    .font(.system(.body, design: .monospaced))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .padding()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
