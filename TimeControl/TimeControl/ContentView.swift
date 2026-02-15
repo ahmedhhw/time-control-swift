@@ -103,6 +103,25 @@ enum TaskSortOption: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum MassOperationType: String, CaseIterable, Identifiable {
+    case fill = "Fill field for tasks"
+    case edit = "Edit field for tasks"
+    
+    var id: String { self.rawValue }
+}
+
+enum EditableField: String, CaseIterable, Identifiable {
+    case title = "Title"
+    case description = "Description"
+    case notes = "Notes"
+    case fromWho = "From Who"
+    case adhoc = "Adhoc"
+    case estimation = "Estimation"
+    case dueDate = "Due Date"
+    
+    var id: String { self.rawValue }
+}
+
 // Storage Manager for JSON persistence
 class TodoStorage {
     private static let storageURL: URL = {
@@ -249,6 +268,7 @@ struct ContentView: View {
     @State private var runningTaskId: UUID?  // Track the currently running task for floating window
     @State private var isAdvancedMode: Bool = false  // Toggle for advanced mode
     @State private var sortOption: TaskSortOption = .creationDateNewest  // Sort option for tasks
+    @State private var showingMassOperations: Bool = false  // Track if mass operations sheet is shown
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -419,6 +439,17 @@ struct ContentView: View {
                 
                 if isAdvancedMode {
                     Spacer()
+                    
+                    Button(action: {
+                        showingMassOperations = true
+                    }) {
+                        HStack {
+                            Image(systemName: "square.grid.3x3.fill")
+                            Text("Mass Operations")
+                        }
+                        .font(.subheadline)
+                    }
+                    .buttonStyle(.bordered)
                     
                     Button(action: {
                         let exportText = generateExportTextForAllTasks()
@@ -948,6 +979,9 @@ struct ContentView: View {
                     editingTodo = nil
                 })
             }
+        }
+        .sheet(isPresented: $showingMassOperations) {
+            MassOperationsSheet()
         }
     }
     
@@ -2155,6 +2189,91 @@ struct EditTodoSheet: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .medium
         return formatter.string(from: date)
+    }
+}
+
+struct MassOperationsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var operationType: MassOperationType = .fill
+    @State private var selectedField: EditableField = .title
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("Mass Operations")
+                    .font(.headline)
+                
+                Spacer()
+                
+                // Placeholder for symmetry
+                Button("Cancel") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                .hidden()
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Form content
+            Form {
+                Section(header: Text("Operation Type")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(MassOperationType.allCases) { type in
+                            Button(action: {
+                                operationType = type
+                            }) {
+                                HStack {
+                                    Image(systemName: operationType == type ? "largecircle.fill.circle" : "circle")
+                                        .foregroundColor(operationType == type ? .accentColor : .secondary)
+                                    Text(type.rawValue)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Section(header: Text("Select Field")) {
+                    Picker("Field", selection: $selectedField) {
+                        ForEach(EditableField.allCases) { field in
+                            Text(field.rawValue).tag(field)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                
+                Section {
+                    Button(action: {
+                        // TODO: Implement continue action
+                        dismiss()
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("Continue")
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .formStyle(.grouped)
+            .frame(width: 400, height: 350)
+        }
     }
 }
 
