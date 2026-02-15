@@ -339,6 +339,22 @@ struct ContentView: View {
                 return true
             }
             
+            // Search in task notes
+            if todo.notes.lowercased().contains(searchText) {
+                return true
+            }
+            
+            // Search in "from who" field
+            if todo.fromWho.lowercased().contains(searchText) {
+                return true
+            }
+            
+            // Search for "adhoc" keyword
+            if todo.isAdhoc && "adhoc".contains(searchText) {
+                return true
+            }
+            
+            
             // Search in subtask titles
             if todo.subtasks.contains(where: { $0.title.lowercased().contains(searchText) }) {
                 return true
