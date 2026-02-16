@@ -513,7 +513,7 @@ struct ContentView: View {
                 // Add new todo button
                 Button(action: addTodo) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title2)
+                        .font(.title)
                 }
                 .buttonStyle(.plain)
                 .disabled(newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -529,13 +529,13 @@ struct ContentView: View {
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
-                            .font(.title2)
+                            .font(.title)
                     }
                     .buttonStyle(.plain)
                 } else {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                        .font(.title2)
+                        .font(.title)
                 }
             }
             .padding()
@@ -545,7 +545,7 @@ struct ContentView: View {
             HStack {
                 Toggle("Advanced mode", isOn: $isAdvancedMode)
                     .toggleStyle(.switch)
-                    .font(.subheadline)
+                    .font(.body)
                 
                 if isAdvancedMode {
                     Spacer()
@@ -557,7 +557,7 @@ struct ContentView: View {
                             Image(systemName: "square.grid.3x3.fill")
                             Text("Mass Operations")
                         }
-                        .font(.subheadline)
+                        .font(.body)
                     }
                     .buttonStyle(.bordered)
                     
@@ -569,7 +569,7 @@ struct ContentView: View {
                             Image(systemName: "square.and.arrow.up")
                             Text("Export All Tasks")
                         }
-                        .font(.subheadline)
+                        .font(.body)
                     }
                     .buttonStyle(.bordered)
                     
@@ -580,7 +580,7 @@ struct ContentView: View {
                             Image(systemName: "gear")
                             Text("Settings")
                         }
-                        .font(.subheadline)
+                        .font(.body)
                     }
                     .buttonStyle(.bordered)
                 } else {
@@ -594,7 +594,7 @@ struct ContentView: View {
             if isAdvancedMode {
                 HStack {
                     Text("Sort by:")
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundColor(.secondary)
                     
                     Picker("Sort", selection: $sortOption) {
@@ -603,7 +603,7 @@ struct ContentView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .font(.subheadline)
+                    .font(.body)
                     
                     Spacer()
                 }
@@ -619,10 +619,10 @@ struct ContentView: View {
                     Spacer()
                     Text("No todos yet")
                         .foregroundColor(.secondary)
-                        .font(.title2)
+                        .font(.title)
                     Text("Add one using the text field above")
                         .foregroundColor(.secondary)
-                        .font(.subheadline)
+                        .font(.body)
                     Spacer()
                 }
             } else {
@@ -785,11 +785,11 @@ struct ContentView: View {
                                     HStack {
                                         Image(systemName: isCompletedSectionExpanded ? "chevron.down" : "chevron.right")
                                             .foregroundColor(.secondary)
-                                            .font(.caption)
+                                            .font(.subheadline)
                                         
                                         Text("Completed (\(completedTodos.count))")
                                             .foregroundColor(.secondary)
-                                            .font(.headline)
+                                            .font(.title2)
                                         
                                         Spacer()
                                     }
@@ -859,6 +859,7 @@ struct ContentView: View {
                                                                         }) {
                                                                             Image(systemName: "plus.circle.fill")
                                                                                 .foregroundColor(.blue)
+                                                                                .font(.title3)
                                                                         }
                                                                         .buttonStyle(.plain)
                                                                         .disabled((newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
@@ -1817,7 +1818,7 @@ struct TodoRow: View {
                 Button(action: onToggle) {
                     Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(todo.isCompleted ? .green : .secondary)
-                        .font(.title3)
+                        .font(.title2)
                 }
                 .buttonStyle(.plain)
                 
@@ -1832,11 +1833,11 @@ struct TodoRow: View {
                             if todo.isRunning {
                                 Circle()
                                     .fill(Color.orange)
-                                    .frame(width: 6, height: 6)
+                                    .frame(width: 12, height: 12)
                                     .opacity(0.8)
                             }
                             Text(formatTime(todo.currentTimeSpent))
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(todo.isRunning ? .orange : .secondary)
                                 .monospacedDigit()
                                 .fontWeight(todo.isRunning ? .semibold : .regular)
@@ -1848,14 +1849,14 @@ struct TodoRow: View {
                     if isAdvancedMode && !isExpanded && todo.estimatedTime > 0 {
                         HStack(spacing: 8) {
                             Text("Est: \(formatTime(todo.estimatedTime))")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .monospacedDigit()
                             Text("•")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Text("Elapsed: \(formatTime(todo.currentTimeSpent))")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .monospacedDigit()
                                 .id(timerUpdateTrigger)
@@ -1870,18 +1871,18 @@ struct TodoRow: View {
                         
                         HStack(spacing: 8) {
                             Text("Due: \(formatDueDate(dueDate))")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(progress.isOverdue ? .red : .secondary)
                             Text("•")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                             if progress.isOverdue {
                                 Text("Overdue by \(formatTimeRemaining(remaining))")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.red)
                             } else {
                                 Text("\(formatTimeRemaining(remaining)) left")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -1889,7 +1890,7 @@ struct TodoRow: View {
                     
                     if !todo.subtasks.isEmpty {
                         Text("\(todo.subtasks.count) subtask\(todo.subtasks.count == 1 ? "" : "s")")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -1900,14 +1901,14 @@ struct TodoRow: View {
                 Button(action: onToggleExpanded) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .foregroundColor(.secondary)
-                        .font(.body)
+                        .font(.title3)
                 }
                 .buttonStyle(.plain)
                 
                 Button(action: onToggleTimer) {
                     Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
                         .foregroundColor(todo.isCompleted ? .gray : (todo.isRunning ? .orange : .blue))
-                        .font(.title3)
+                        .font(.title2)
                 }
                 .buttonStyle(.plain)
                 .disabled(todo.isCompleted)
@@ -1915,6 +1916,7 @@ struct TodoRow: View {
                 Button(action: onEdit) {
                     Image(systemName: "pencil")
                         .foregroundColor(todo.isCompleted ? .gray : .blue)
+                        .font(.title3)
                 }
                 .buttonStyle(.plain)
                 .disabled(todo.isCompleted)
@@ -1922,6 +1924,7 @@ struct TodoRow: View {
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .foregroundColor(todo.isCompleted ? .gray : .red)
+                        .font(.title3)
                 }
                 .buttonStyle(.plain)
                 .disabled(todo.isCompleted)
@@ -1937,12 +1940,12 @@ struct TodoRow: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Description")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
                         
                         Text(todo.description)
-                            .font(.body)
+                            .font(.title3)
                             .foregroundColor(.primary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -1959,12 +1962,12 @@ struct TodoRow: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Notes")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
                         
                         Text(todo.notes)
-                            .font(.body)
+                            .font(.title3)
                             .foregroundColor(.primary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -1981,7 +1984,7 @@ struct TodoRow: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Task Info")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
                         
@@ -1989,10 +1992,10 @@ struct TodoRow: View {
                             if todo.isAdhoc {
                                 HStack(spacing: 6) {
                                     Image(systemName: "bolt.fill")
-                                        .font(.caption)
+                                        .font(.subheadline)
                                         .foregroundColor(.orange)
                                     Text("Adhoc Task")
-                                        .font(.body)
+                                        .font(.title3)
                                         .foregroundColor(.primary)
                                 }
                             }
@@ -2000,10 +2003,10 @@ struct TodoRow: View {
                             if !todo.fromWho.isEmpty {
                                 HStack(spacing: 6) {
                                     Image(systemName: "person.fill")
-                                        .font(.caption)
+                                        .font(.subheadline)
                                         .foregroundColor(.blue)
                                     Text("From: \(todo.fromWho)")
-                                        .font(.body)
+                                        .font(.title3)
                                         .foregroundColor(.primary)
                                 }
                             }
@@ -2025,11 +2028,11 @@ struct TodoRow: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Elapsed")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                 Text(formatTime(todo.currentTimeSpent))
-                                    .font(.title3)
+                                    .font(.title2)
                                     .foregroundColor(.primary)
                                     .monospacedDigit()
                                     .id(timerUpdateTrigger)
@@ -2039,11 +2042,11 @@ struct TodoRow: View {
                             
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("Estimated")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                 Text(formatTime(todo.estimatedTime))
-                                    .font(.title3)
+                                    .font(.title2)
                                     .foregroundColor(.secondary)
                                     .monospacedDigit()
                             }
@@ -2055,28 +2058,28 @@ struct TodoRow: View {
                                 // Background
                                 Rectangle()
                                     .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 6)
-                                    .cornerRadius(3)
+                                    .frame(height: 12)
+                                    .cornerRadius(6)
                                 
                                 // Progress
                                 let progress = min(todo.currentTimeSpent / todo.estimatedTime, 1.0)
                                 Rectangle()
                                     .fill(progress > 1.0 ? Color.orange : Color.blue)
-                                    .frame(width: geometry.size.width * progress, height: 6)
-                                    .cornerRadius(3)
+                                    .frame(width: geometry.size.width * progress, height: 12)
+                                    .cornerRadius(6)
                                     .id(timerUpdateTrigger)
                             }
                         }
-                        .frame(height: 6)
+                        .frame(height: 12)
                         
                         // Over/under time indicator
                         if todo.currentTimeSpent > todo.estimatedTime {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.caption2)
+                                    .font(.subheadline)
                                     .foregroundColor(.orange)
                                 Text("Over by \(formatTime(todo.currentTimeSpent - todo.estimatedTime))")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.orange)
                                     .monospacedDigit()
                                     .id(timerUpdateTrigger)
@@ -2084,10 +2087,10 @@ struct TodoRow: View {
                         } else {
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.caption2)
+                                    .font(.subheadline)
                                     .foregroundColor(.green)
                                 Text("Remaining \(formatTime(todo.estimatedTime - todo.currentTimeSpent))")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .monospacedDigit()
                                     .id(timerUpdateTrigger)
@@ -2114,11 +2117,11 @@ struct TodoRow: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Created")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                 Text(formatDueDate(createdDate))
-                                    .font(.title3)
+                                    .font(.title2)
                                     .foregroundColor(.primary)
                             }
                             
@@ -2126,11 +2129,11 @@ struct TodoRow: View {
                             
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("Due")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                 Text(formatDueDate(dueDate))
-                                    .font(.title3)
+                                    .font(.title2)
                                     .foregroundColor(progress.isOverdue ? .red : .secondary)
                             }
                         }
@@ -2141,37 +2144,37 @@ struct TodoRow: View {
                                 // Background
                                 Rectangle()
                                     .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 6)
-                                    .cornerRadius(3)
+                                    .frame(height: 12)
+                                    .cornerRadius(6)
                                 
                                 // Progress
                                 let progressValue = progress.total > 0 ? min(progress.elapsed / progress.total, 1.0) : 0
                                 Rectangle()
                                     .fill(progress.isOverdue ? Color.red : Color.purple)
-                                    .frame(width: geometry.size.width * progressValue, height: 6)
-                                    .cornerRadius(3)
+                                    .frame(width: geometry.size.width * progressValue, height: 12)
+                                    .cornerRadius(6)
                             }
                         }
-                        .frame(height: 6)
+                        .frame(height: 12)
                         
                         // Time remaining/overdue indicator
                         let remaining = dueDate.timeIntervalSince(now)
                         if progress.isOverdue {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.caption2)
+                                    .font(.subheadline)
                                     .foregroundColor(.red)
                                 Text("Overdue by \(formatTimeRemaining(remaining))")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.red)
                             }
                         } else {
                             HStack {
                                 Image(systemName: "clock.fill")
-                                    .font(.caption2)
+                                    .font(.subheadline)
                                     .foregroundColor(.purple)
                                 Text("\(formatTimeRemaining(remaining)) remaining")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -2193,10 +2196,10 @@ struct TodoRow: View {
                         }) {
                             HStack {
                                 Image(systemName: showExportText ? "chevron.down" : "chevron.right")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Text("Export to Text")
-                                    .font(.body)
+                                    .font(.title3)
                                     .foregroundColor(.primary)
                                 Spacer()
                             }
@@ -2206,11 +2209,11 @@ struct TodoRow: View {
                         if showExportText {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Copy the text below:")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 
                                 TextEditor(text: .constant(generateExportText()))
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.system(.title3, design: .monospaced))
                                     .frame(height: 300)
                                     .border(Color.gray.opacity(0.3), width: 1)
                                     .cornerRadius(4)
@@ -2286,7 +2289,7 @@ struct EditTodoSheet: View {
                 Spacer()
                 
                 Text("Edit Task")
-                    .font(.headline)
+                    .font(.title2)
                 
                 Spacer()
                 
@@ -2308,7 +2311,7 @@ struct EditTodoSheet: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Description")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                         TextEditor(text: $description)
                             .frame(minHeight: 100, maxHeight: 200)
@@ -2317,7 +2320,7 @@ struct EditTodoSheet: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Notes")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                         TextEditor(text: $notes)
                             .frame(minHeight: 150, maxHeight: 300)
@@ -2356,7 +2359,7 @@ struct EditTodoSheet: View {
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Hours")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Picker("", selection: $estimateHours) {
                                 ForEach(0..<24, id: \.self) { hour in
@@ -2368,12 +2371,12 @@ struct EditTodoSheet: View {
                         }
                         
                         Text(":")
-                            .font(.title2)
+                            .font(.title)
                             .padding(.top, 16)
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Minutes")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Picker("", selection: $estimateMinutes) {
                                 ForEach(0..<60, id: \.self) { minute in
@@ -2496,7 +2499,7 @@ struct MassOperationsSheet: View {
                 Spacer()
                 
                 Text("Mass Operations")
-                    .font(.headline)
+                    .font(.title2)
                 
                 Spacer()
                 
@@ -2534,6 +2537,7 @@ struct MassOperationsSheet: View {
                             HStack {
                                 Image(systemName: operationType == type ? "largecircle.fill.circle" : "circle")
                                     .foregroundColor(operationType == type ? .accentColor : .secondary)
+                                    .font(.title3)
                                 Text(type.rawValue)
                                     .foregroundColor(.primary)
                                 Spacer()
@@ -2577,10 +2581,10 @@ struct MassOperationsSheet: View {
                 VStack {
                     Spacer()
                     Text("No tasks found")
-                        .font(.title2)
+                        .font(.title)
                         .foregroundColor(.secondary)
                     Text(operationType == .fill ? "All tasks already have this field filled" : "No incomplete tasks")
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -2591,7 +2595,7 @@ struct MassOperationsSheet: View {
                         ForEach(filteredTasks) { task in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(task.text)
-                                    .font(.headline)
+                                    .font(.title2)
                                 
                                 fieldEditor(for: task)
                             }
@@ -2634,7 +2638,7 @@ struct MassOperationsSheet: View {
         case .description:
             VStack(alignment: .leading, spacing: 4) {
                 Text("Description")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 TextEditor(text: Binding(
                     get: { textValues[task.id] ?? "" },
@@ -2647,7 +2651,7 @@ struct MassOperationsSheet: View {
         case .notes:
             VStack(alignment: .leading, spacing: 4) {
                 Text("Notes")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 TextEditor(text: Binding(
                     get: { textValues[task.id] ?? "" },
@@ -2673,7 +2677,7 @@ struct MassOperationsSheet: View {
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Hours")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                     Picker("", selection: Binding(
                         get: { estimateHours[task.id] ?? 0 },
@@ -2688,12 +2692,12 @@ struct MassOperationsSheet: View {
                 }
                 
                 Text(":")
-                    .font(.title2)
+                    .font(.title)
                     .padding(.top, 16)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Minutes")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                     Picker("", selection: Binding(
                         get: { estimateMinutes[task.id] ?? 0 },
@@ -2816,19 +2820,19 @@ struct SubtaskRow: View {
             Button(action: onToggle) {
                 Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundColor(subtask.isCompleted ? .green : .secondary)
-                    .font(.subheadline)
+                    .font(.body)
             }
             .buttonStyle(.plain)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtask.title)
-                    .font(.body)
+                    .font(.title3)
                     .strikethrough(subtask.isCompleted)
                     .foregroundColor(subtask.isCompleted ? .secondary : .primary)
                 
                 if !subtask.description.isEmpty {
                     Text(subtask.description)
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
@@ -2838,7 +2842,7 @@ struct SubtaskRow: View {
             
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(parentTodoCompleted ? .gray : .red)
             }
             .buttonStyle(.plain)
@@ -2998,7 +3002,7 @@ struct ExportAllTasksView: View {
             // Header
             HStack {
                 Text("Export All Tasks")
-                    .font(.title2)
+                    .font(.title)
                     .fontWeight(.semibold)
                 Spacer()
                 Button(action: {
@@ -3013,6 +3017,7 @@ struct ExportAllTasksView: View {
                 }) {
                     HStack {
                         Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                            .font(.body)
                         Text(isCopied ? "Copied!" : "Copy All")
                     }
                 }
@@ -3025,7 +3030,7 @@ struct ExportAllTasksView: View {
             // Text content
             ScrollView {
                 TextEditor(text: .constant(exportText))
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(.title3, design: .monospaced))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .padding()
@@ -3124,11 +3129,11 @@ struct PauseTaskConfirmationView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("Pause Task?")
-                .font(.headline)
+                .font(.title2)
                 .foregroundColor(.primary)
             
             Text("Do you want to pause the task timer?")
-                .font(.subheadline)
+                .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -3138,7 +3143,7 @@ struct PauseTaskConfirmationView: View {
                     onCancel()
                 }) {
                     Text("Cancel")
-                        .font(.body)
+                        .font(.title3)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -3153,7 +3158,7 @@ struct PauseTaskConfirmationView: View {
                     onPause()
                 }) {
                     Text("Pause Task")
-                        .font(.body)
+                        .font(.title3)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -3274,7 +3279,7 @@ struct FloatingTaskWindowView: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "note.text")
-                                .font(.caption)
+                                .font(.subheadline)
                          
                         }
                         .foregroundColor(.blue)
@@ -3287,7 +3292,7 @@ struct FloatingTaskWindowView: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "timer")
-                                .font(.caption)
+                                .font(.subheadline)
                        
                         }
                         .foregroundColor(.blue)
@@ -3300,7 +3305,7 @@ struct FloatingTaskWindowView: View {
                         Spacer()
                         
                         Text(formatTime(localTask.currentTimeSpent))
-                            .font(.body)
+                            .font(.title3)
                             .fontWeight(.semibold)
                             .foregroundColor(.blue)
                             .monospacedDigit()
@@ -3330,13 +3335,13 @@ struct FloatingTaskWindowView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .font(.headline)
+                    .font(.title2)
                     .labelsHidden()
                     
                     // Task description
                     if !localTask.description.isEmpty {
                         Text(localTask.description)
-                            .font(.subheadline)
+                            .font(.body)
                             .foregroundColor(.secondary)
                             .lineLimit(2)
                     }
@@ -3349,11 +3354,11 @@ struct FloatingTaskWindowView: View {
                             // Time elapsed
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Time Elapsed")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                 Text(formatTime(localTask.currentTimeSpent))
-                                    .font(.title2)
+                                    .font(.title)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.blue)
                                     .monospacedDigit()
@@ -3366,7 +3371,7 @@ struct FloatingTaskWindowView: View {
                             if activateReminders && localTask.isRunning && !showingReminder {
                                 VStack(alignment: .trailing, spacing: 4) {
                                     Text("Attention Check")
-                                        .font(.caption)
+                                        .font(.subheadline)
                                         .foregroundColor(.secondary)
                                         .textCase(.uppercase)
                                     
@@ -3375,14 +3380,14 @@ struct FloatingTaskWindowView: View {
                                         let remaining = max(0, 120 - elapsed)  // 120 seconds = 2 minutes
                                         
                                         Text(formatTime(remaining))
-                                            .font(.title2)
+                                            .font(.title)
                                             .fontWeight(.semibold)
                                             .foregroundColor(remaining < 30 ? .orange : .purple)
                                             .monospacedDigit()
                                             .id(timerUpdateTrigger)
                                     } else {
                                         Text(formatTime(120))
-                                            .font(.title2)
+                                            .font(.title)
                                             .fontWeight(.semibold)
                                             .foregroundColor(.purple)
                                             .monospacedDigit()
@@ -3402,11 +3407,11 @@ struct FloatingTaskWindowView: View {
                                 Spacer()
                                 VStack(spacing: 8) {
                                     Image(systemName: "bell.badge.fill")
-                                        .font(.system(size: 40))
+                                        .font(.system(size: 80))
                                         .foregroundColor(.red)
                                     
                                     Text("Timer's up!")
-                                        .font(.title2)
+                                        .font(.title)
                                         .fontWeight(.bold)
                                         .foregroundColor(.red)
                                     
@@ -3416,7 +3421,7 @@ struct FloatingTaskWindowView: View {
                                         }
                                     }) {
                                         Text("Dismiss")
-                                            .font(.caption)
+                                            .font(.subheadline)
                                             .foregroundColor(.blue)
                                     }
                                     .buttonStyle(.plain)
@@ -3436,25 +3441,25 @@ struct FloatingTaskWindowView: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Timer")
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                 
                                 HStack {
                                     // Show elapsed time
                                     Text(formatTime(localTask.countdownElapsed))
-                                        .font(.title2)
+                                        .font(.title)
                                         .fontWeight(.semibold)
                                         .foregroundColor(localTask.countdownElapsed >= localTask.countdownTime ? .red : .orange)
                                         .monospacedDigit()
                                         .id(timerUpdateTrigger)
                                     
                                     Text("/")
-                                        .font(.title3)
+                                        .font(.title2)
                                         .foregroundColor(.secondary)
                                     
                                     Text(formatTime(localTask.countdownTime))
-                                        .font(.title3)
+                                        .font(.title2)
                                         .foregroundColor(.secondary)
                                         .monospacedDigit()
                                     
@@ -3463,10 +3468,10 @@ struct FloatingTaskWindowView: View {
                                     if localTask.countdownElapsed >= localTask.countdownTime {
                                         HStack(spacing: 4) {
                                             Image(systemName: "bell.fill")
-                                                .font(.caption)
+                                                .font(.subheadline)
                                                 .foregroundColor(.red)
                                             Text("Time's up!")
-                                                .font(.caption)
+                                                .font(.subheadline)
                                                 .foregroundColor(.red)
                                         }
                                     }
@@ -3478,19 +3483,19 @@ struct FloatingTaskWindowView: View {
                                         // Background
                                         Rectangle()
                                             .fill(Color.gray.opacity(0.2))
-                                            .frame(height: 6)
-                                            .cornerRadius(3)
+                                            .frame(height: 12)
+                                            .cornerRadius(6)
                                         
                                         // Progress (fills up as time elapses)
                                         let progress = localTask.countdownTime > 0 ? min(localTask.countdownElapsed / localTask.countdownTime, 1.0) : 0
                                         Rectangle()
                                             .fill(progress >= 1.0 ? Color.red : Color.orange)
-                                            .frame(width: geometry.size.width * progress, height: 6)
-                                            .cornerRadius(3)
+                                            .frame(width: geometry.size.width * progress, height: 12)
+                                            .cornerRadius(6)
                                             .id(timerUpdateTrigger)
                                     }
                                 }
-                                .frame(height: 6)
+                                .frame(height: 12)
                             }
                         }
                     }
@@ -3501,7 +3506,7 @@ struct FloatingTaskWindowView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Subtasks")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .textCase(.uppercase)
                             
@@ -3519,6 +3524,7 @@ struct FloatingTaskWindowView: View {
                                 }) {
                                     Image(systemName: "plus.circle.fill")
                                         .foregroundColor(.blue)
+                                        .font(.title3)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -3534,12 +3540,12 @@ struct FloatingTaskWindowView: View {
                                         }) {
                                             Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
                                                 .foregroundColor(subtask.isCompleted ? .green : .secondary)
-                                                .font(.subheadline)
+                                                .font(.body)
                                         }
                                         .buttonStyle(.plain)
                                         
                                         Text(subtask.title)
-                                            .font(.body)
+                                            .font(.title3)
                                             .strikethrough(subtask.isCompleted)
                                             .foregroundColor(subtask.isCompleted ? .secondary : .primary)
                                             .lineLimit(2)
@@ -3566,9 +3572,9 @@ struct FloatingTaskWindowView: View {
                         }) {
                             HStack(spacing: 6) {
                                 Image(systemName: localTask.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                                    .font(.body)
+                                    .font(.title3)
                                 Text(localTask.isRunning ? "Pause" : "Resume")
-                                    .font(.body)
+                                    .font(.title3)
                                     .fontWeight(.medium)
                             }
                             .foregroundColor(.white)
@@ -3585,9 +3591,9 @@ struct FloatingTaskWindowView: View {
                         }) {
                             HStack(spacing: 6) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.body)
+                                    .font(.title3)
                                 Text("Complete")
-                                    .font(.body)
+                                    .font(.title3)
                                     .fontWeight(.medium)
                             }
                             .foregroundColor(.white)
@@ -4055,11 +4061,11 @@ struct ReminderAlertView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("Are you still working on")
-                .font(.headline)
+                .font(.title2)
                 .foregroundColor(.primary)
             
             Text("\"\(taskText)\"?")
-                .font(.subheadline)
+                .font(.body)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -4070,7 +4076,7 @@ struct ReminderAlertView: View {
                     onResponse(.yes)
                 }) {
                     Text("Yes")
-                        .font(.body)
+                        .font(.title3)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -4095,7 +4101,7 @@ struct ReminderAlertView: View {
                             }
                         }
                     }
-                    .font(.body)
+                    .font(.title3)
                     .fontWeight(.medium)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -4110,7 +4116,7 @@ struct ReminderAlertView: View {
                     onResponse(.openTaskList)
                 }) {
                     Text("Open Task List")
-                        .font(.body)
+                        .font(.title3)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -4152,7 +4158,7 @@ struct TimerPickerSheet: View {
                 Spacer()
                 
                 Text("Set Countdown Timer")
-                    .font(.headline)
+                    .font(.title2)
                 
                 Spacer()
                 
@@ -4170,13 +4176,13 @@ struct TimerPickerSheet: View {
             // Timer picker
             VStack(spacing: 20) {
                 Text("Choose the countdown duration")
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundColor(.secondary)
                 
                 HStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Hours")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                         Picker("", selection: $hours) {
                             ForEach(0..<24, id: \.self) { hour in
@@ -4188,12 +4194,12 @@ struct TimerPickerSheet: View {
                     }
                     
                     Text(":")
-                        .font(.title2)
+                        .font(.title)
                         .padding(.top, 16)
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Minutes")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                         Picker("", selection: $minutes) {
                             ForEach(0..<60, id: \.self) { minute in
@@ -4208,7 +4214,7 @@ struct TimerPickerSheet: View {
                 
                 if hours > 0 || minutes > 0 {
                     Text("Timer will count down while the task is running")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
             }
@@ -4243,7 +4249,7 @@ struct NotesEditorView: View {
                 Spacer()
                 
                 Text("Task Notes")
-                    .font(.headline)
+                    .font(.title2)
                 
                 Spacer()
                 
@@ -4260,11 +4266,11 @@ struct NotesEditorView: View {
             // Notes editor
             VStack(alignment: .leading, spacing: 8) {
                 Text("Take notes while working on this task")
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundColor(.secondary)
                 
                 TextEditor(text: $localNotes)
-                    .font(.body)
+                    .font(.title3)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .border(Color.gray.opacity(0.2), width: 1)
             }
@@ -4305,7 +4311,7 @@ struct SettingsSheet: View {
                 Spacer()
                 
                 Text("Settings")
-                    .font(.headline)
+                    .font(.title2)
                 
                 Spacer()
                 
@@ -4322,15 +4328,15 @@ struct SettingsSheet: View {
             // Settings content
             VStack(alignment: .leading, spacing: 20) {
                 Text("Preferences")
-                    .font(.title3)
+                    .font(.title2)
                     .fontWeight(.semibold)
                 
                 Toggle("Activate reminders to stay on task", isOn: $activateReminders)
                     .toggleStyle(.checkbox)
-                    .font(.body)
+                    .font(.title3)
                 
                 Text("When enabled, you'll receive periodic reminders to help you stay focused on your current task.")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 Divider()
@@ -4338,10 +4344,10 @@ struct SettingsSheet: View {
                 
                 Toggle("Confirm before deleting tasks", isOn: $confirmTaskDeletion)
                     .toggleStyle(.checkbox)
-                    .font(.body)
+                    .font(.title3)
                 
                 Text("When enabled, you'll be asked to confirm before permanently deleting a task or subtask.")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 Divider()
@@ -4349,10 +4355,10 @@ struct SettingsSheet: View {
                 
                 Toggle("Show time elapsed when task window is collapsed", isOn: $showTimeWhenCollapsed)
                     .toggleStyle(.checkbox)
-                    .font(.body)
+                    .font(.title3)
                 
                 Text("When enabled, the time elapsed timer will be visible even when the floating task window is collapsed.")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 Spacer()
