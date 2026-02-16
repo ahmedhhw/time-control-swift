@@ -1222,10 +1222,54 @@ struct ContentView: View {
     
     private func saveTodos() {
         TodoStorage.save(todos: todos)
+        // Update the floating window manager with the latest todos
+        FloatingWindowManager.shared.updateAllTodos(todos)
     }
     
     private func editTodo(_ todo: TodoItem) {
         editingTodo = todo
+    }
+    
+    private func switchToTask(_ newTask: TodoItem) {
+        // Stop the currently running task
+        for i in 0..<todos.count {
+            if todos[i].isRunning {
+                if let startTime = todos[i].lastStartTime {
+                    todos[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[i].lastStartTime = nil
+                
+                // Update countdown elapsed time
+                if todos[i].countdownTime > 0, let countdownStart = todos[i].countdownStartTime {
+                    let sessionElapsed = Date().timeIntervalSince(countdownStart)
+                    todos[i].countdownElapsedAtPause += sessionElapsed
+                    todos[i].countdownStartTime = nil
+                }
+            }
+        }
+        
+        // Start the new task
+        if let index = todos.firstIndex(where: { $0.id == newTask.id }) {
+            todos[index].lastStartTime = Date()
+            
+            // Resume countdown timer if it's set and not completed
+            if todos[index].countdownTime > 0 && todos[index].countdownElapsedAtPause < todos[index].countdownTime {
+                todos[index].countdownStartTime = Date()
+            }
+            
+            runningTaskId = newTask.id
+            
+            // Set startedAt timestamp if this is the first time starting
+            if todos[index].startedAt == nil {
+                todos[index].startedAt = Date().timeIntervalSince1970
+            }
+            
+            // Update lastPlayedAt timestamp
+            todos[index].lastPlayedAt = Date().timeIntervalSince1970
+            
+            // Save changes
+            saveTodos()
+        }
     }
     
     private func toggleTimer(_ todo: TodoItem) {
@@ -1273,7 +1317,16 @@ struct ContentView: View {
                 }
                 
                 runningTaskId = todo.id
-                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed)
+                FloatingWindowManager.shared.showFloatingWindow(
+                    for: todos[index],
+                    allTodos: todos,
+                    activateReminders: activateReminders,
+                    showTimeWhenCollapsed: showTimeWhenCollapsed,
+                    onTaskSwitch: { [self] newTask in
+                        // Handle task switching from the floating window
+                        self.switchToTask(newTask)
+                    }
+                )
                 
                 // Set startedAt timestamp if this is the first time starting
                 if todos[index].startedAt == nil {
@@ -2807,14 +2860,22 @@ class FloatingWindowManager: ObservableObject {
     static let shared = FloatingWindowManager()
     private var floatingWindow: NSWindow?
     @Published var currentTask: TodoItem?
+    @Published var allTodos: [TodoItem] = []
     private var windowDelegate: FloatingWindowDelegate?
+    var onTaskSwitch: ((TodoItem) -> Void)?
+    var activateReminders: Bool = false
+    var showTimeWhenCollapsed: Bool = false
     
-    func showFloatingWindow(for task: TodoItem, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false) {
+    func showFloatingWindow(for task: TodoItem, allTodos: [TodoItem], activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, onTaskSwitch: @escaping (TodoItem) -> Void) {
         // Close existing window if any
         closeFloatingWindow()
         
-        // Store the current task
+        // Store the current task and all todos
         currentTask = task
+        self.allTodos = allTodos
+        self.activateReminders = activateReminders
+        self.showTimeWhenCollapsed = showTimeWhenCollapsed
+        self.onTaskSwitch = onTaskSwitch
         
         // Create the SwiftUI view
         let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed)
@@ -2859,11 +2920,30 @@ class FloatingWindowManager: ObservableObject {
         floatingWindow?.close()
         floatingWindow = nil
         currentTask = nil
+        allTodos = []
+        onTaskSwitch = nil
         windowDelegate = nil
     }
     
     func updateTask(_ task: TodoItem) {
         currentTask = task
+    }
+    
+    func switchToTask(_ task: TodoItem) {
+        // Update the current task
+        currentTask = task
+        
+        // Notify the main view to update and handle task switching logic
+        onTaskSwitch?(task)
+        
+        // Recreate the floating window with the new task
+        if floatingWindow != nil {
+            showFloatingWindow(for: task, allTodos: allTodos, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed, onTaskSwitch: onTaskSwitch ?? { _ in })
+        }
+    }
+    
+    func updateAllTodos(_ todos: [TodoItem]) {
+        allTodos = todos
     }
 }
 
@@ -3146,6 +3226,17 @@ struct FloatingTaskWindowView: View {
         }
     }
     
+    // Get non-completed tasks sorted by recency (most recently played first)
+    private var availableTasks: [TodoItem] {
+        windowManager.allTodos
+            .filter { !$0.isCompleted }
+            .sorted { task1, task2 in
+                let time1 = task1.lastPlayedAt ?? task1.startedAt ?? task1.createdAt
+                let time2 = task2.lastPlayedAt ?? task2.startedAt ?? task2.createdAt
+                return time1 > time2
+            }
+    }
+    
     var body: some View {
         ZStack(alignment: .top) {
             // Main content
@@ -3223,10 +3314,24 @@ struct FloatingTaskWindowView: View {
             // Content (hidden when collapsed)
             if !isCollapsed {
                 VStack(alignment: .leading, spacing: 12) {
-                    // Task title
-                    Text(localTask.text)
-                        .font(.headline)
-                        .lineLimit(2)
+                    // Task title dropdown
+                    Picker("Current Task", selection: Binding(
+                        get: { localTask.id },
+                        set: { newTaskId in
+                            if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
+                                windowManager.switchToTask(selectedTask)
+                            }
+                        }
+                    )) {
+                        ForEach(availableTasks) { task in
+                            Text(task.text)
+                                .lineLimit(1)
+                                .tag(task.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .font(.headline)
+                    .labelsHidden()
                     
                     // Task description
                     if !localTask.description.isEmpty {
