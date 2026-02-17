@@ -3559,7 +3559,7 @@ class FloatingWindowManager: ObservableObject {
         self.onTaskSwitch = onTaskSwitch
         
         // Create the SwiftUI view
-        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed, autoPauseAfterMinutes: autoPauseAfterMinutes)
+        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed, autoPauseAfterMinutes: autoPauseAfterMinutes, autoPlayAfterSwitching: autoPlayAfterSwitching)
         let hostingView = NSHostingView(rootView: contentView)
         
         // Calculate initial height based on task content
@@ -3922,6 +3922,7 @@ struct FloatingTaskWindowView: View {
     let activateReminders: Bool  // User setting for reminders
     let showTimeWhenCollapsed: Bool  // User setting for showing time when collapsed
     let autoPauseAfterMinutes: Int  // User setting for auto-pause duration
+    let autoPlayAfterSwitching: Bool  // User setting for auto-playing after switching tasks
     @State private var lastReminderTime: Date? = nil  // When the last reminder was shown
     @State private var showingReminder: Bool = false  // Show reminder popup
     @State private var reminderResponseDeadline: Date? = nil  // When to auto-pause if no response
@@ -3930,12 +3931,13 @@ struct FloatingTaskWindowView: View {
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPauseAfterMinutes: Int = 0) {
+    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPauseAfterMinutes: Int = 0, autoPlayAfterSwitching: Bool = false) {
         self.task = task
         self.windowManager = windowManager
         self.activateReminders = activateReminders
         self.showTimeWhenCollapsed = showTimeWhenCollapsed
         self.autoPauseAfterMinutes = autoPauseAfterMinutes
+        self.autoPlayAfterSwitching = autoPlayAfterSwitching
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         
@@ -4014,6 +4016,8 @@ struct FloatingTaskWindowView: View {
                     }
                     .buttonStyle(.plain)
                     .floatingTooltip("Take notes while working on this task")
+                    .disabled(taskMarkedComplete)
+                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
 
                     Button(action: {
                         showingTimerPicker = true
@@ -4027,6 +4031,8 @@ struct FloatingTaskWindowView: View {
                     }
                     .buttonStyle(.plain)
                     .floatingTooltip("Set a countdown timer")
+                    .disabled(taskMarkedComplete)
+                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
                     
                     Button(action: {
                         editTask()
@@ -4037,6 +4043,8 @@ struct FloatingTaskWindowView: View {
                     }
                     .buttonStyle(.plain)
                     .floatingTooltip("Edit task")
+                    .disabled(taskMarkedComplete)
+                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
                     
                     // Show time elapsed when collapsed and setting is enabled
                     if isCollapsed && showTimeWhenCollapsed {
@@ -4063,7 +4071,22 @@ struct FloatingTaskWindowView: View {
                             get: { localTask.id },
                             set: { newTaskId in
                                 if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
+                                    // Store if the current task was marked complete
+                                    let wasComplete = taskMarkedComplete
+                                    
+                                    // Switch to the new task
                                     windowManager.switchToTask(selectedTask)
+                                    
+                                    // Reset completion state when switching tasks
+                                    taskMarkedComplete = false
+                                    
+                                    // If switching from a complete task to a non-complete task and auto-play is enabled
+                                    if wasComplete && !selectedTask.isCompleted && autoPlayAfterSwitching {
+                                        // Resume the new task
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                            resumeTask()
+                                        }
+                                    }
                                 }
                             }
                         )) {
@@ -4086,6 +4109,8 @@ struct FloatingTaskWindowView: View {
                         }
                         .buttonStyle(.plain)
                         .floatingTooltip("Create new task")
+                        .disabled(taskMarkedComplete)
+                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
                     }
                     
                     // Task description
@@ -4094,6 +4119,7 @@ struct FloatingTaskWindowView: View {
                             .font(.body)
                             .foregroundColor(.secondary)
                             .lineLimit(2)
+                            .opacity(taskMarkedComplete ? 0.5 : 1.0)
                     }
                     
                     // Time tracking section
@@ -4114,11 +4140,12 @@ struct FloatingTaskWindowView: View {
                                     .monospacedDigit()
                                     .id(timerUpdateTrigger)
                             }
+                            .opacity(taskMarkedComplete ? 0.5 : 1.0)
                             
                             Spacer()
                             
                             // Attention Check countdown (only shown when reminders are active and task is running)
-                            if activateReminders && localTask.isRunning && !showingReminder {
+                            if activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text("Attention Check")
                                         .font(.subheadline)
@@ -4149,7 +4176,7 @@ struct FloatingTaskWindowView: View {
                     }
                     
                     // Timer's up! message (shown after timer completes and is cleared)
-                    if showTimerCompletedMessage {
+                    if showTimerCompletedMessage && !taskMarkedComplete {
                         VStack(spacing: 8) {
                             Divider()
                             
@@ -4226,6 +4253,7 @@ struct FloatingTaskWindowView: View {
                                         }
                                     }
                                 }
+                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
                                 
                                 // Progress bar for countdown (fills up as time progresses)
                                 GeometryReader { geometry in
@@ -4246,6 +4274,7 @@ struct FloatingTaskWindowView: View {
                                     }
                                 }
                                 .frame(height: 12)
+                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
                             }
                         }
                     }
@@ -4259,6 +4288,7 @@ struct FloatingTaskWindowView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .textCase(.uppercase)
+                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
                             
                             // Textfield and button for adding new subtasks
                             HStack(spacing: 8) {
@@ -4268,6 +4298,7 @@ struct FloatingTaskWindowView: View {
                                     .onSubmit {
                                         addSubtask()
                                     }
+                                    .disabled(taskMarkedComplete)
                                 
                                 Button(action: {
                                     addSubtask()
@@ -4277,7 +4308,8 @@ struct FloatingTaskWindowView: View {
                                         .font(.title3)
                                 }
                                 .buttonStyle(.plain)
-                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete)
+                                .opacity((newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete) ? 0.3 : 1.0)
                             }
                             .padding(.bottom, 4)
                             
@@ -4293,6 +4325,7 @@ struct FloatingTaskWindowView: View {
                                                 .font(.body)
                                         }
                                         .buttonStyle(.plain)
+                                        .disabled(taskMarkedComplete)
                                         
                                         Text(subtask.title)
                                             .font(.title3)
@@ -4318,8 +4351,8 @@ struct FloatingTaskWindowView: View {
                                                 .font(.body)
                                         }
                                         .buttonStyle(.plain)
-                                        .disabled(!localTask.isRunning)
-                                        .opacity(localTask.isRunning ? 1.0 : 0.3)
+                                        .disabled(!localTask.isRunning || taskMarkedComplete)
+                                        .opacity((localTask.isRunning && !taskMarkedComplete) ? 1.0 : 0.3)
                                         
                                         Button(action: {
                                             deleteSubtask(subtask)
@@ -4329,8 +4362,11 @@ struct FloatingTaskWindowView: View {
                                                 .foregroundColor(.red)
                                         }
                                         .buttonStyle(.plain)
+                                        .disabled(taskMarkedComplete)
+                                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
                                     }
                                     .padding(.horizontal, 8)
+                                    .opacity(taskMarkedComplete ? 0.5 : 1.0)
                                 }
                             }
                         }
@@ -4362,6 +4398,8 @@ struct FloatingTaskWindowView: View {
                         }
                         .buttonStyle(.plain)
                         .floatingTooltip(localTask.isRunning ? "Pause this task" : "Resume this task")
+                        .disabled(taskMarkedComplete)
+                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
                         
                         Button(action: {
                             completeTask()
