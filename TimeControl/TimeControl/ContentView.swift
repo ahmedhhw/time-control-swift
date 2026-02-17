@@ -1550,6 +1550,16 @@ struct ContentView: View {
                     todos[i].countdownElapsedAtPause += sessionElapsed
                     todos[i].countdownStartTime = nil
                 }
+                
+                // RULE: When parent task is paused, pause all subtasks
+                for j in 0..<todos[i].subtasks.count {
+                    if todos[i].subtasks[j].isRunning {
+                        if let startTime = todos[i].subtasks[j].lastStartTime {
+                            todos[i].subtasks[j].totalTimeSpent += Date().timeIntervalSince(startTime)
+                        }
+                        todos[i].subtasks[j].lastStartTime = nil
+                    }
+                }
             }
         }
         
