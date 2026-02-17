@@ -1113,6 +1113,45 @@ struct ContentView: View {
                 editingTodo = todo
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateTaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID else {
+                return
+            }
+            
+            // Update the task in the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                if let text = userInfo["text"] as? String {
+                    todos[todoIndex].text = text
+                }
+                if let description = userInfo["description"] as? String {
+                    todos[todoIndex].description = description
+                }
+                if let notes = userInfo["notes"] as? String {
+                    todos[todoIndex].notes = notes
+                }
+                if let dueDate = userInfo["dueDate"] as? Date {
+                    todos[todoIndex].dueDate = dueDate
+                } else if userInfo["dueDate"] != nil {
+                    // dueDate was explicitly set to nil
+                    todos[todoIndex].dueDate = nil
+                }
+                if let isAdhoc = userInfo["isAdhoc"] as? Bool {
+                    todos[todoIndex].isAdhoc = isAdhoc
+                }
+                if let fromWho = userInfo["fromWho"] as? String {
+                    todos[todoIndex].fromWho = fromWho
+                }
+                if let estimatedTime = userInfo["estimatedTime"] as? TimeInterval {
+                    todos[todoIndex].estimatedTime = estimatedTime
+                }
+                
+                saveTodos()
+                
+                // Update the floating window with the modified task
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SetCountdownFromFloatingWindow"))) { notification in
             guard let userInfo = notification.userInfo,
                   let taskId = userInfo["taskId"] as? UUID,
@@ -2552,6 +2591,243 @@ struct EditTodoSheet: View {
     }
 }
 
+// Floating Edit View for editing tasks from the floating window
+struct FloatingEditView: View {
+    let task: TodoItem
+    let onSave: (TodoItem) -> Void
+    let onCancel: () -> Void
+    
+    @State private var title: String
+    @State private var description: String
+    @State private var dueDate: Date
+    @State private var hasDueDate: Bool
+    @State private var isAdhoc: Bool
+    @State private var fromWho: String
+    @State private var estimateHours: Int
+    @State private var estimateMinutes: Int
+    @State private var notes: String
+    
+    init(task: TodoItem, onSave: @escaping (TodoItem) -> Void, onCancel: @escaping () -> Void) {
+        self.task = task
+        self.onSave = onSave
+        self.onCancel = onCancel
+        
+        // Initialize state from task
+        _title = State(initialValue: task.text)
+        _description = State(initialValue: task.description)
+        _dueDate = State(initialValue: task.dueDate ?? Date())
+        _hasDueDate = State(initialValue: task.dueDate != nil)
+        _isAdhoc = State(initialValue: task.isAdhoc)
+        _fromWho = State(initialValue: task.fromWho)
+        _notes = State(initialValue: task.notes)
+        
+        // Convert estimated time from seconds to hours and minutes
+        let totalMinutes = Int(task.estimatedTime / 60)
+        _estimateHours = State(initialValue: totalMinutes / 60)
+        _estimateMinutes = State(initialValue: totalMinutes % 60)
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    onCancel()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("Edit Task")
+                    .font(.title2)
+                
+                Spacer()
+                
+                Button("Save") {
+                    saveChanges()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Form content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Task Details Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Task Details")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Title", text: $title)
+                            .textFieldStyle(.roundedBorder)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Description")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            TextEditor(text: $description)
+                                .frame(minHeight: 80, maxHeight: 150)
+                                .border(Color.gray.opacity(0.2), width: 1)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Notes")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            TextEditor(text: $notes)
+                                .frame(minHeight: 100, maxHeight: 200)
+                                .border(Color.gray.opacity(0.2), width: 1)
+                        }
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                    
+                    // Timestamps Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Timestamps")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        HStack {
+                            Text("Created:")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(formatTimestamp(task.createdAt))
+                        }
+                        
+                        if let startedAt = task.startedAt {
+                            HStack {
+                                Text("Started:")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(formatTimestamp(startedAt))
+                            }
+                        }
+                        
+                        if let completedAt = task.completedAt {
+                            HStack {
+                                Text("Completed:")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(formatTimestamp(completedAt))
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                    
+                    // Estimate Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Estimate")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Hours")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Picker("", selection: $estimateHours) {
+                                    ForEach(0..<24, id: \.self) { hour in
+                                        Text("\(hour)").tag(hour)
+                                    }
+                                }
+                                .labelsHidden()
+                                .frame(width: 80)
+                            }
+                            
+                            Text(":")
+                                .font(.title)
+                                .padding(.top, 16)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Minutes")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Picker("", selection: $estimateMinutes) {
+                                    ForEach(0..<60, id: \.self) { minute in
+                                        Text("\(minute)").tag(minute)
+                                    }
+                                }
+                                .labelsHidden()
+                                .frame(width: 80)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                    
+                    // Due Date Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Due Date")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("Set Due Date", isOn: $hasDueDate)
+                        
+                        if hasDueDate {
+                            DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                        }
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                    
+                    // Additional Information Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Additional Information")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("Adhoc Task", isOn: $isAdhoc)
+                        
+                        TextField("From Who?", text: $fromWho)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                }
+                .padding()
+            }
+        }
+        .frame(minWidth: 400, minHeight: 500)
+    }
+    
+    private func saveChanges() {
+        var updatedTask = task
+        updatedTask.text = title
+        updatedTask.description = description
+        updatedTask.dueDate = hasDueDate ? dueDate : nil
+        updatedTask.isAdhoc = isAdhoc
+        updatedTask.fromWho = fromWho
+        updatedTask.notes = notes
+        
+        // Convert hours and minutes to seconds
+        let clampedHours = max(0, estimateHours)
+        let clampedMinutes = max(0, min(59, estimateMinutes))
+        updatedTask.estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
+        
+        onSave(updatedTask)
+    }
+    
+    private func formatTimestamp(_ timestamp: TimeInterval) -> String {
+        let date = Date(timeIntervalSince1970: timestamp)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
+    }
+}
+
 struct MassOperationsSheet: View {
     @Binding var todos: [TodoItem]
     let onSave: () -> Void
@@ -3349,6 +3625,7 @@ struct FloatingTaskWindowView: View {
     @State private var reminderWindow: NSWindow?
     @State private var timerPickerWindow: NSWindow?
     @State private var newTaskPopupWindow: NSWindow?
+    @State private var editWindow: NSWindow?
     @State private var newSubtaskText: String = ""  // Text for new subtask
     @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
     @State private var showingTimerPicker: Bool = false  // Show timer picker sheet
@@ -4426,12 +4703,72 @@ struct FloatingTaskWindowView: View {
     }
     
     private func editTask() {
-        // Open the edit sheet for this task in the main window
-        NotificationCenter.default.post(
-            name: NSNotification.Name("EditTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id]
+        openEditWindow()
+    }
+    
+    private func openEditWindow() {
+        // Close existing edit window if any
+        editWindow?.close()
+        
+        // Create the SwiftUI view for edit form
+        let contentView = FloatingEditView(
+            task: localTask,
+            onSave: { updatedTask in
+                // Notify ContentView to update the task
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("UpdateTaskFromFloatingWindow"),
+                    object: nil,
+                    userInfo: [
+                        "taskId": localTask.id,
+                        "text": updatedTask.text,
+                        "description": updatedTask.description,
+                        "notes": updatedTask.notes,
+                        "dueDate": updatedTask.dueDate as Any,
+                        "isAdhoc": updatedTask.isAdhoc,
+                        "fromWho": updatedTask.fromWho,
+                        "estimatedTime": updatedTask.estimatedTime
+                    ]
+                )
+                editWindow?.close()
+                editWindow = nil
+            },
+            onCancel: {
+                editWindow?.close()
+                editWindow = nil
+            }
         )
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Calculate position (next to the floating task window)
+        guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
+        let taskFrame = taskWindow.frame
+        
+        let windowWidth: CGFloat = 500
+        let windowHeight: CGFloat = 600
+        
+        // Position to the right of the task window
+        let xPos = taskFrame.maxX + 20
+        let yPos = taskFrame.minY
+        
+        // Create a floating window for editing
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Edit Task"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        window.minSize = NSSize(width: 400, height: 500)
+        
+        editWindow = window
+        window.orderFrontRegardless()
     }
     
     private func setCountdownTimer() {
