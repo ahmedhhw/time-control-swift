@@ -1134,6 +1134,65 @@ struct ContentView: View {
                 saveTodos()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CreateTaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskTitle = userInfo["taskTitle"] as? String,
+                  let switchToIt = userInfo["switchToIt"] as? Bool else {
+                return
+            }
+            
+            // Create a new task
+            let newIndex = todos.count
+            let newTodo = TodoItem(text: taskTitle, index: newIndex)
+            todos.append(newTodo)
+            saveTodos()
+            
+            // Update the floating window with the new todos list
+            FloatingWindowManager.shared.updateAllTodos(todos)
+            
+            // If "Create and Switch" was clicked, switch to the new task
+            if switchToIt {
+                // Stop any currently running task
+                if let currentRunningId = runningTaskId,
+                   let runningIndex = todos.firstIndex(where: { $0.id == currentRunningId }) {
+                    if let startTime = todos[runningIndex].lastStartTime {
+                        todos[runningIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    }
+                    todos[runningIndex].lastStartTime = nil
+                    
+                    // Update countdown elapsed time when pausing
+                    if todos[runningIndex].countdownTime > 0, let countdownStart = todos[runningIndex].countdownStartTime {
+                        let sessionElapsed = Date().timeIntervalSince(countdownStart)
+                        todos[runningIndex].countdownElapsedAtPause += sessionElapsed
+                        todos[runningIndex].countdownStartTime = nil
+                    }
+                }
+                
+                // Start the new task
+                if let newTaskIndex = todos.firstIndex(where: { $0.id == newTodo.id }) {
+                    todos[newTaskIndex].lastStartTime = Date()
+                    
+                    // Set startedAt timestamp if this is the first time starting
+                    if todos[newTaskIndex].startedAt == nil {
+                        todos[newTaskIndex].startedAt = Date().timeIntervalSince1970
+                    }
+                    
+                    // Update lastPlayedAt timestamp
+                    todos[newTaskIndex].lastPlayedAt = Date().timeIntervalSince1970
+                    
+                    // Resume countdown timer if it's set
+                    if todos[newTaskIndex].countdownTime > 0 && todos[newTaskIndex].countdownElapsedAtPause < todos[newTaskIndex].countdownTime {
+                        todos[newTaskIndex].countdownStartTime = Date()
+                    }
+                    
+                    runningTaskId = newTodo.id
+                    saveTodos()
+                    
+                    // Switch to the new task in the floating window
+                    FloatingWindowManager.shared.switchToTask(todos[newTaskIndex])
+                }
+            }
+        }
         .sheet(item: $editingTodo) { todoToEdit in
             if let index = todos.firstIndex(where: { $0.id == todoToEdit.id }) {
                 EditTodoSheet(todo: $todos[index], onSave: {
@@ -3278,6 +3337,7 @@ struct FloatingTaskWindowView: View {
     @State private var notesWindow: NSWindow?
     @State private var reminderWindow: NSWindow?
     @State private var timerPickerWindow: NSWindow?
+    @State private var newTaskPopupWindow: NSWindow?
     @State private var newSubtaskText: String = ""  // Text for new subtask
     @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
     @State private var showingTimerPicker: Bool = false  // Show timer picker sheet
@@ -3285,6 +3345,8 @@ struct FloatingTaskWindowView: View {
     @State private var timerMinutes: Int = 25  // Minutes for countdown timer (default 25)
     @State private var timerJustCompleted: Bool = false  // Track if timer just completed
     @State private var showTimerCompletedMessage: Bool = false  // Show "Timer's up!" message
+    @State private var showingNewTaskPopup: Bool = false  // Show new task popup
+    @State private var newTaskTitle: String = ""  // Title for new task
     
     // Reminder functionality
     let activateReminders: Bool  // User setting for reminders
@@ -3412,24 +3474,36 @@ struct FloatingTaskWindowView: View {
             // Content (hidden when collapsed)
             if !isCollapsed {
                 VStack(alignment: .leading, spacing: 8) {
-                    // Task title dropdown
-                    Picker("Current Task", selection: Binding(
-                        get: { localTask.id },
-                        set: { newTaskId in
-                            if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
-                                windowManager.switchToTask(selectedTask)
+                    // Task title dropdown with new task button
+                    HStack(spacing: 8) {
+                        Picker("Current Task", selection: Binding(
+                            get: { localTask.id },
+                            set: { newTaskId in
+                                if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
+                                    windowManager.switchToTask(selectedTask)
+                                }
+                            }
+                        )) {
+                            ForEach(availableTasks) { task in
+                                Text(task.text)
+                                    .lineLimit(1)
+                                    .tag(task.id)
                             }
                         }
-                    )) {
-                        ForEach(availableTasks) { task in
-                            Text(task.text)
-                                .lineLimit(1)
-                                .tag(task.id)
+                        .pickerStyle(.menu)
+                        .font(.title2)
+                        .labelsHidden()
+                        
+                        Button(action: {
+                            showingNewTaskPopup = true
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
                         }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Create new task")
                     }
-                    .pickerStyle(.menu)
-                    .font(.title2)
-                    .labelsHidden()
                     
                     // Task description
                     if !localTask.description.isEmpty {
@@ -3874,6 +3948,11 @@ struct FloatingTaskWindowView: View {
                 openTimerPickerWindow()
             }
         }
+        .onChange(of: showingNewTaskPopup) { newValue in
+            if newValue {
+                openNewTaskPopupWindow()
+            }
+        }
         .onChange(of: showTimerCompletedMessage) { _ in
             if !isCollapsed {
                 resizeWindow()
@@ -4065,6 +4144,79 @@ struct FloatingTaskWindowView: View {
         window.orderFrontRegardless()
     }
     
+    private func openNewTaskPopupWindow() {
+        // Close existing new task popup window if any
+        newTaskPopupWindow?.close()
+        
+        // Create the SwiftUI view for new task popup
+        let contentView = NewTaskPopupView(
+            taskTitle: $newTaskTitle,
+            onCreate: {
+                createNewTask(switchToIt: false)
+                newTaskPopupWindow?.close()
+                newTaskPopupWindow = nil
+                showingNewTaskPopup = false
+            },
+            onCreateAndSwitch: {
+                createNewTask(switchToIt: true)
+                newTaskPopupWindow?.close()
+                newTaskPopupWindow = nil
+                showingNewTaskPopup = false
+            },
+            onCancel: {
+                newTaskPopupWindow?.close()
+                newTaskPopupWindow = nil
+                showingNewTaskPopup = false
+                newTaskTitle = ""
+            }
+        )
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Calculate position (centered on top of the task window)
+        let windowWidth: CGFloat = 400
+        let windowHeight: CGFloat = 150
+        
+        var xPos: CGFloat
+        var yPos: CGFloat
+        
+        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
+            let taskFrame = taskWindow.frame
+            // Position centered on top of the task window
+            xPos = taskFrame.midX - windowWidth / 2
+            yPos = taskFrame.midY - windowHeight / 2
+        } else {
+            // Center on screen
+            if let screen = NSScreen.main {
+                let screenFrame = screen.visibleFrame
+                xPos = screenFrame.midX - windowWidth / 2
+                yPos = screenFrame.midY - windowHeight / 2
+            } else {
+                xPos = 100
+                yPos = 100
+            }
+        }
+        
+        // Create a floating panel for the new task popup
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "New Task"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        
+        newTaskPopupWindow = window
+        window.orderFrontRegardless()
+        window.makeKey()
+    }
+    
     private func calculateDynamicHeight() -> CGFloat {
         // Base height for header, task title, description, time tracking, and buttons
         var height: CGFloat = 0
@@ -4193,6 +4345,21 @@ struct FloatingTaskWindowView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             subtaskInputFocused = true
         }
+    }
+    
+    private func createNewTask(switchToIt: Bool) {
+        let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmedTitle.isEmpty else { return }
+        
+        // Notify ContentView to create the new task
+        NotificationCenter.default.post(
+            name: NSNotification.Name("CreateTaskFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskTitle": trimmedTitle, "switchToIt": switchToIt]
+        )
+        
+        // Clear the input
+        newTaskTitle = ""
     }
     
     private func deleteSubtask(_ subtask: Subtask) {
@@ -4491,6 +4658,78 @@ struct TimerPickerSheet: View {
             .padding()
         }
         .frame(minWidth: 400, minHeight: 250)
+    }
+}
+
+struct NewTaskPopupView: View {
+    @Binding var taskTitle: String
+    let onCreate: () -> Void
+    let onCreateAndSwitch: () -> Void
+    let onCancel: () -> Void
+    @FocusState private var titleFieldFocused: Bool
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom toolbar
+            HStack {
+                Button("Cancel") {
+                    onCancel()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Text("New Task")
+                    .font(.title2)
+                
+                Spacer()
+                
+                // Invisible button for symmetry
+                Button("Cancel") {
+                    onCancel()
+                }
+                .keyboardShortcut(.cancelAction)
+                .opacity(0)
+                .disabled(true)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Content
+            VStack(spacing: 20) {
+                TextField("Task title", text: $taskTitle)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($titleFieldFocused)
+                    .onSubmit {
+                        if !taskTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                            onCreateAndSwitch()
+                        }
+                    }
+                
+                HStack(spacing: 12) {
+                    Button("Create") {
+                        onCreate()
+                    }
+                    .disabled(taskTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                    
+                    Button("Create and Switch") {
+                        onCreateAndSwitch()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(taskTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            .padding()
+        }
+        .frame(minWidth: 400, minHeight: 150)
+        .onAppear {
+            // Auto-focus the title field when the view appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                titleFieldFocused = true
+            }
+        }
     }
 }
 
