@@ -3233,6 +3233,7 @@ struct FloatingTaskWindowView: View {
     @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timer
     @State private var notesWindow: NSWindow?
     @State private var reminderWindow: NSWindow?
+    @State private var timerPickerWindow: NSWindow?
     @State private var newSubtaskText: String = ""  // Text for new subtask
     @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
     @State private var showingTimerPicker: Bool = false  // Show timer picker sheet
@@ -3818,17 +3819,10 @@ struct FloatingTaskWindowView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingTimerPicker) {
-            TimerPickerSheet(
-                hours: $timerHours,
-                minutes: $timerMinutes,
-                onSet: {
-                    setCountdownTimer()
-                },
-                onCancel: {
-                    showingTimerPicker = false
-                }
-            )
+        .onChange(of: showingTimerPicker) { newValue in
+            if newValue {
+                openTimerPickerWindow()
+            }
         }
     }
     
@@ -3943,6 +3937,72 @@ struct FloatingTaskWindowView: View {
         reminderWindow = window
         window.orderFrontRegardless()
         window.makeKey()  // Make it the key window to get focus
+    }
+    
+    private func openTimerPickerWindow() {
+        // Close existing timer picker window if any
+        timerPickerWindow?.close()
+        
+        // Create the SwiftUI view for timer picker
+        let contentView = TimerPickerSheet(
+            hours: $timerHours,
+            minutes: $timerMinutes,
+            onSet: {
+                setCountdownTimer()
+                timerPickerWindow?.close()
+                timerPickerWindow = nil
+                showingTimerPicker = false
+            },
+            onCancel: {
+                timerPickerWindow?.close()
+                timerPickerWindow = nil
+                showingTimerPicker = false
+            }
+        )
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Calculate position (centered on top of the task window)
+        let windowWidth: CGFloat = 400
+        let windowHeight: CGFloat = 250
+        
+        var xPos: CGFloat
+        var yPos: CGFloat
+        
+        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
+            let taskFrame = taskWindow.frame
+            // Position centered on top of the task window
+            xPos = taskFrame.midX - windowWidth / 2
+            yPos = taskFrame.midY - windowHeight / 2
+        } else {
+            // Center on screen
+            if let screen = NSScreen.main {
+                let screenFrame = screen.visibleFrame
+                xPos = screenFrame.midX - windowWidth / 2
+                yPos = screenFrame.midY - windowHeight / 2
+            } else {
+                xPos = 100
+                yPos = 100
+            }
+        }
+        
+        // Create a floating panel for the timer picker
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Set Countdown Timer"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        
+        timerPickerWindow = window
+        window.orderFrontRegardless()
     }
     
     private func resizeWindow() {
