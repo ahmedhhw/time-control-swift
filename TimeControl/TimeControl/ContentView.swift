@@ -8,6 +8,7 @@
 import SwiftUI
 import AppKit
 import AVFoundation
+import Quartz
 
 struct Subtask: Identifiable, Codable, Equatable {
     let id: UUID
@@ -224,6 +225,29 @@ enum EditableField: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum AutoPauseDuration: Int, CaseIterable, Identifiable {
+    case off = 0
+    case oneMinute = 1
+    case twoMinutes = 2
+    case threeMinutes = 3
+    case fourMinutes = 4
+    case fiveMinutes = 5
+    case sixMinutes = 6
+    case sevenMinutes = 7
+    case eightMinutes = 8
+    case nineMinutes = 9
+    case tenMinutes = 10
+
+    var id: Int { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .off: return "Off"
+        default: return "\(rawValue) minute\(rawValue == 1 ? "" : "s")"
+        }
+    }
+}
+
 // Storage Manager for JSON persistence
 class TodoStorage {
     private static let storageURL: URL = {
@@ -382,6 +406,7 @@ struct ContentView: View {
     @AppStorage("confirmSubtaskDeletion") private var confirmSubtaskDeletion: Bool = true
     @AppStorage("showTimeWhenCollapsed") private var showTimeWhenCollapsed: Bool = false
     @AppStorage("autoPlayAfterSwitching") private var autoPlayAfterSwitching: Bool = false
+    @AppStorage("autoPauseAfterMinutes") private var autoPauseAfterMinutes: Int = 0
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1271,7 +1296,7 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes)
         }
         .confirmationDialog(
             "Delete Task",
@@ -1491,6 +1516,7 @@ struct ContentView: View {
                     activateReminders: activateReminders,
                     showTimeWhenCollapsed: showTimeWhenCollapsed,
                     autoPlayAfterSwitching: autoPlayAfterSwitching,
+                    autoPauseAfterMinutes: autoPauseAfterMinutes,
                     onTaskSwitch: { [self] newTask in
                         // Handle task switching from the floating window
                         self.switchToTask(newTask)
@@ -3312,8 +3338,9 @@ class FloatingWindowManager: ObservableObject {
     var activateReminders: Bool = false
     var showTimeWhenCollapsed: Bool = false
     var autoPlayAfterSwitching: Bool = false
+    var autoPauseAfterMinutes: Int = 0
     
-    func showFloatingWindow(for task: TodoItem, allTodos: [TodoItem], activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPlayAfterSwitching: Bool = false, onTaskSwitch: @escaping (TodoItem) -> Void) {
+    func showFloatingWindow(for task: TodoItem, allTodos: [TodoItem], activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPlayAfterSwitching: Bool = false, autoPauseAfterMinutes: Int = 0, onTaskSwitch: @escaping (TodoItem) -> Void) {
         // Close existing window if any
         closeFloatingWindow()
         
@@ -3323,10 +3350,11 @@ class FloatingWindowManager: ObservableObject {
         self.activateReminders = activateReminders
         self.showTimeWhenCollapsed = showTimeWhenCollapsed
         self.autoPlayAfterSwitching = autoPlayAfterSwitching
+        self.autoPauseAfterMinutes = autoPauseAfterMinutes
         self.onTaskSwitch = onTaskSwitch
         
         // Create the SwiftUI view
-        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed)
+        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed, autoPauseAfterMinutes: autoPauseAfterMinutes)
         let hostingView = NSHostingView(rootView: contentView)
         
         // Calculate initial height based on task content
@@ -3688,6 +3716,7 @@ struct FloatingTaskWindowView: View {
     // Reminder functionality
     let activateReminders: Bool  // User setting for reminders
     let showTimeWhenCollapsed: Bool  // User setting for showing time when collapsed
+    let autoPauseAfterMinutes: Int  // User setting for auto-pause duration
     @State private var lastReminderTime: Date? = nil  // When the last reminder was shown
     @State private var showingReminder: Bool = false  // Show reminder popup
     @State private var reminderResponseDeadline: Date? = nil  // When to auto-pause if no response
@@ -3695,11 +3724,12 @@ struct FloatingTaskWindowView: View {
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false) {
+    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPauseAfterMinutes: Int = 0) {
         self.task = task
         self.windowManager = windowManager
         self.activateReminders = activateReminders
         self.showTimeWhenCollapsed = showTimeWhenCollapsed
+        self.autoPauseAfterMinutes = autoPauseAfterMinutes
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         
@@ -4145,7 +4175,7 @@ struct FloatingTaskWindowView: View {
                             .font(.title2)
                             .foregroundColor(.white)
                         
-                        Text("Task Paused!")
+                        Text("Task Paused due to inactivity!")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
@@ -4192,6 +4222,40 @@ struct FloatingTaskWindowView: View {
                     if now >= deadline {
                         // Auto-pause the task and show alert
                         handleReminderResponse(.pause, isAutoPause: true)
+                    }
+                }
+            }
+            
+            // Auto-pause on inactivity - check if user has been idle for the specified duration
+            if autoPauseAfterMinutes > 0 && localTask.isRunning {
+                let idleSeconds = CGEventSource.secondsSinceLastEventType(
+                    .hidSystemState,
+                    eventType: CGEventType(rawValue: ~0)!
+                )
+                let autoPauseThreshold = TimeInterval(autoPauseAfterMinutes * 60)
+                
+                if idleSeconds >= autoPauseThreshold {
+                    // Auto-pause the task
+                    pauseTask()
+                    
+                    // Expand window if collapsed
+                    if isCollapsed {
+                        withAnimation {
+                            isCollapsed = false
+                        }
+                        resizeWindow()
+                    }
+                    
+                    // Show "Task Paused!" alert
+                    withAnimation {
+                        showTaskPausedAlert = true
+                    }
+                    
+                    // Hide the alert after 3 seconds with fade
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        withAnimation(.easeOut(duration: 0.5)) {
+                            showTaskPausedAlert = false
+                        }
                     }
                 }
             }
@@ -5224,6 +5288,7 @@ struct SettingsSheet: View {
     @Binding var confirmSubtaskDeletion: Bool
     @Binding var showTimeWhenCollapsed: Bool
     @Binding var autoPlayAfterSwitching: Bool
+    @Binding var autoPauseAfterMinutes: Int
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -5308,6 +5373,26 @@ struct SettingsSheet: View {
                         .font(.title3)
                     
                     Text("When enabled, tasks will automatically start playing when you switch to them from the dropdown in the current task window.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    HStack {
+                        Text("Auto-pause after")
+                            .font(.title3)
+                        
+                        Picker("", selection: $autoPauseAfterMinutes) {
+                            ForEach(AutoPauseDuration.allCases) { duration in
+                                Text(duration.displayName).tag(duration.rawValue)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
+                    
+                    Text("When enabled, tasks will automatically pause if you are inactive for the selected duration.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
