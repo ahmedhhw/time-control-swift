@@ -5055,6 +5055,11 @@ struct FloatingTaskWindowView: View {
             // If already marked complete, close the window
             FloatingWindowManager.shared.closeFloatingWindow()
         } else {
+            // Pause the task if it's currently running
+            if localTask.isRunning {
+                pauseTask()
+            }
+            
             // Mark the task as complete in the main todos array
             NotificationCenter.default.post(
                 name: NSNotification.Name("CompleteTaskFromFloatingWindow"),
