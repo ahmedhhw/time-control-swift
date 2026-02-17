@@ -2933,10 +2933,13 @@ class FloatingWindowManager: ObservableObject {
         let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed)
         let hostingView = NSHostingView(rootView: contentView)
         
+        // Calculate initial height based on task content
+        let initialHeight = Self.calculateInitialHeight(for: task)
+        
         // Calculate position (bottom right of screen with padding)
         guard let screen = NSScreen.main else { return }
         let windowWidth: CGFloat = 350
-        let windowHeight: CGFloat = 400
+        let windowHeight: CGFloat = initialHeight
         let padding: CGFloat = 20
         
         let xPos = screen.visibleFrame.maxX - windowWidth - padding
@@ -2966,6 +2969,47 @@ class FloatingWindowManager: ObservableObject {
         
         floatingWindow = window
         window.orderFrontRegardless()
+    }
+    
+    // Calculate initial window height based on task content
+    private static func calculateInitialHeight(for task: TodoItem) -> CGFloat {
+        var height: CGFloat = 0
+        
+        // Header with buttons
+        height += 40
+        
+        // Task title dropdown
+        height += 40
+        
+        // Description (if present)
+        if !task.description.isEmpty {
+            height += 50
+        }
+        
+        // Time tracking section
+        height += 80
+        
+        // Countdown timer section (if active)
+        if task.countdownTime > 0 {
+            height += 80
+        }
+        
+        // Subtasks section header + input field
+        height += 80
+        
+        // Subtasks list
+        let subtaskCount = task.subtasks.count
+        if subtaskCount > 0 {
+            let subtasksHeight = min(CGFloat(subtaskCount) * 40, 200)
+            height += subtasksHeight
+        }
+        
+        // Bottom buttons
+        height += 60
+        
+        
+        // Clamp between min and max heights
+        return min(max(height, 300), 550)
     }
     
     func closeFloatingWindow() {
@@ -3367,7 +3411,7 @@ struct FloatingTaskWindowView: View {
             
             // Content (hidden when collapsed)
             if !isCollapsed {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     // Task title dropdown
                     Picker("Current Task", selection: Binding(
                         get: { localTask.id },
@@ -3396,12 +3440,12 @@ struct FloatingTaskWindowView: View {
                     }
                     
                     // Time tracking section
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Divider()
                         
                         HStack(alignment: .top, spacing: 16) {
                             // Time elapsed
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text("Time Elapsed")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
@@ -3418,7 +3462,7 @@ struct FloatingTaskWindowView: View {
                             
                             // Attention Check countdown (only shown when reminders are active and task is running)
                             if activateReminders && localTask.isRunning && !showingReminder {
-                                VStack(alignment: .trailing, spacing: 4) {
+                                VStack(alignment: .trailing, spacing: 2) {
                                     Text("Attention Check")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
@@ -3485,10 +3529,10 @@ struct FloatingTaskWindowView: View {
                     
                     // Countdown Timer section (if set)
                     if localTask.countdownTime > 0 {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Divider()
                             
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text("Timer")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
@@ -3617,8 +3661,6 @@ struct FloatingTaskWindowView: View {
                     }
                     
                     // Pause/Resume and Complete buttons at the bottom
-                    Spacer()
-                    
                     HStack(spacing: 12) {
                         Spacer()
                         
@@ -3791,6 +3833,9 @@ struct FloatingTaskWindowView: View {
                     }
                 }
                 
+                // Check if subtasks changed to trigger resize
+                let subtasksChanged = localTask.subtasks.count != newTask.subtasks.count
+                
                 // Don't overwrite localTask if timer just completed (let it finish the completion process)
                 if timerJustCompleted && localTask.countdownTime == 0 {
                     // Timer already cleared locally, just update other fields
@@ -3817,11 +3862,26 @@ struct FloatingTaskWindowView: View {
                     timerJustCompleted = false
                     showTimerCompletedMessage = false
                 }
+                
+                // Resize window if subtasks changed
+                if subtasksChanged && !isCollapsed {
+                    resizeWindow()
+                }
             }
         }
         .onChange(of: showingTimerPicker) { newValue in
             if newValue {
                 openTimerPickerWindow()
+            }
+        }
+        .onChange(of: showTimerCompletedMessage) { _ in
+            if !isCollapsed {
+                resizeWindow()
+            }
+        }
+        .onChange(of: localTask.countdownTime) { _ in
+            if !isCollapsed {
+                resizeWindow()
             }
         }
     }
@@ -4005,19 +4065,78 @@ struct FloatingTaskWindowView: View {
         window.orderFrontRegardless()
     }
     
+    private func calculateDynamicHeight() -> CGFloat {
+        // Base height for header, task title, description, time tracking, and buttons
+        var height: CGFloat = 0
+        
+        // Header with buttons (collapse, notes, timer)
+        height += 40  // Header row
+        
+        // Task title dropdown
+        height += 40
+        
+        // Description (if present)
+        if !localTask.description.isEmpty {
+            height += 50  // Approximate height for 2 lines of description
+        }
+        
+        // Time tracking section (Time Elapsed + optional Attention Check)
+        height += 80  // Divider + time section
+        
+        // Countdown timer section (if active)
+        if localTask.countdownTime > 0 {
+            height += 80  // Timer display + progress bar
+        }
+        
+        // Timer completed message (if shown)
+        if showTimerCompletedMessage {
+            height += 120
+        }
+        
+        // Subtasks section header + input field
+        height += 80  // "SUBTASKS" label + input field with button
+        
+        // Subtasks list - calculate based on number of subtasks
+        let subtaskCount = localTask.subtasks.count
+        if subtaskCount > 0 {
+            // Each subtask is approximately 40 pixels tall
+            let subtasksHeight = min(CGFloat(subtaskCount) * 40, 200)  // Cap at 200px for scrolling
+            height += subtasksHeight
+        }
+        
+        // Bottom buttons (Pause/Resume and Complete)
+        height += 60
+        
+        // Add some padding
+        height += 20
+        
+        // Clamp between min and max heights
+        return min(max(height, 400), 550)
+    }
+    
     private func resizeWindow() {
         // Get the window from the view hierarchy
         DispatchQueue.main.async {
-            guard let window = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
+            guard let window = NSApp.windows.first(where: { $0.title == "Current Task" }),
+                  let screen = window.screen else { return }
             
             let currentFrame = window.frame
-            let newHeight: CGFloat = isCollapsed ? 50 : 400
+            let newHeight: CGFloat = isCollapsed ? 50 : calculateDynamicHeight()
             
-            // Keep the window anchored at the bottom-left corner and maintain width
-            let newY = currentFrame.maxY - newHeight
+            // Calculate new frame anchored at bottom-left corner
+            var newY = currentFrame.maxY - newHeight
             let newFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
             
-            window.setFrame(newFrame, display: true, animate: true)
+            // Check if the new frame would go below the screen's visible area
+            let screenMinY = screen.visibleFrame.minY
+            if newFrame.minY < screenMinY {
+                // Adjust window position to stay within screen bounds
+                newY = screenMinY
+            }
+            
+            let adjustedFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
+            
+            window.setFrame(adjustedFrame, display: true, animate: true)
         }
     }
     
@@ -4067,6 +4186,9 @@ struct FloatingTaskWindowView: View {
         // Clear the input and refocus for rapid succession
         newSubtaskText = ""
         
+        // Resize window to accommodate new subtask
+        resizeWindow()
+        
         // Refocus the textbox after a brief delay to ensure UI is updated
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             subtaskInputFocused = true
@@ -4083,6 +4205,9 @@ struct FloatingTaskWindowView: View {
             object: nil,
             userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
         )
+        
+        // Resize window to reflect removed subtask
+        resizeWindow()
     }
     
     private func completeTask() {
