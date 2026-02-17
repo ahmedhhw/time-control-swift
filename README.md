@@ -9,11 +9,14 @@ TimeControl is a native macOS application designed for productivity and time man
 **Key Highlights:**
 - 🪟 **Floating Timer Window** - stays on top across all spaces and applications
 - ⏱️ **Precise Time Tracking** - track time spent on each task with play/pause controls
+- ⏲️ **Countdown Timers** - set Pomodoro-style countdown timers (e.g., 25 minutes) with completion alerts
 - 📋 **Hierarchical Tasks** - unlimited subtasks with independent completion tracking
 - 💾 **Auto-Save** - all changes persist immediately to JSON storage
 - 🎯 **Progress Tracking** - visual progress bars comparing actual vs. estimated time
 - 📊 **Detailed Timestamps** - created, started, and completed timestamps for analytics
 - 🎨 **Native macOS UI** - respects system appearance (light/dark mode)
+- 🎚️ **Advanced Mode** - optional advanced interface with filtering, sorting, and bulk operations
+- 🔔 **Focus Reminders** - optional periodic reminders to help you stay on task
 
 ## Features
 
@@ -33,6 +36,8 @@ TimeControl is a native macOS application designed for productivity and time man
 - 🔄 **Single-task timer** - only one task can have a running timer at a time (others auto-pause)
 - ⏹️ **Auto-pause on completion** - timer automatically stops when task is marked complete
 - 🕒 **Real-time display** - timer updates every second in both main window and floating window
+- ⏲️ **Countdown timer** - set a countdown timer (e.g., 25 minutes for Pomodoro) that counts down from a set duration
+- 🔔 **Timer completion alert** - visual notification when countdown timer reaches zero
 - 🪟 **Floating window** - timer opens a small floating window that stays on top of all applications
 - 🎯 Floating window features:
   - Always visible across all spaces/desktops
@@ -44,6 +49,9 @@ TimeControl is a native macOS application designed for productivity and time man
   - Over-time indicator with visual warning when task exceeds estimate
   - Complete task button to mark as done from floating window
   - Resizable and movable (positioned at bottom-right by default)
+  - Quick task switcher dropdown to switch between active tasks
+  - Timer picker for setting countdown timers
+  - Add new tasks directly from floating window
 
 ### Subtasks
 - 📋 Add unlimited subtasks to any task
@@ -84,6 +92,26 @@ TimeControl is a native macOS application designed for productivity and time man
 - 💾 **Auto-save on sync** - every sync event triggers a save to persistent storage
 - 🔄 **Task state updates** - floating window receives updates when subtasks are added/modified in main window
 
+### Advanced Mode
+- 🎚️ **Advanced mode toggle** - switch between simple and advanced interface
+- 📊 **Enhanced task information** - when enabled, shows:
+  - Task descriptions inline (when expanded)
+  - Task notes inline (when expanded)
+  - Metadata (adhoc flag, "from who" field)
+  - Progress bars for time estimates and due dates
+  - Advanced statistics and timestamps
+- 🔍 **Task filtering** - search/filter tasks by title, description, notes, subtasks, or "from who" field
+- 📂 **Multiple sort options** - sort tasks by:
+  - Creation date (newest/oldest first)
+  - Recently played (most recently worked on)
+  - Due date (nearest first)
+- 📤 **Export functionality** - export individual tasks or all tasks to formatted text
+- 🔄 **Expand/collapse all** - quickly expand or collapse all tasks at once
+- ⚙️ **Mass operations** - bulk edit multiple tasks:
+  - Fill empty fields across multiple tasks
+  - Edit existing field values for multiple tasks
+  - Supports: title, description, notes, from who, adhoc flag, estimation, due date
+
 ### UI/UX Features
 - 💾 **Persistent storage** - all data automatically saved to JSON and restored on app launch
 - 🎨 Modern macOS UI with native styling
@@ -103,6 +131,19 @@ TimeControl is a native macOS application designed for productivity and time man
 - 📋 **Lazy loading** - efficient rendering with LazyVStack for large task lists
 - 🎪 **Smooth transitions** - combined opacity and move animations for state changes
 - 🪟 **Non-intrusive floating window** - becomesKeyOnlyIfNeeded, non-activating panel behavior
+- 💬 **Floating tooltips** - helpful tooltips that work across all windows including floating panels
+
+### Settings & Preferences
+- ⚙️ **Settings panel** - accessible from advanced mode
+- 🔔 **Reminders** - optional periodic reminders to stay on task (10-minute intervals)
+  - Modal alert with "Yes, still working", "Pause", or "Open task list" options
+  - 10-second countdown to auto-pause if no response
+- ⚠️ **Deletion confirmations** - toggle confirmation dialogs for:
+  - Task deletion
+  - Subtask deletion
+- 🕒 **Collapsed timer display** - option to show time when floating window is collapsed
+- ▶️ **Auto-play after switching** - automatically start tasks when switching via dropdown in floating window
+- 💾 **Settings persistence** - preferences saved using AppStorage (system-wide)
 
 ## How to Run
 
@@ -201,19 +242,19 @@ For more details, see `TimeControl/scripts/README.md`
 - **Single timer**: Only one task can have an active timer at a time (others auto-pause)
 - **Read-only completed tasks**: Edit, timer, and delete operations disabled for completed tasks (prevents accidental modifications)
 - **No subtask editing**: Subtasks can be deleted and recreated but not edited in-place (simplified workflow)
-- **Timer doesn't persist as running**: Running timers stop when app quits (accumulated time is saved)
+- **Timer doesn't persist as running**: Running timers and countdown timers stop when app quits (accumulated time is saved)
 - **No categories/tags**: Tasks organized solely by incomplete/completed status
 - **No cloud sync**: All data stored locally in JSON file
 - **No recurring tasks**: Each task is unique, no repeat scheduling
-- **No notifications**: No reminders or due date alerts
+- **Reminders only when timer running**: Periodic reminders only appear when actively timing a task
 
 ### Current Implementation
-- **Manual reordering only**: No automatic sorting by due date, priority, or time
+- **Manual and automatic sorting**: Basic mode uses manual order, advanced mode offers multiple sort options
 - **Single window**: Cannot open multiple main windows (floating window is separate)
-- **No task search**: Filter or search functionality not implemented
-- **No task export**: Cannot export tasks to other formats (CSV, PDF, etc.)
-- **No multi-select**: Cannot select and operate on multiple tasks at once
+- **Basic search**: Filter searches text fields but doesn't support advanced queries or regex
+- **No multi-select**: Cannot select and operate on multiple tasks at once (use mass operations instead)
 - **No undo/redo**: Changes are immediate and permanent (except for canceling edit dialogs)
+- **Countdown timer resets on quit**: Countdown timers don't persist across app restarts
 
 ## Usage
 
@@ -236,6 +277,17 @@ For more details, see `TimeControl/scripts/README.md`
 - **Mark as complete**: Click the circle icon next to a todo item
 - **Delete a todo**: Click the trash icon on the right side of a todo item
 - **Edit a todo**: Click the pencil icon to open the edit dialog
+- **Filter tasks**: Use the filter text field to search by title, description, notes, subtasks, or metadata
+- **Clear filter**: Click the X icon to clear the current filter
+
+### Advanced Mode
+- **Enable advanced mode**: Toggle the "Advanced mode" switch at the top of the main window
+- **Sort tasks**: Choose from multiple sort options (creation date, recently played, due date)
+- **Expand all**: Click "Expand All" to show all task details at once
+- **Collapse all**: Click "Collapse All" to hide all task details
+- **Mass operations**: Click "Mass Operations" to bulk edit multiple tasks
+- **Export all**: Click "Export All Tasks" to export all tasks to formatted text
+- **Settings**: Click "Settings" to configure app preferences
 
 ### Time Tracking
 - **Start timer**: Click the play button (▶️) next to a task
@@ -244,6 +296,11 @@ For more details, see `TimeControl/scripts/README.md`
   - Only one timer can run at a time
 - **Pause timer**: Click the pause button (⏸️) to stop the timer
 - **View time spent**: Time is displayed below the task title in HH:MM:SS or MM:SS format
+- **Set countdown timer**: From the floating window, click the timer icon to set a countdown (e.g., 25 minutes for Pomodoro)
+  - Timer counts down from set duration
+  - Shows remaining time
+  - Displays completion alert when finished
+- **Clear countdown**: Click the timer icon again and set to 0 to clear the countdown
 
 ### Subtask Management
 - **Expand task**: Click the chevron icon (›) to show subtask area
@@ -268,6 +325,14 @@ For more details, see `TimeControl/scripts/README.md`
 - **Complete from window**: Green "Complete" button at bottom to finish task without switching windows
 - **Resizable**: Minimum size of 100x30, can be resized by user
 - **Multi-space support**: Works across all macOS Spaces and fullscreen apps
+- **Quick task switcher**: Dropdown menu to switch between other active tasks without closing the window
+- **Edit task**: Edit button opens a floating edit window for quick modifications
+- **Add subtasks**: Add new subtasks directly from the floating window
+- **Countdown timer picker**: Set and manage countdown timers (e.g., 25-minute Pomodoro)
+- **Timer completion**: Visual "Timer's up!" message when countdown completes
+- **Create new tasks**: Quick button to create new tasks without opening main window
+- **Show time when collapsed**: Optional setting to display timer even when window is collapsed
+- **Close confirmation**: Optional confirmation dialog when closing window with running timer
 
 ### Task Details
 - **Edit task details**: Click the pencil icon to open the edit sheet where you can:
@@ -278,10 +343,24 @@ For more details, see `TimeControl/scripts/README.md`
   - Mark as adhoc task (boolean toggle)
   - Add "from who" information (text field)
   - View created, started, and completed timestamps (read-only, formatted display)
+- **Quick edit from floating window**: Click the edit button in the floating window for rapid updates
 - **Modal dialog**: Edit sheet appears as a modal window (500x500 minimum size)
 - **Keyboard shortcuts**: Save with Cmd+Return, Cancel with Cmd+.
 - **Form validation**: Save button disabled if task title is empty
 - **Organized sections**: Task Details, Timestamps, Estimate, Due Date, Additional Information
+
+### Export & Sharing
+- **Export single task**: In advanced mode, expand a task and click "Export to Text"
+- **Export all tasks**: In advanced mode, click "Export All Tasks" button
+- **Formatted export**: Includes:
+  - Task title and completion status
+  - Description and notes
+  - Time tracking information
+  - Estimated vs. actual time
+  - Due date and metadata (adhoc flag, "from who")
+  - All subtasks with completion status
+  - Timestamps (created, started, completed)
+- **Copy to clipboard**: Export window has a "Copy to Clipboard" button for easy sharing
 
 ### Organization
 - **Reorder tasks**: Drag and drop tasks to change their order (works in both incomplete and completed sections)
@@ -331,6 +410,20 @@ For more details, see `TimeControl/scripts/README.md`
 - Collapsing reduces height to 50px, expanding returns to 400px
 - Window stays on top even during fullscreen apps
 - Completing task from floating window closes the window immediately
+- Quick task switching allows seamless transition between tasks
+- Edit window opens as separate floating panel for quick edits
+- Countdown timer state persists until cleared or completed
+- Optional confirmation dialog when closing with running timer
+
+#### Reminders
+- When enabled in settings, periodic reminders appear every 10 minutes
+- Modal alert asks: "Are you still working on [task name]?"
+- Three response options:
+  1. "Yes, still working" - continues timer
+  2. "Pause" - pauses the timer
+  3. "Open task list" - opens main window and pauses timer
+- 10-second countdown before auto-pause (if no response)
+- Reminders only appear when task timer is running
 
 #### Data Persistence
 - Saves automatically after every change (add, edit, delete, complete, reorder)
@@ -400,10 +493,12 @@ The app uses SwiftUI and consists of several key components:
   - Task list management (incomplete and completed sections)
   - Timer management and UI updates (receives timer events every second)
   - Drag and drop reordering with drop destinations
-  - Notification handling for floating window communication (3 notification types)
+  - Notification handling for floating window communication (7+ notification types)
   - State management for expanded tasks, focused inputs, and running task ID
   - Computed properties to separate incomplete and completed todos
-  - Sheet presentation for edit dialog
+  - Sheet presentation for edit dialog, mass operations, and settings
+  - Advanced mode toggle with filtering and sorting
+  - User settings with AppStorage integration
 - **TodoRow**: Displays individual tasks with:
   - Completion toggle (green checkmark when complete)
   - Timer display and controls (play/pause button, orange when running)
@@ -412,6 +507,8 @@ The app uses SwiftUI and consists of several key components:
   - Formatted time display (HH:MM:SS or MM:SS)
   - Subtask counter badge
   - Rounded background with padding
+  - Advanced mode information (description, notes, metadata, progress bars)
+  - Export to text functionality (in advanced mode)
 - **EditTodoSheet**: Modal dialog for editing task details
   - Form-based interface with grouped sections
   - Custom toolbar with Save/Cancel buttons
@@ -421,6 +518,10 @@ The app uses SwiftUI and consists of several key components:
   - Text editor for description with scroll support
   - Validation: Save disabled if title is empty
   - Keyboard shortcuts: Cmd+Return (Save), Cmd+. (Cancel)
+- **FloatingEditView**: Floating window variant of edit sheet
+  - Same functionality as EditTodoSheet
+  - Opens as non-modal floating panel
+  - Allows editing without losing focus on floating timer window
 - **SubtaskRow**: Reusable component for displaying subtasks
   - Compact design with rounded background
   - Completion checkbox
@@ -438,12 +539,45 @@ The app uses SwiftUI and consists of several key components:
   - Timer updates every second
   - Responds to task updates from main window
   - Local task state with binding to window manager
+  - Quick task switcher dropdown
+  - Countdown timer controls and display
+  - Edit task button
+  - Add subtask functionality
+  - Create new task button
+  - Reminder system with modal alerts
+  - Dynamic height calculation based on content
+  - Optional time display when collapsed
 - **NotesEditorView**: Modal notes editor for taking task notes
   - Full-screen text editor
   - Custom toolbar with Save/Cancel
   - Keyboard shortcuts support
   - Syncs notes back to main app via NotificationCenter
   - Minimum size: 500x400
+- **MassOperationsSheet**: Bulk editing interface
+  - Operation type selection (fill/edit)
+  - Field selection (title, description, notes, etc.)
+  - Task selection with checkboxes
+  - Preview of changes
+  - Validation and save functionality
+- **SettingsSheet**: Settings configuration dialog
+  - Toggle for activating reminders
+  - Confirmation dialog preferences
+  - Collapsed timer display option
+  - Clean, organized interface with descriptions
+- **ExportAllTasksView**: Export window for all tasks
+  - Scrollable text view of formatted export
+  - Copy to clipboard button
+  - Close button
+  - Read-only display
+- **ReminderAlertView**: Periodic reminder dialog
+  - Task name display
+  - Countdown timer (10 seconds to auto-pause)
+  - Three response buttons
+  - Keyboard shortcuts
+- **PauseTaskConfirmationView**: Confirmation when closing floating window
+  - Shows task name
+  - Pause and cancel options
+  - Prevents accidental timer stops
 - **FloatingWindowManager**: Singleton manager for the floating window
   - Creates NSPanel with specific styling (non-activating, floating level)
   - Positions window at bottom-right with padding
@@ -451,6 +585,21 @@ The app uses SwiftUI and consists of several key components:
   - Publishes current task for observers
   - Uses NSHostingView to host SwiftUI content
   - Window configuration: `.floating` level, `.canJoinAllSpaces`, `.fullScreenAuxiliary`
+  - Manages task switching and all todos list
+  - Handles reminder and settings state
+- **ExportWindowManager**: Singleton manager for export window
+  - Creates and manages export display window
+  - NSPanel with specific styling
+  - Handles window lifecycle
+- **TooltipWindowManager**: Singleton for custom tooltips
+  - Creates borderless tooltip panels
+  - Positions at cursor location
+  - Works in non-activating windows
+  - Auto-hides on mouse exit
+- **FloatingWindowDelegate**: Window delegate for floating window
+  - Handles window close events
+  - Shows pause confirmation when needed
+  - Manages window behavior
 
 All state is managed using SwiftUI's `@State` property wrapper, keeping the UI reactive and up-to-date. Communication between the main window and floating window uses NotificationCenter for decoupled architecture.
 
@@ -517,9 +666,14 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var startedAt: TimeInterval?          // First timer start (epoch)
     var completedAt: TimeInterval?        // Completion timestamp (epoch)
     var notes: String                     // Working notes
+    var countdownTime: TimeInterval       // Countdown timer duration in seconds
+    var countdownStartTime: Date?         // When countdown was started
+    var countdownElapsedAtPause: TimeInterval  // Elapsed time when last paused
+    var lastPlayedAt: TimeInterval?       // Last time play button was clicked (for sorting)
     
     var isRunning: Bool { ... }           // Computed: is timer running?
     var currentTimeSpent: TimeInterval { ... }  // Computed: total including current run
+    var countdownElapsed: TimeInterval { ... }  // Computed: countdown time elapsed
 }
 ```
 
@@ -530,6 +684,46 @@ struct Subtask: Identifiable, Codable, Equatable {
     var title: String                     // Subtask title
     var description: String               // Optional description
     var isCompleted: Bool                 // Completion status
+}
+```
+
+#### TaskSortOption
+```swift
+enum TaskSortOption: String, CaseIterable, Identifiable {
+    case creationDateNewest = "Newest First"
+    case creationDateOldest = "Oldest First"
+    case recentlyPlayedNewest = "Recently Played (Newest First)"
+    case dueDateNearest = "Due Date (Nearest First)"
+}
+```
+
+#### MassOperationType
+```swift
+enum MassOperationType: String, CaseIterable, Identifiable {
+    case fill = "Fill field for tasks"      // Fill only empty fields
+    case edit = "Edit field for tasks"      // Edit all fields regardless of value
+}
+```
+
+#### EditableField
+```swift
+enum EditableField: String, CaseIterable, Identifiable {
+    case title = "Title"
+    case description = "Description"
+    case notes = "Notes"
+    case fromWho = "From Who"
+    case adhoc = "Adhoc"
+    case estimation = "Estimation"
+    case dueDate = "Due Date"
+}
+```
+
+#### ReminderResponse
+```swift
+enum ReminderResponse {
+    case yes            // Continue working
+    case pause          // Pause the timer
+    case openTaskList   // Open main window and pause
 }
 ```
 
@@ -553,15 +747,54 @@ class TodoStorage {
 class FloatingWindowManager: ObservableObject {
     static let shared: FloatingWindowManager
     @Published var currentTask: TodoItem?
+    @Published var allTodos: [TodoItem]
+    var activateReminders: Bool
+    var showTimeWhenCollapsed: Bool
+    var autoPlayAfterSwitching: Bool
     
     // Show floating window for specified task
-    func showFloatingWindow(for task: TodoItem)
+    func showFloatingWindow(for task: TodoItem, allTodos: [TodoItem], 
+                          activateReminders: Bool, showTimeWhenCollapsed: Bool,
+                          autoPlayAfterSwitching: Bool,
+                          onTaskSwitch: @escaping (TodoItem) -> Void)
     
     // Close floating window
     func closeFloatingWindow()
     
     // Update task in floating window
     func updateTask(_ task: TodoItem)
+    
+    // Switch to a different task
+    func switchToTask(_ task: TodoItem)
+    
+    // Update all todos list
+    func updateAllTodos(_ todos: [TodoItem])
+}
+```
+
+#### ExportWindowManager
+```swift
+class ExportWindowManager: ObservableObject {
+    static let shared: ExportWindowManager
+    
+    // Show export window with formatted text
+    func showExportWindow(with exportText: String)
+    
+    // Close export window
+    func closeExportWindow()
+}
+```
+
+#### TooltipWindowManager
+```swift
+class TooltipWindowManager {
+    static let shared: TooltipWindowManager
+    
+    // Show tooltip at cursor position
+    func show(text: String)
+    
+    // Hide tooltip
+    func hide()
 }
 ```
 
@@ -574,6 +807,14 @@ class FloatingWindowManager: ObservableObject {
   - UserInfo: `taskId: UUID`, `notes: String`
 - `CompleteTaskFromFloatingWindow` - Fired when task completed from floating window
   - UserInfo: `taskId: UUID`
+- `SetCountdownFromFloatingWindow` - Fired when countdown timer is set
+  - UserInfo: `taskId: UUID`, `countdownTime: TimeInterval`
+- `ClearCountdownFromFloatingWindow` - Fired when countdown timer is cleared
+  - UserInfo: `taskId: UUID`
+- `SwitchToTaskFromFloatingWindow` - Fired when switching to a different task
+  - UserInfo: `taskId: UUID`
+- `CreateNewTaskFromFloatingWindow` - Fired when creating a new task from floating window
+  - UserInfo: `taskTitle: String`, `switchToIt: Bool`
 
 ### View Components
 
@@ -581,8 +822,10 @@ All views accept specific callbacks and bindings:
 
 #### TodoRow
 - Displays a single task with all controls
+- Parameters: `todo`, `timerUpdateTrigger`, `isExpanded`, `isAdvancedMode`
 - Callbacks: `onToggle`, `onDelete`, `onToggleTimer`, `onEdit`, `onToggleExpanded`
 - Callbacks for subtasks: `onToggleSubtask`, `onDeleteSubtask`, `onEditSubtask`
+- Shows additional information in advanced mode (description, notes, metadata, progress bars)
 
 #### SubtaskRow
 - Displays a single subtask
@@ -593,10 +836,29 @@ All views accept specific callbacks and bindings:
 - Binding: `todo: TodoItem`
 - Callback: `onSave`
 
+#### FloatingEditView
+- Floating window variant of edit sheet
+- Binding: `todo: TodoItem`
+- Callback: `onSave`
+
 #### NotesEditorView
 - Modal sheet for editing task notes
 - Binding: `notes: String`
 - Parameter: `taskId: UUID`
+
+#### MassOperationsSheet
+- Bulk edit interface for multiple tasks
+- Binding: `todos: [TodoItem]`
+- Callback: `onSave`
+- Supports filling or editing fields across selected tasks
+
+#### SettingsSheet
+- Settings configuration interface
+- Bindings: `activateReminders`, `confirmTaskDeletion`, `confirmSubtaskDeletion`, `showTimeWhenCollapsed`, `autoPlayAfterSwitching`
+
+#### ExportAllTasksView
+- Export window for viewing/copying formatted task text
+- Parameter: `exportText: String`
 
 ## Contributing
 
@@ -604,27 +866,30 @@ This is a personal productivity tool, but contributions are welcome! Areas for p
 
 ### Potential Features
 - [ ] Task categories/tags
-- [ ] Search and filter functionality
-- [ ] Export to CSV/JSON
+- [ ] Advanced search with regex support
 - [ ] Import from other todo apps
-- [ ] Due date notifications/reminders
+- [ ] Due date notifications (native macOS notifications)
 - [ ] Recurring tasks
 - [ ] Task templates
-- [ ] Keyboard shortcuts for common actions
-- [ ] Multi-select operations
+- [ ] Additional keyboard shortcuts for common actions
 - [ ] Undo/redo functionality
 - [ ] Task priority levels
-- [ ] Time reports and analytics
+- [ ] Time reports and analytics dashboard
 - [ ] Dark/light mode toggle (currently uses system)
-- [ ] Customizable themes
+- [ ] Customizable themes and colors
 - [ ] Cloud sync (iCloud)
 - [ ] iOS companion app
+- [ ] Customizable reminder intervals
+- [ ] Pomodoro timer presets
+- [ ] Task dependencies
+- [ ] Gantt chart view for project planning
 
 ### Code Improvements
 - [ ] Unit tests for TodoStorage
 - [ ] UI tests for main workflows
-- [ ] Refactor ContentView (currently 1550 lines)
+- [ ] Refactor ContentView (currently 5300+ lines)
 - [ ] Extract subtask management into separate view
+- [ ] Extract floating window view into separate file
 - [ ] Protocol-based architecture for better testing
 - [ ] SwiftLint integration
 - [ ] Documentation comments (Swift DocC)
@@ -659,6 +924,7 @@ All task data is automatically saved to `~/Documents/todos.json` in the followin
       "estimatedTime": 7200,
       "createdAt": 1707609600,
       "startedAt": 1707610000,
+      "lastPlayedAt": 1707620000,
       "notes": "Need to research OAuth 2.0 implementation",
       "subtasks": [
         {
@@ -687,6 +953,7 @@ All task data is automatically saved to `~/Documents/todos.json` in the followin
       "createdAt": 1707609700,
       "startedAt": 1707610100,
       "completedAt": 1707611300,
+      "lastPlayedAt": 1707610100,
       "notes": "",
       "subtasks": []
     }
@@ -700,6 +967,7 @@ The app automatically:
 - Maintains task order using the `index` field
 - Preserves all timestamps, time tracking, and metadata
 - Stores task notes and subtask information
+- **Note**: Countdown timers (`countdownTime`, `countdownStartTime`, `countdownElapsedAtPause`) are intentionally NOT saved to storage - they reset when the app quits or timer is paused, by design
 
 ## Troubleshooting
 
@@ -725,7 +993,35 @@ The app automatically:
 ### Tasks Disappeared
 - **Check completed section**: Completed tasks are in collapsible section at bottom
 - **Expand completed**: Click "Completed (N)" header to show completed tasks
+- **Check filter**: Clear any active filters that might be hiding tasks
+- **Check sort order**: In advanced mode, different sort options may reorder tasks
 - **Check JSON file**: View `~/Documents/todos.json` to see raw data
+- **Set from floating window**: Countdown can only be set while timer is running
+- **Click timer icon**: In floating window, click the clock/timer icon
+- **Set duration**: Choose hours and minutes, then confirm
+- **Clear timer**: Set hours and minutes to 0 to clear countdown
+
+### Tasks Not Filtering
+- **Check filter text**: Make sure filter text is entered in the filter field
+- **Clear filter**: Click the X icon next to the filter field to clear
+- **Advanced mode**: Filter works in both basic and advanced modes
+- **Case insensitive**: Filter searches are case-insensitive
+
+### Reminders Not Appearing
+- **Enable in settings**: Go to Advanced Mode → Settings → Enable "Activate reminders"
+- **Timer must be running**: Reminders only appear when a task timer is active
+- **10-minute interval**: First reminder appears 10 minutes after starting timer
+- **Subsequent reminders**: Continue every 10 minutes until timer is paused
+
+### Sort Options Not Visible
+- **Enable advanced mode**: Sort options only appear in advanced mode
+- **Toggle switch**: Turn on "Advanced mode" at the top of the main window
+- **Sort dropdown**: Appears below the advanced mode toggle
+
+### Mass Operations Not Working
+- **Advanced mode required**: Mass operations only available in advanced mode
+- **Empty fields**: "Fill" operation only affects empty fields
+- **Edit operation**: "Edit" operation modifies all selected tasks regardless of current value
 
 ### App Won't Build
 - **Xcode version**: Ensure Xcode 14.0 or later is installed
@@ -742,10 +1038,20 @@ The app automatically:
 
 ### Effective Time Tracking
 1. **Start timer when beginning work** - don't forget to play the timer
-2. **Use subtasks for detailed tracking** - break down tasks to understand time distribution
-3. **Set estimates** - helps identify tasks taking longer than expected
-4. **Review timestamps** - use created/started/completed times for productivity analysis
-5. **Take notes** - use the notes feature to document blockers, decisions, and learnings
+2. **Use countdown timers** - set 25-minute Pomodoros for focused work sessions
+3. **Use subtasks for detailed tracking** - break down tasks to understand time distribution
+4. **Set estimates** - helps identify tasks taking longer than expected
+5. **Review timestamps** - use created/started/completed times for productivity analysis
+6. **Take notes** - use the notes feature to document blockers, decisions, and learnings
+7. **Enable reminders** - use the reminder feature to stay focused on long tasks
+
+### Advanced Features
+1. **Use advanced mode for detailed views** - see all task information at a glance
+2. **Filter for focus** - use the filter field to find specific tasks quickly
+3. **Sort strategically** - sort by due date for deadlines, by recently played for continuation
+4. **Export for reporting** - export tasks to text for status reports or documentation
+5. **Mass operations for efficiency** - bulk update similar tasks at once
+6. **Task switching in floating window** - quickly switch between active tasks without opening main window
 
 ### Task Organization
 1. **Use descriptive titles** - make tasks scannable at a glance
@@ -764,8 +1070,11 @@ The app automatically:
 1. **Drag to prioritize** - put urgent tasks at the top
 2. **Use floating window** - keeps task visible while working in other apps
 3. **Collapse when done** - minimize floating window to reduce distraction
-4. **Regular cleanup** - periodically delete or archive old completed tasks
-5. **Backup JSON file** - copy `~/Documents/todos.json` for backup
+4. **Quick task switching** - use the dropdown in floating window to switch tasks without opening main app
+5. **Regular cleanup** - periodically delete or archive old completed tasks
+6. **Backup JSON file** - copy `~/Documents/todos.json` for backup
+7. **Use confirmation dialogs** - enable deletion confirmations in settings to prevent accidents
+8. **Customize your experience** - adjust settings for reminders, collapsed timer display, and confirmations
 
 ## License
 

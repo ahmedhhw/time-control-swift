@@ -381,6 +381,7 @@ struct ContentView: View {
     @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
     @AppStorage("confirmSubtaskDeletion") private var confirmSubtaskDeletion: Bool = true
     @AppStorage("showTimeWhenCollapsed") private var showTimeWhenCollapsed: Bool = false
+    @AppStorage("autoPlayAfterSwitching") private var autoPlayAfterSwitching: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1270,7 +1271,7 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching)
         }
         .confirmationDialog(
             "Delete Task",
@@ -1403,8 +1404,8 @@ struct ContentView: View {
             }
         }
         
-        // Start the new task
-        if let index = todos.firstIndex(where: { $0.id == newTask.id }) {
+        // Start the new task only if auto-play is enabled
+        if autoPlayAfterSwitching, let index = todos.firstIndex(where: { $0.id == newTask.id }) {
             todos[index].lastStartTime = Date()
             
             // Resume countdown timer if it's set and not completed
@@ -1424,6 +1425,18 @@ struct ContentView: View {
             
             // Save changes
             saveTodos()
+            
+            // Update floating window with the running task
+            FloatingWindowManager.shared.updateTask(todos[index])
+        } else {
+            // If auto-play is disabled, just clear the running task and update window with paused state
+            runningTaskId = nil
+            saveTodos()
+            
+            // Update floating window with the paused task
+            if let index = todos.firstIndex(where: { $0.id == newTask.id }) {
+                FloatingWindowManager.shared.updateTask(todos[index])
+            }
         }
     }
     
@@ -1477,6 +1490,7 @@ struct ContentView: View {
                     allTodos: todos,
                     activateReminders: activateReminders,
                     showTimeWhenCollapsed: showTimeWhenCollapsed,
+                    autoPlayAfterSwitching: autoPlayAfterSwitching,
                     onTaskSwitch: { [self] newTask in
                         // Handle task switching from the floating window
                         self.switchToTask(newTask)
@@ -3297,8 +3311,9 @@ class FloatingWindowManager: ObservableObject {
     var onTaskSwitch: ((TodoItem) -> Void)?
     var activateReminders: Bool = false
     var showTimeWhenCollapsed: Bool = false
+    var autoPlayAfterSwitching: Bool = false
     
-    func showFloatingWindow(for task: TodoItem, allTodos: [TodoItem], activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, onTaskSwitch: @escaping (TodoItem) -> Void) {
+    func showFloatingWindow(for task: TodoItem, allTodos: [TodoItem], activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPlayAfterSwitching: Bool = false, onTaskSwitch: @escaping (TodoItem) -> Void) {
         // Close existing window if any
         closeFloatingWindow()
         
@@ -3307,6 +3322,7 @@ class FloatingWindowManager: ObservableObject {
         self.allTodos = allTodos
         self.activateReminders = activateReminders
         self.showTimeWhenCollapsed = showTimeWhenCollapsed
+        self.autoPlayAfterSwitching = autoPlayAfterSwitching
         self.onTaskSwitch = onTaskSwitch
         
         // Create the SwiftUI view
@@ -3410,12 +3426,11 @@ class FloatingWindowManager: ObservableObject {
         currentTask = task
         
         // Notify the main view to update and handle task switching logic
+        // The main view will call updateTask() after it has processed the switch
         onTaskSwitch?(task)
         
-        // Recreate the floating window with the new task
-        if floatingWindow != nil {
-            showFloatingWindow(for: task, allTodos: allTodos, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed, onTaskSwitch: onTaskSwitch ?? { _ in })
-        }
+        // Don't recreate the window here - let ContentView update it after processing
+        // ContentView will call updateTask() with the correct running state
     }
     
     func updateAllTodos(_ todos: [TodoItem]) {
@@ -5208,6 +5223,7 @@ struct SettingsSheet: View {
     @Binding var confirmTaskDeletion: Bool
     @Binding var confirmSubtaskDeletion: Bool
     @Binding var showTimeWhenCollapsed: Bool
+    @Binding var autoPlayAfterSwitching: Bool
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -5236,57 +5252,68 @@ struct SettingsSheet: View {
             
             Divider()
             
-            // Settings content
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Preferences")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Toggle("Activate reminders to stay on task", isOn: $activateReminders)
-                    .toggleStyle(.checkbox)
-                    .font(.title3)
-                
-                Text("When enabled, you'll receive periodic reminders to help you stay focused on your current task.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Divider()
-                    .padding(.vertical, 8)
-                
-                Toggle("Confirm before deleting tasks", isOn: $confirmTaskDeletion)
-                    .toggleStyle(.checkbox)
-                    .font(.title3)
-                
-                Text("When enabled, you'll be asked to confirm before permanently deleting a task.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Divider()
-                    .padding(.vertical, 8)
-                
-                Toggle("Confirm before deleting subtasks", isOn: $confirmSubtaskDeletion)
-                    .toggleStyle(.checkbox)
-                    .font(.title3)
-                
-                Text("When enabled, you'll be asked to confirm before permanently deleting a subtask.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Divider()
-                    .padding(.vertical, 8)
-                
-                Toggle("Show time elapsed when task window is collapsed", isOn: $showTimeWhenCollapsed)
-                    .toggleStyle(.checkbox)
-                    .font(.title3)
-                
-                Text("When enabled, the time elapsed timer will be visible even when the floating task window is collapsed.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
+            // Settings content in ScrollView to prevent cutoff on small windows
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Preferences")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    Toggle("Activate reminders to stay on task", isOn: $activateReminders)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+                    
+                    Text("When enabled, you'll receive periodic reminders to help you stay focused on your current task.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    Toggle("Confirm before deleting tasks", isOn: $confirmTaskDeletion)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+                    
+                    Text("When enabled, you'll be asked to confirm before permanently deleting a task.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    Toggle("Confirm before deleting subtasks", isOn: $confirmSubtaskDeletion)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+                    
+                    Text("When enabled, you'll be asked to confirm before permanently deleting a subtask.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    Toggle("Show time elapsed when task window is collapsed", isOn: $showTimeWhenCollapsed)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+                    
+                    Text("When enabled, the time elapsed timer will be visible even when the floating task window is collapsed.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    Toggle("Auto-play task after switching", isOn: $autoPlayAfterSwitching)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+                    
+                    Text("When enabled, tasks will automatically start playing when you switch to them from the dropdown in the current task window.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minWidth: 500, minHeight: 300)
     }
