@@ -81,9 +81,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
     }
     
     var countdownElapsed: TimeInterval {
-        guard countdownTime > 0, let startTime = countdownStartTime else { return 0 }
+        guard countdownTime > 0 else { return 0 }
         
-        if isRunning {
+        if isRunning, let startTime = countdownStartTime {
             // Task is currently running - add the paused elapsed time plus time since resume
             let currentSessionElapsed = Date().timeIntervalSince(startTime)
             return min(countdownElapsedAtPause + currentSessionElapsed, countdownTime)
