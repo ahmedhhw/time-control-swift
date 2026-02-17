@@ -1070,9 +1070,31 @@ struct ContentView: View {
             
             // Complete the task in the main todos array
             if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                // Use the existing toggleTodo functionality to mark as complete
+                // Use the existing toggleTodo functionality to mark as complete, but don't close window
                 let todo = todos[todoIndex]
-                toggleTodo(todo)
+                
+                // Toggle completion state
+                todos[todoIndex].isCompleted.toggle()
+                
+                // Set or clear completedAt timestamp
+                if todos[todoIndex].isCompleted {
+                    todos[todoIndex].completedAt = Date().timeIntervalSince1970
+                    
+                    // Automatically pause timer when task is completed
+                    if todos[todoIndex].isRunning {
+                        if let startTime = todos[todoIndex].lastStartTime {
+                            todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                        }
+                        todos[todoIndex].lastStartTime = nil
+                        runningTaskId = nil
+                        // Don't close window - let user click "Close" button instead
+                    }
+                } else {
+                    todos[todoIndex].completedAt = nil
+                }
+                
+                // Save to persistent storage
+                saveTodos()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PauseTaskFromFloatingWindow"))) { notification in
@@ -3721,6 +3743,7 @@ struct FloatingTaskWindowView: View {
     @State private var showingReminder: Bool = false  // Show reminder popup
     @State private var reminderResponseDeadline: Date? = nil  // When to auto-pause if no response
     @State private var showTaskPausedAlert: Bool = false  // Show "Task Paused!" alert
+    @State private var taskMarkedComplete: Bool = false  // Track if task has been marked complete
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -4142,20 +4165,20 @@ struct FloatingTaskWindowView: View {
                             completeTask()
                         }) {
                             HStack(spacing: 6) {
-                                Image(systemName: "checkmark.circle.fill")
+                                Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
                                     .font(.title3)
-                                Text("Complete")
+                                Text(taskMarkedComplete ? "Close" : "Complete")
                                     .font(.title3)
                                     .fontWeight(.medium)
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(Color.green)
+                            .background(taskMarkedComplete ? Color.gray : Color.green)
                             .cornerRadius(8)
                         }
                         .buttonStyle(.plain)
-                        .floatingTooltip("Mark this task as complete")
+                        .floatingTooltip(taskMarkedComplete ? "Close this task view" : "Mark this task as complete")
                     }
                 }
                 .padding(.horizontal, 12)
@@ -4789,12 +4812,20 @@ struct FloatingTaskWindowView: View {
     }
     
     private func completeTask() {
-        // Mark the task as complete in the main todos array
-        NotificationCenter.default.post(
-            name: NSNotification.Name("CompleteTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id]
-        )
+        if taskMarkedComplete {
+            // If already marked complete, close the window
+            FloatingWindowManager.shared.closeFloatingWindow()
+        } else {
+            // Mark the task as complete in the main todos array
+            NotificationCenter.default.post(
+                name: NSNotification.Name("CompleteTaskFromFloatingWindow"),
+                object: nil,
+                userInfo: ["taskId": localTask.id]
+            )
+            
+            // Update local state to change button to "Close"
+            taskMarkedComplete = true
+        }
     }
     
     private func pauseTask() {
