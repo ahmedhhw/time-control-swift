@@ -15,12 +15,28 @@ struct Subtask: Identifiable, Codable, Equatable {
     var title: String
     var description: String
     var isCompleted: Bool
+    var totalTimeSpent: TimeInterval = 0  // Total time spent in seconds
+    var lastStartTime: Date? = nil  // When the timer was last started
     
-    init(id: UUID = UUID(), title: String, description: String = "", isCompleted: Bool = false) {
+    init(id: UUID = UUID(), title: String, description: String = "", isCompleted: Bool = false, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil) {
         self.id = id
         self.title = title
         self.description = description
         self.isCompleted = isCompleted
+        self.totalTimeSpent = totalTimeSpent
+        self.lastStartTime = lastStartTime
+    }
+    
+    var isRunning: Bool {
+        lastStartTime != nil
+    }
+    
+    var currentTimeSpent: TimeInterval {
+        var time = totalTimeSpent
+        if let startTime = lastStartTime {
+            time += Date().timeIntervalSince(startTime)
+        }
+        return time
     }
 }
 
@@ -739,8 +755,11 @@ struct ContentView: View {
                                                     SubtaskRow(
                                                         subtask: subtask,
                                                         parentTodoCompleted: todo.isCompleted,
+                                                        parentTodoRunning: todo.isRunning,
+                                                        timerUpdateTrigger: timerUpdateTrigger,
                                                         onToggle: { toggleSubtask(subtask, in: todo) },
-                                                        onDelete: { deleteSubtask(subtask, from: todo) }
+                                                        onDelete: { deleteSubtask(subtask, from: todo) },
+                                                        onToggleTimer: { toggleSubtaskTimer(subtask, in: todo) }
                                                     )
                                                     .padding(.horizontal, 12)
                                                 }
@@ -913,8 +932,11 @@ struct ContentView: View {
                                                         SubtaskRow(
                                                             subtask: subtask,
                                                             parentTodoCompleted: todo.isCompleted,
+                                                            parentTodoRunning: todo.isRunning,
+                                                            timerUpdateTrigger: timerUpdateTrigger,
                                                             onToggle: { toggleSubtask(subtask, in: todo) },
-                                                            onDelete: { deleteSubtask(subtask, from: todo) }
+                                                            onDelete: { deleteSubtask(subtask, from: todo) },
+                                                            onToggleTimer: { toggleSubtaskTimer(subtask, in: todo) }
                                                         )
                                                         .padding(.horizontal, 12)
                                                     }
@@ -1049,6 +1071,44 @@ struct ContentView: View {
                 FloatingWindowManager.shared.updateTask(todos[todoIndex])
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ToggleSubtaskTimerFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID,
+                  let subtaskId = userInfo["subtaskId"] as? UUID else {
+                return
+            }
+            
+            // Toggle the subtask timer in the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
+               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) {
+                
+                if todos[todoIndex].subtasks[subtaskIndex].isRunning {
+                    // Pause the subtask timer
+                    if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
+                        todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    }
+                    todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
+                } else {
+                    // Pause any other running subtasks first
+                    for i in 0..<todos[todoIndex].subtasks.count {
+                        if todos[todoIndex].subtasks[i].isRunning {
+                            if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
+                                todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                            }
+                            todos[todoIndex].subtasks[i].lastStartTime = nil
+                        }
+                    }
+                    
+                    // Start the subtask timer
+                    todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
+                }
+                
+                saveTodos()
+                
+                // Update the floating window with the new task state
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateNotesFromFloatingWindow"))) { notification in
             guard let userInfo = notification.userInfo,
                   let taskId = userInfo["taskId"] as? UUID,
@@ -1089,6 +1149,16 @@ struct ContentView: View {
                         runningTaskId = nil
                         // Don't close window - let user click "Close" button instead
                     }
+                    
+                    // RULE: Pause all subtasks when parent task is paused/completed
+                    for i in 0..<todos[todoIndex].subtasks.count {
+                        if todos[todoIndex].subtasks[i].isRunning {
+                            if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
+                                todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                            }
+                            todos[todoIndex].subtasks[i].lastStartTime = nil
+                        }
+                    }
                 } else {
                     todos[todoIndex].completedAt = nil
                 }
@@ -1118,6 +1188,16 @@ struct ContentView: View {
                     let sessionElapsed = Date().timeIntervalSince(countdownStart)
                     todos[todoIndex].countdownElapsedAtPause += sessionElapsed
                     todos[todoIndex].countdownStartTime = nil
+                }
+                
+                // RULE: Pause all subtasks when parent task is paused
+                for i in 0..<todos[todoIndex].subtasks.count {
+                    if todos[todoIndex].subtasks[i].isRunning {
+                        if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
+                            todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                        }
+                        todos[todoIndex].subtasks[i].lastStartTime = nil
+                    }
                 }
                 
                 saveTodos()
@@ -1388,6 +1468,16 @@ struct ContentView: View {
                     runningTaskId = nil
                     FloatingWindowManager.shared.closeFloatingWindow()
                 }
+                
+                // RULE: Pause all subtasks when parent task is completed
+                for i in 0..<todos[index].subtasks.count {
+                    if todos[index].subtasks[i].isRunning {
+                        if let startTime = todos[index].subtasks[i].lastStartTime {
+                            todos[index].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                        }
+                        todos[index].subtasks[i].lastStartTime = nil
+                    }
+                }
             } else {
                 todos[index].completedAt = nil
             }
@@ -1503,6 +1593,16 @@ struct ContentView: View {
                     todos[index].countdownStartTime = nil
                 }
                 
+                // RULE: When parent task is paused, pause all subtasks
+                for i in 0..<todos[index].subtasks.count {
+                    if todos[index].subtasks[i].isRunning {
+                        if let startTime = todos[index].subtasks[i].lastStartTime {
+                            todos[index].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                        }
+                        todos[index].subtasks[i].lastStartTime = nil
+                    }
+                }
+                
                 runningTaskId = nil
                 FloatingWindowManager.shared.closeFloatingWindow()
             } else {
@@ -1519,6 +1619,16 @@ struct ContentView: View {
                             let sessionElapsed = Date().timeIntervalSince(countdownStart)
                             todos[i].countdownElapsedAtPause += sessionElapsed
                             todos[i].countdownStartTime = nil
+                        }
+                        
+                        // Pause all subtasks of the other task
+                        for j in 0..<todos[i].subtasks.count {
+                            if todos[i].subtasks[j].isRunning {
+                                if let startTime = todos[i].subtasks[j].lastStartTime {
+                                    todos[i].subtasks[j].totalTimeSpent += Date().timeIntervalSince(startTime)
+                                }
+                                todos[i].subtasks[j].lastStartTime = nil
+                            }
                         }
                     }
                 }
@@ -1556,6 +1666,47 @@ struct ContentView: View {
             
             // Save to persistent storage
             saveTodos()
+        }
+    }
+    
+    private func toggleSubtaskTimer(_ subtask: Subtask, in todo: TodoItem) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == todo.id }),
+              let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) else {
+            return
+        }
+        
+        // Rule: Parent task must be running for subtask to be played
+        guard todos[todoIndex].isRunning else {
+            return
+        }
+        
+        if todos[todoIndex].subtasks[subtaskIndex].isRunning {
+            // Pause the subtask timer
+            if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
+                todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+            }
+            todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
+        } else {
+            // Pause any other running subtasks in this task first
+            for i in 0..<todos[todoIndex].subtasks.count {
+                if todos[todoIndex].subtasks[i].isRunning {
+                    if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
+                        todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    }
+                    todos[todoIndex].subtasks[i].lastStartTime = nil
+                }
+            }
+            
+            // Start the subtask timer
+            todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
+        }
+        
+        // Save to persistent storage
+        saveTodos()
+        
+        // Update floating window if this task is currently shown
+        if todo.id == runningTaskId {
+            FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
     }
     
@@ -3302,8 +3453,23 @@ struct MassOperationsSheet: View {
 struct SubtaskRow: View {
     let subtask: Subtask
     let parentTodoCompleted: Bool
+    let parentTodoRunning: Bool
+    let timerUpdateTrigger: Int
     let onToggle: () -> Void
     let onDelete: () -> Void
+    let onToggleTimer: () -> Void
+    
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
+        let seconds = Int(timeInterval) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
     
     var body: some View {
         HStack(spacing: 8) {
@@ -3329,6 +3495,23 @@ struct SubtaskRow: View {
             }
             
             Spacer()
+            
+            // Time display
+            Text(formatTime(subtask.currentTimeSpent))
+                .font(.body)
+                .foregroundColor(.secondary)
+                .monospacedDigit()
+                .id(timerUpdateTrigger) // Force update when trigger changes
+            
+            // Play/Pause button
+            Button(action: onToggleTimer) {
+                Image(systemName: subtask.isRunning ? "pause.circle.fill" : "play.circle.fill")
+                    .foregroundColor(subtask.isRunning ? .orange : .blue)
+                    .font(.body)
+            }
+            .buttonStyle(.plain)
+            .disabled(parentTodoCompleted || !parentTodoRunning)
+            .opacity((parentTodoCompleted || !parentTodoRunning) ? 0.3 : 1.0)
             
             Button(action: onDelete) {
                 Image(systemName: "trash")
@@ -4119,6 +4302,25 @@ struct FloatingTaskWindowView: View {
                                         
                                         Spacer()
                                         
+                                        // Time display
+                                        Text(formatTime(subtask.currentTimeSpent))
+                                            .font(.body)
+                                            .foregroundColor(.secondary)
+                                            .monospacedDigit()
+                                            .id(timerUpdateTrigger) // Force update when trigger changes
+                                        
+                                        // Play/Pause button
+                                        Button(action: {
+                                            toggleSubtaskTimer(subtask)
+                                        }) {
+                                            Image(systemName: subtask.isRunning ? "pause.circle.fill" : "play.circle.fill")
+                                                .foregroundColor(subtask.isRunning ? .orange : .blue)
+                                                .font(.body)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(!localTask.isRunning)
+                                        .opacity(localTask.isRunning ? 1.0 : 0.3)
+                                        
                                         Button(action: {
                                             deleteSubtask(subtask)
                                         }) {
@@ -4755,6 +4957,43 @@ struct FloatingTaskWindowView: View {
         }
     }
     
+    private func toggleSubtaskTimer(_ subtask: Subtask) {
+        // Rule: Parent task must be running for subtask to be played
+        guard localTask.isRunning else {
+            return
+        }
+        
+        if let subtaskIndex = localTask.subtasks.firstIndex(where: { $0.id == subtask.id }) {
+            if localTask.subtasks[subtaskIndex].isRunning {
+                // Pause the subtask timer
+                if let startTime = localTask.subtasks[subtaskIndex].lastStartTime {
+                    localTask.subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                localTask.subtasks[subtaskIndex].lastStartTime = nil
+            } else {
+                // Pause any other running subtasks first
+                for i in 0..<localTask.subtasks.count {
+                    if localTask.subtasks[i].isRunning {
+                        if let startTime = localTask.subtasks[i].lastStartTime {
+                            localTask.subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                        }
+                        localTask.subtasks[i].lastStartTime = nil
+                    }
+                }
+                
+                // Start the subtask timer
+                localTask.subtasks[subtaskIndex].lastStartTime = Date()
+            }
+            
+            // Notify ContentView to update the subtask timer in the main todos array
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ToggleSubtaskTimerFromFloatingWindow"),
+                object: nil,
+                userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
+            )
+        }
+    }
+    
     private func addSubtask() {
         let trimmedTitle = newSubtaskText.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
@@ -4829,6 +5068,16 @@ struct FloatingTaskWindowView: View {
     }
     
     private func pauseTask() {
+        // Pause all running subtasks first
+        for i in 0..<localTask.subtasks.count {
+            if localTask.subtasks[i].isRunning {
+                if let startTime = localTask.subtasks[i].lastStartTime {
+                    localTask.subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                localTask.subtasks[i].lastStartTime = nil
+            }
+        }
+        
         // Pause the task by notifying the main view to stop the timer (but don't close window)
         NotificationCenter.default.post(
             name: NSNotification.Name("PauseTaskFromFloatingWindow"),
