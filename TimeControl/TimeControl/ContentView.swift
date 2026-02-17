@@ -955,6 +955,22 @@ struct ContentView: View {
             if let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
                let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) {
                 todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
+                
+                // If the subtask was just completed, move it above all non-completed subtasks
+                let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
+                if wasCompleted {
+                    let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
+                    todos[todoIndex].subtasks.remove(at: subtaskIndex)
+                    
+                    // Find the position of the first non-completed subtask
+                    if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                        todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
+                    } else {
+                        // All subtasks are completed, add at the beginning
+                        todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
+                    }
+                }
+                
                 saveTodos()
                 
                 // Update the floating window with the new task state
@@ -972,6 +988,22 @@ struct ContentView: View {
             if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
                 let newSubtask = Subtask(title: subtaskTitle, description: "")
                 todos[todoIndex].subtasks.append(newSubtask)
+                saveTodos()
+                
+                // Update the floating window with the new task state
+                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DeleteSubtaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID,
+                  let subtaskId = userInfo["subtaskId"] as? UUID else {
+                return
+            }
+            
+            // Delete the subtask from the main todos array
+            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+                todos[todoIndex].subtasks.removeAll { $0.id == subtaskId }
                 saveTodos()
                 
                 // Update the floating window with the new task state
@@ -1405,6 +1437,22 @@ struct ContentView: View {
         if let todoIndex = todos.firstIndex(where: { $0.id == todo.id }),
            let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) {
             todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
+            
+            // If the subtask was just completed, move it above all non-completed subtasks
+            let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
+            if wasCompleted {
+                let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
+                todos[todoIndex].subtasks.remove(at: subtaskIndex)
+                
+                // Find the position of the first non-completed subtask
+                if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                    todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
+                } else {
+                    // All subtasks are completed, add at the beginning
+                    todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
+                }
+            }
+            
             saveTodos()
             
             // Update floating window if this task is currently running
@@ -3551,7 +3599,17 @@ struct FloatingTaskWindowView: View {
                                             .lineLimit(2)
                                         
                                         Spacer()
+                                        
+                                        Button(action: {
+                                            deleteSubtask(subtask)
+                                        }) {
+                                            Image(systemName: "trash")
+                                                .font(.subheadline)
+                                                .foregroundColor(.red)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
+                                    .padding(.horizontal, 8)
                                 }
                             }
                         }
@@ -3908,6 +3966,21 @@ struct FloatingTaskWindowView: View {
         if let subtaskIndex = localTask.subtasks.firstIndex(where: { $0.id == subtask.id }) {
             localTask.subtasks[subtaskIndex].isCompleted.toggle()
             
+            // If the subtask was just completed, move it above all non-completed subtasks
+            let wasCompleted = localTask.subtasks[subtaskIndex].isCompleted
+            if wasCompleted {
+                let completedSubtask = localTask.subtasks[subtaskIndex]
+                localTask.subtasks.remove(at: subtaskIndex)
+                
+                // Find the position of the first non-completed subtask
+                if let firstIncompleteIndex = localTask.subtasks.firstIndex(where: { !$0.isCompleted }) {
+                    localTask.subtasks.insert(completedSubtask, at: firstIncompleteIndex)
+                } else {
+                    // All subtasks are completed, add at the beginning
+                    localTask.subtasks.insert(completedSubtask, at: 0)
+                }
+            }
+            
             // Update the stored todos in ContentView
             NotificationCenter.default.post(
                 name: NSNotification.Name("ToggleSubtaskFromFloatingWindow"),
@@ -3938,6 +4011,18 @@ struct FloatingTaskWindowView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             subtaskInputFocused = true
         }
+    }
+    
+    private func deleteSubtask(_ subtask: Subtask) {
+        // Remove the subtask from the local task
+        localTask.subtasks.removeAll { $0.id == subtask.id }
+        
+        // Notify ContentView to delete the subtask from the main todos array
+        NotificationCenter.default.post(
+            name: NSNotification.Name("DeleteSubtaskFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
+        )
     }
     
     private func completeTask() {
