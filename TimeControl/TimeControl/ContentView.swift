@@ -1102,6 +1102,17 @@ struct ContentView: View {
                 FloatingWindowManager.shared.updateTask(todos[todoIndex])
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("EditTaskFromFloatingWindow"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let taskId = userInfo["taskId"] as? UUID else {
+                return
+            }
+            
+            // Open the edit sheet for this task
+            if let todo = todos.first(where: { $0.id == taskId }) {
+                editingTodo = todo
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SetCountdownFromFloatingWindow"))) { notification in
             guard let userInfo = notification.userInfo,
                   let taskId = userInfo["taskId"] as? UUID,
@@ -3455,6 +3466,16 @@ struct FloatingTaskWindowView: View {
                     .buttonStyle(.plain)
                     .floatingTooltip("Set a countdown timer")
                     
+                    Button(action: {
+                        editTask()
+                    }) {
+                        Image(systemName: "pencil")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                    .buttonStyle(.plain)
+                    .floatingTooltip("Edit task")
+                    
                     // Show time elapsed when collapsed and setting is enabled
                     if isCollapsed && showTimeWhenCollapsed {
                         Spacer()
@@ -4399,6 +4420,15 @@ struct FloatingTaskWindowView: View {
         // Resume the task by notifying the main view to restart the timer
         NotificationCenter.default.post(
             name: NSNotification.Name("ResumeTaskFromFloatingWindow"),
+            object: nil,
+            userInfo: ["taskId": localTask.id]
+        )
+    }
+    
+    private func editTask() {
+        // Open the edit sheet for this task in the main window
+        NotificationCenter.default.post(
+            name: NSNotification.Name("EditTaskFromFloatingWindow"),
             object: nil,
             userInfo: ["taskId": localTask.id]
         )
