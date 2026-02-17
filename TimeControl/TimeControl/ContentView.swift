@@ -290,8 +290,13 @@ class TodoStorage {
                 "notes": todo.notes
             ]
             
-            // Timer-related fields are NOT persisted to storage
-            // lastStartTime, countdownStartTime, countdownTime, and countdownElapsedAtPause
+            // Save lastStartTime if task is currently running
+            if let lastStartTime = todo.lastStartTime {
+                taskData["lastStartTime"] = lastStartTime.timeIntervalSince1970
+            }
+            
+            // Timer-related fields for countdown are NOT persisted to storage
+            // countdownStartTime, countdownTime, and countdownElapsedAtPause
             // should not survive app restarts or window closes
             
             if let dueDate = todo.dueDate {
@@ -313,7 +318,8 @@ class TodoStorage {
                     "id": subtask.id.uuidString,
                     "title": subtask.title,
                     "description": subtask.description,
-                    "isCompleted": subtask.isCompleted
+                    "isCompleted": subtask.isCompleted,
+                    "totalTimeSpent": subtask.totalTimeSpent
                 ])
             }
             taskData["subtasks"] = subtasksArray
@@ -364,6 +370,11 @@ class TodoStorage {
                 let completedAt = taskData["completedAt"] as? TimeInterval
                 let notes = taskData["notes"] as? String ?? ""
                 
+                var lastStartTime: Date? = nil
+                if let timestamp = taskData["lastStartTime"] as? TimeInterval {
+                    lastStartTime = Date(timeIntervalSince1970: timestamp)
+                }
+                
                 var dueDate: Date? = nil
                 if let timestamp = taskData["dueDate"] as? TimeInterval {
                     dueDate = Date(timeIntervalSince1970: timestamp)
@@ -380,11 +391,12 @@ class TodoStorage {
                         }
                         let subtaskDescription = subtaskData["description"] as? String ?? ""
                         let subtaskIsCompleted = subtaskData["isCompleted"] as? Bool ?? false
-                        subtasks.append(Subtask(id: subtaskId, title: subtaskTitle, description: subtaskDescription, isCompleted: subtaskIsCompleted))
+                        let subtaskTotalTimeSpent = subtaskData["totalTimeSpent"] as? TimeInterval ?? 0
+                        subtasks.append(Subtask(id: subtaskId, title: subtaskTitle, description: subtaskDescription, isCompleted: subtaskIsCompleted, totalTimeSpent: subtaskTotalTimeSpent))
                     }
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: nil, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt, notes: notes)
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt, notes: notes)
                 todos.append(todo)
             }
             
@@ -1928,10 +1940,15 @@ struct ContentView: View {
         // Subtasks
         if !todo.subtasks.isEmpty {
             let completedCount = todo.subtasks.filter { $0.isCompleted }.count
-            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed):\n"
+            let totalSubtaskTime = todo.subtasks.reduce(0) { $0 + $1.totalTimeSpent }
+            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed, \(formatTime(totalSubtaskTime)) total):\n"
             for (index, subtask) in todo.subtasks.enumerated() {
                 let checkbox = subtask.isCompleted ? "✓" : "○"
-                text += "  \(index + 1). \(checkbox) \(subtask.title)\n"
+                text += "  \(index + 1). \(checkbox) \(subtask.title)"
+                if subtask.totalTimeSpent > 0 {
+                    text += " - \(formatTime(subtask.totalTimeSpent))"
+                }
+                text += "\n"
                 if !subtask.description.isEmpty {
                     text += "     \(subtask.description)\n"
                 }
@@ -2192,10 +2209,15 @@ struct TodoRow: View {
         // Subtasks
         if !todo.subtasks.isEmpty {
             let completedCount = todo.subtasks.filter { $0.isCompleted }.count
-            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed):\n"
+            let totalSubtaskTime = todo.subtasks.reduce(0) { $0 + $1.totalTimeSpent }
+            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed, \(formatTime(totalSubtaskTime)) total):\n"
             for (index, subtask) in todo.subtasks.enumerated() {
                 let checkbox = subtask.isCompleted ? "✓" : "○"
-                text += "  \(index + 1). \(checkbox) \(subtask.title)\n"
+                text += "  \(index + 1). \(checkbox) \(subtask.title)"
+                if subtask.totalTimeSpent > 0 {
+                    text += " - \(formatTime(subtask.totalTimeSpent))"
+                }
+                text += "\n"
                 if !subtask.description.isEmpty {
                     text += "     \(subtask.description)\n"
                 }
