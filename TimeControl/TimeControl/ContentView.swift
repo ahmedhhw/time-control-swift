@@ -369,6 +369,7 @@ struct ContentView: View {
     @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
     @State private var runningTaskId: UUID?  // Track the currently running task for floating window
     @State private var isAdvancedMode: Bool = false  // Toggle for advanced mode
+    @State private var areAllTasksExpanded: Bool = false  // Track if all tasks are expanded
     @State private var sortOption: TaskSortOption = .creationDateNewest  // Sort option for tasks
     @State private var showingMassOperations: Bool = false  // Track if mass operations sheet is shown
     @State private var showingSettings: Bool = false  // Track if settings sheet is shown
@@ -378,6 +379,7 @@ struct ContentView: View {
     // User Settings
     @AppStorage("activateReminders") private var activateReminders: Bool = false
     @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
+    @AppStorage("confirmSubtaskDeletion") private var confirmSubtaskDeletion: Bool = true
     @AppStorage("showTimeWhenCollapsed") private var showTimeWhenCollapsed: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -549,6 +551,17 @@ struct ContentView: View {
                 
                 if isAdvancedMode {
                     Spacer()
+                    
+                    Button(action: {
+                        toggleExpandAll()
+                    }) {
+                        HStack {
+                            Image(systemName: areAllTasksExpanded ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                            Text(areAllTasksExpanded ? "Collapse All" : "Expand All")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
                     
                     Button(action: {
                         showingMassOperations = true
@@ -1257,7 +1270,7 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed)
         }
         .confirmationDialog(
             "Delete Task",
@@ -1532,6 +1545,8 @@ struct ContentView: View {
             expandedTodos.remove(todo.id)
             newSubtaskTexts[todo.id] = ""
             subtaskInputFocused = nil
+            // Update areAllTasksExpanded state
+            areAllTasksExpanded = false
         } else {
             expandedTodos.insert(todo.id)
             
@@ -1539,6 +1554,25 @@ struct ContentView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 subtaskInputFocused = todo.id
             }
+            
+            // Check if all tasks are now expanded
+            let allTaskIds = todos.map { $0.id }
+            areAllTasksExpanded = Set(allTaskIds).isSubset(of: expandedTodos)
+        }
+    }
+    
+    private func toggleExpandAll() {
+        if areAllTasksExpanded {
+            // Collapse all tasks
+            expandedTodos.removeAll()
+            newSubtaskTexts.removeAll()
+            subtaskInputFocused = nil
+            areAllTasksExpanded = false
+        } else {
+            // Expand all tasks
+            let allTaskIds = todos.map { $0.id }
+            expandedTodos = Set(allTaskIds)
+            areAllTasksExpanded = true
         }
     }
     
@@ -1572,7 +1606,7 @@ struct ContentView: View {
     }
     
     private func deleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
-        if confirmTaskDeletion {
+        if confirmSubtaskDeletion {
             subtaskToDelete = (subtask, todo)
         } else {
             performDeleteSubtask(subtask, from: todo)
@@ -5172,6 +5206,7 @@ struct NotesEditorView: View {
 struct SettingsSheet: View {
     @Binding var activateReminders: Bool
     @Binding var confirmTaskDeletion: Bool
+    @Binding var confirmSubtaskDeletion: Bool
     @Binding var showTimeWhenCollapsed: Bool
     @Environment(\.dismiss) private var dismiss
     
@@ -5222,7 +5257,18 @@ struct SettingsSheet: View {
                     .toggleStyle(.checkbox)
                     .font(.title3)
                 
-                Text("When enabled, you'll be asked to confirm before permanently deleting a task or subtask.")
+                Text("When enabled, you'll be asked to confirm before permanently deleting a task.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                Toggle("Confirm before deleting subtasks", isOn: $confirmSubtaskDeletion)
+                    .toggleStyle(.checkbox)
+                    .font(.title3)
+                
+                Text("When enabled, you'll be asked to confirm before permanently deleting a subtask.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
