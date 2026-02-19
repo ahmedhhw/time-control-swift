@@ -11,25 +11,9 @@ import AVFoundation
 import Quartz
 
 struct ContentView: View {
-    @State private var todos: [TodoItem] = []
-    @State private var newTodoText: String = ""
-    @State private var filterText: String = ""  // Text for filtering tasks
-    @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timers
-    @State private var editingTodo: TodoItem?  // Track which todo is being edited
-    @State private var expandedTodos: Set<UUID> = []  // Track which todos have expanded subtasks (includes subtask input)
-    @State private var newSubtaskTexts: [UUID: String] = [:]  // Text for new subtask per todo
-    @FocusState private var subtaskInputFocused: UUID?  // Track focused subtask input
-    @State private var isCompletedSectionExpanded: Bool = false  // Track if completed section is expanded
-    @State private var runningTaskId: UUID?  // Track the currently running task for floating window
-    @State private var isAdvancedMode: Bool = false  // Toggle for advanced mode
-    @State private var areAllTasksExpanded: Bool = false  // Track if all tasks are expanded
-    @State private var sortOption: TaskSortOption = .creationDateNewest  // Sort option for tasks
-    @State private var showingMassOperations: Bool = false  // Track if mass operations sheet is shown
-    @State private var showingSettings: Bool = false  // Track if settings sheet is shown
-    @State private var todoToDelete: TodoItem?  // Track which todo is pending deletion
-    @State private var subtaskToDelete: (subtask: Subtask, parentTodo: TodoItem)?  // Track which subtask is pending deletion
+    @StateObject private var viewModel = TodoViewModel()
+    @FocusState private var subtaskInputFocused: UUID?
     
-    // User Settings
     @AppStorage("activateReminders") private var activateReminders: Bool = false
     @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
     @AppStorage("confirmSubtaskDeletion") private var confirmSubtaskDeletion: Bool = true
@@ -37,152 +21,33 @@ struct ContentView: View {
     @AppStorage("autoPlayAfterSwitching") private var autoPlayAfterSwitching: Bool = false
     @AppStorage("autoPauseAfterMinutes") private var autoPauseAfterMinutes: Int = 0
     
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    
-    init() {
-        // Load todos from storage on initialization
-        _todos = State(initialValue: TodoStorage.load())
-    }
-    
-    // Computed properties to separate incomplete and completed todos
-    private var incompleteTodos: [TodoItem] {
-        let filtered = todos.filter { !$0.isCompleted }
-        let filteredItems = filterTodos(filtered)
-        return sortTodos(filteredItems)
-    }
-    
-    private var completedTodos: [TodoItem] {
-        let filtered = todos.filter { $0.isCompleted }
-        let filteredItems = filterTodos(filtered)
-        return sortTodos(filteredItems)
-    }
-    
-    // Sort todos based on the selected sort option
-    private func sortTodos(_ items: [TodoItem]) -> [TodoItem] {
-        guard isAdvancedMode else {
-            // When not in advanced mode, maintain original order (by index)
-            return items.sorted { $0.index < $1.index }
-        }
-        
-        switch sortOption {
-        case .creationDateNewest:
-            // Sort by creation date (newest first)
-            return items.sorted { $0.createdAt > $1.createdAt }
-        case .creationDateOldest:
-            // Sort by creation date (oldest first)
-            return items.sorted { $0.createdAt < $1.createdAt }
-        case .recentlyPlayedNewest:
-            // Sort by recently played (tasks that have been started) - newest first
-            // Tasks that have never been played go to the bottom
-            return items.sorted { todo1, todo2 in
-                let hasPlayed1 = todo1.lastPlayedAt != nil
-                let hasPlayed2 = todo2.lastPlayedAt != nil
-                
-                // If both have been played, sort by most recent play time (newest first)
-                if hasPlayed1 && hasPlayed2 {
-                    return (todo1.lastPlayedAt ?? 0) > (todo2.lastPlayedAt ?? 0)
-                }
-                // If only one has been played, prioritize it
-                if hasPlayed1 { return true }
-                if hasPlayed2 { return false }
-                // If neither has been played, sort by creation date (newest first)
-                return todo1.createdAt > todo2.createdAt
-            }
-        case .dueDateNearest:
-            // Sort by due date (nearest first)
-            // Tasks with due dates are prioritized, tasks without go to the bottom
-            return items.sorted { todo1, todo2 in
-                let hasDueDate1 = todo1.dueDate != nil
-                let hasDueDate2 = todo2.dueDate != nil
-                
-                // If both have due dates, sort by nearest (earliest) date first
-                if hasDueDate1 && hasDueDate2 {
-                    return (todo1.dueDate ?? Date()) < (todo2.dueDate ?? Date())
-                }
-                // If only one has a due date, prioritize it
-                if hasDueDate1 { return true }
-                if hasDueDate2 { return false }
-                // If neither has a due date, sort by creation date (newest first)
-                return todo1.createdAt > todo2.createdAt
-            }
-        }
-    }
-    
-    // Filter todos based on filter text (case insensitive)
-    private func filterTodos(_ items: [TodoItem]) -> [TodoItem] {
-        guard !filterText.trimmingCharacters(in: .whitespaces).isEmpty else {
-            return items
-        }
-        
-        let searchText = filterText.lowercased()
-        return items.filter { todo in
-            // Search in task title
-            if todo.text.lowercased().contains(searchText) {
-                return true
-            }
-            
-            // Search in task description
-            if todo.description.lowercased().contains(searchText) {
-                return true
-            }
-            
-            // Search in task notes
-            if todo.notes.lowercased().contains(searchText) {
-                return true
-            }
-            
-            // Search in "from who" field
-            if todo.fromWho.lowercased().contains(searchText) {
-                return true
-            }
-            
-            // Search for "adhoc" keyword
-            if todo.isAdhoc && "adhoc".contains(searchText) {
-                return true
-            }
-            
-            
-            // Search in subtask titles
-            if todo.subtasks.contains(where: { $0.title.lowercased().contains(searchText) }) {
-                return true
-            }
-            
-            // Search in subtask descriptions
-            if todo.subtasks.contains(where: { $0.description.lowercased().contains(searchText) }) {
-                return true
-            }
-            
-            return false
-        }
-    }
-    
     var body: some View {
         VStack(spacing: 0) {
             // Text fields and buttons in a single row
             HStack {
                 // Add new todo text field
-                TextField("Add a new todo...", text: $newTodoText)
+                TextField("Add a new todo...", text: $viewModel.newTodoText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit {
-                        addTodo()
+                        viewModel.addTodo()
                     }
                 
                 // Add new todo button
-                Button(action: addTodo) {
+                Button(action: { viewModel.addTodo() }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.title)
                 }
                 .buttonStyle(.plain)
-                .disabled(newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(viewModel.newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
                 
                 // Filter text field
-                TextField("Filter tasks...", text: $filterText)
+                TextField("Filter tasks...", text: $viewModel.filterText)
                     .textFieldStyle(.roundedBorder)
                 
                 // Filter button/icon
-                if !filterText.isEmpty {
+                if !viewModel.filterText.isEmpty {
                     Button(action: {
-                        filterText = ""
+                        viewModel.filterText = ""
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
@@ -200,26 +65,26 @@ struct ContentView: View {
             
             // Advanced mode toggle
             HStack {
-                Toggle("Advanced mode", isOn: $isAdvancedMode)
+                Toggle("Advanced mode", isOn: $viewModel.isAdvancedMode)
                     .toggleStyle(.switch)
                     .font(.body)
                 
-                if isAdvancedMode {
+                if viewModel.isAdvancedMode {
                     Spacer()
                     
                     Button(action: {
                         toggleExpandAll()
                     }) {
                         HStack {
-                            Image(systemName: areAllTasksExpanded ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
-                            Text(areAllTasksExpanded ? "Collapse All" : "Expand All")
+                            Image(systemName: viewModel.areAllTasksExpanded ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                            Text(viewModel.areAllTasksExpanded ? "Collapse All" : "Expand All")
                         }
                         .font(.body)
                     }
                     .buttonStyle(.bordered)
                     
                     Button(action: {
-                        showingMassOperations = true
+                        viewModel.showingMassOperations = true
                     }) {
                         HStack {
                             Image(systemName: "square.grid.3x3.fill")
@@ -230,7 +95,7 @@ struct ContentView: View {
                     .buttonStyle(.bordered)
                     
                     Button(action: {
-                        let exportText = generateExportTextForAllTasks()
+                        let exportText = viewModel.generateExportTextForAllTasks()
                         ExportWindowManager.shared.showExportWindow(with: exportText)
                     }) {
                         HStack {
@@ -242,7 +107,7 @@ struct ContentView: View {
                     .buttonStyle(.bordered)
                     
                     Button(action: {
-                        showingSettings = true
+                        viewModel.showingSettings = true
                     }) {
                         HStack {
                             Image(systemName: "gear")
@@ -259,13 +124,13 @@ struct ContentView: View {
             .padding(.bottom, 8)
             
             // Sort options (only shown when advanced mode is on)
-            if isAdvancedMode {
+            if viewModel.isAdvancedMode {
                 HStack {
                     Text("Sort by:")
                         .font(.body)
                         .foregroundColor(.secondary)
                     
-                    Picker("Sort", selection: $sortOption) {
+                    Picker("Sort", selection: $viewModel.sortOption) {
                         ForEach(TaskSortOption.allCases) { option in
                             Text(option.rawValue).tag(option)
                         }
@@ -282,7 +147,7 @@ struct ContentView: View {
             Divider()
             
             // Main content area with incomplete todos
-            if todos.isEmpty {
+            if viewModel.todos.isEmpty {
                 VStack {
                     Spacer()
                     Text("No todos yet")
@@ -299,34 +164,34 @@ struct ContentView: View {
                     ScrollView {
                         LazyVStack(spacing: 8) {
                             // Incomplete todos
-                            ForEach(incompleteTodos) { todo in
+                            ForEach(viewModel.incompleteTodos) { todo in
                             VStack(spacing: 0) {
                                 VStack(spacing: 0) {
                                     TodoRow(
                                         todo: todo,
-                                        timerUpdateTrigger: timerUpdateTrigger,
-                                        isExpanded: expandedTodos.contains(todo.id),
-                                        isAdvancedMode: isAdvancedMode,
+                                        timerUpdateTrigger: viewModel.timerUpdateTrigger,
+                                        isExpanded: viewModel.expandedTodos.contains(todo.id),
+                                        isAdvancedMode: viewModel.isAdvancedMode,
                                         onToggle: {
-                                            toggleTodo(todo)
+                                            viewModel.toggleTodo(todo)
                                         },
                                         onDelete: {
-                                            deleteTodo(todo)
+                                            viewModel.deleteTodo(todo)
                                         },
                                         onToggleTimer: {
-                                            toggleTimer(todo)
+                                            viewModel.toggleTimer(todo)
                                         },
                                         onEdit: {
-                                            editTodo(todo)
+                                            viewModel.editTodo(todo)
                                         },
                                         onToggleExpanded: {
                                             toggleExpanded(todo)
                                         },
                                         onToggleSubtask: { subtask in
-                                            toggleSubtask(subtask, in: todo)
+                                            viewModel.toggleSubtask(subtask, in: todo)
                                         },
                                         onDeleteSubtask: { subtask in
-                                            deleteSubtask(subtask, from: todo)
+                                            viewModel.deleteSubtask(subtask, from: todo)
                                         },
                                         onEditSubtask: { subtask in
                                             editSubtask(subtask, in: todo)
@@ -334,14 +199,14 @@ struct ContentView: View {
                                     )
                                     
                                     // Expanded area with inline subtask input and existing subtasks
-                                    if expandedTodos.contains(todo.id) {
+                                    if viewModel.expandedTodos.contains(todo.id) {
                                         VStack(spacing: 4) {
                                             // Inline subtask input textbox (only show for incomplete tasks)
                                             if !todo.isCompleted {
                                                 HStack(spacing: 8) {
                                                     TextField("Subtask title...", text: Binding(
-                                                        get: { newSubtaskTexts[todo.id] ?? "" },
-                                                        set: { newSubtaskTexts[todo.id] = $0 }
+                                                        get: { viewModel.newSubtaskTexts[todo.id] ?? "" },
+                                                        set: { viewModel.newSubtaskTexts[todo.id] = $0 }
                                                     ))
                                                         .textFieldStyle(.roundedBorder)
                                                         .focused($subtaskInputFocused, equals: todo.id)
@@ -356,7 +221,7 @@ struct ContentView: View {
                                                             .foregroundColor(.blue)
                                                     }
                                                     .buttonStyle(.plain)
-                                                    .disabled((newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+                                                    .disabled((viewModel.newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
                                                 }
                                                 .padding(.horizontal, 12)
                                                 .padding(.top, 8)
@@ -369,10 +234,10 @@ struct ContentView: View {
                                                         subtask: subtask,
                                                         parentTodoCompleted: todo.isCompleted,
                                                         parentTodoRunning: todo.isRunning,
-                                                        timerUpdateTrigger: timerUpdateTrigger,
-                                                        onToggle: { toggleSubtask(subtask, in: todo) },
-                                                        onDelete: { deleteSubtask(subtask, from: todo) },
-                                                        onToggleTimer: { toggleSubtaskTimer(subtask, in: todo) }
+                                                        timerUpdateTrigger: viewModel.timerUpdateTrigger,
+                                                        onToggle: { viewModel.toggleSubtask(subtask, in: todo) },
+                                                        onDelete: { viewModel.deleteSubtask(subtask, from: todo) },
+                                                        onToggleTimer: { viewModel.toggleSubtaskTimer(subtask, in: todo) }
                                                     )
                                                     .padding(.horizontal, 12)
                                                 }
@@ -391,7 +256,7 @@ struct ContentView: View {
                                 // Preview shown while dragging
                                 TodoRow(
                                     todo: todo,
-                                    timerUpdateTrigger: timerUpdateTrigger,
+                                    timerUpdateTrigger: viewModel.timerUpdateTrigger,
                                     isExpanded: false,
                                     isAdvancedMode: false,
                                     onToggle: {},
@@ -408,12 +273,12 @@ struct ContentView: View {
                             .dropDestination(for: String.self) { droppedItems, location in
                                 guard let droppedIdString = droppedItems.first,
                                       let droppedId = UUID(uuidString: droppedIdString),
-                                      let fromIndex = todos.firstIndex(where: { $0.id == droppedId }),
-                                      let toIndex = todos.firstIndex(where: { $0.id == todo.id }) else {
+                                      let fromIndex = viewModel.todos.firstIndex(where: { $0.id == droppedId }),
+                                      let toIndex = viewModel.todos.firstIndex(where: { $0.id == todo.id }) else {
                                     return false
                                 }
                                 
-                                moveTodo(from: fromIndex, to: toIndex)
+                                viewModel.moveTodo(from: fromIndex, to: toIndex)
                                 return true
                             }
                         }
@@ -425,24 +290,24 @@ struct ContentView: View {
                             .dropDestination(for: String.self) { droppedItems, location in
                                 guard let droppedIdString = droppedItems.first,
                                       let droppedId = UUID(uuidString: droppedIdString),
-                                      let fromIndex = todos.firstIndex(where: { $0.id == droppedId }) else {
+                                      let fromIndex = viewModel.todos.firstIndex(where: { $0.id == droppedId }) else {
                                     return false
                                 }
                                 
                                 // Move to the last position
-                                let lastIndex = todos.count - 1
+                                let lastIndex = viewModel.todos.count - 1
                                 if fromIndex != lastIndex {
-                                    moveTodo(from: fromIndex, to: lastIndex)
+                                    viewModel.moveTodo(from: fromIndex, to: lastIndex)
                                 }
                                 return true
                             }
                         }
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: todos.map { $0.id })
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.todos.map { $0.id })
                         .padding()
                     }
                     
                     // Pinned completed section at the bottom
-                    if !completedTodos.isEmpty {
+                    if !viewModel.completedTodos.isEmpty {
                         VStack(spacing: 0) {
                             Divider()
                             
@@ -450,15 +315,15 @@ struct ContentView: View {
                                 // Completed section header
                                 Button(action: {
                                     withAnimation {
-                                        isCompletedSectionExpanded.toggle()
+                                        viewModel.isCompletedSectionExpanded.toggle()
                                     }
                                 }) {
                                     HStack {
-                                        Image(systemName: isCompletedSectionExpanded ? "chevron.down" : "chevron.right")
+                                        Image(systemName: viewModel.isCompletedSectionExpanded ? "chevron.down" : "chevron.right")
                                             .foregroundColor(.secondary)
                                             .font(.subheadline)
                                         
-                                        Text("Completed (\(completedTodos.count))")
+                                        Text("Completed (\(viewModel.completedTodos.count))")
                                             .foregroundColor(.secondary)
                                             .font(.title2)
                                         
@@ -472,37 +337,37 @@ struct ContentView: View {
                                 .buttonStyle(.plain)
                                 
                                 // Completed todos (shown when expanded) - scrollable if many items
-                                if isCompletedSectionExpanded {
+                                if viewModel.isCompletedSectionExpanded {
                                     ScrollView {
                                         LazyVStack(spacing: 8) {
-                                            ForEach(completedTodos) { todo in
+                                            ForEach(viewModel.completedTodos) { todo in
                                                 VStack(spacing: 0) {
                                                     VStack(spacing: 0) {
                                                         TodoRow(
                                                             todo: todo,
-                                                            timerUpdateTrigger: timerUpdateTrigger,
-                                                            isExpanded: expandedTodos.contains(todo.id),
-                                                            isAdvancedMode: isAdvancedMode,
+                                                            timerUpdateTrigger: viewModel.timerUpdateTrigger,
+                                                            isExpanded: viewModel.expandedTodos.contains(todo.id),
+                                                            isAdvancedMode: viewModel.isAdvancedMode,
                                                             onToggle: {
-                                                                toggleTodo(todo)
+                                                                viewModel.toggleTodo(todo)
                                                             },
                                                             onDelete: {
-                                                                deleteTodo(todo)
+                                                                viewModel.deleteTodo(todo)
                                                             },
                                                             onToggleTimer: {
-                                                                toggleTimer(todo)
+                                                                viewModel.toggleTimer(todo)
                                                             },
                                                             onEdit: {
-                                                                editTodo(todo)
+                                                                viewModel.editTodo(todo)
                                                             },
                                                             onToggleExpanded: {
-                                                                toggleExpanded(todo)
+                                                                viewModel.toggleExpanded(todo)
                                                             },
                                                             onToggleSubtask: { subtask in
-                                                                toggleSubtask(subtask, in: todo)
+                                                                viewModel.toggleSubtask(subtask, in: todo)
                                                             },
                                                             onDeleteSubtask: { subtask in
-                                                                deleteSubtask(subtask, from: todo)
+                                                                viewModel.deleteSubtask(subtask, from: todo)
                                                             },
                                                             onEditSubtask: { subtask in
                                                                 editSubtask(subtask, in: todo)
@@ -510,30 +375,30 @@ struct ContentView: View {
                                                         )
                                                         
                                                         // Expanded area with inline subtask input and existing subtasks
-                                                        if expandedTodos.contains(todo.id) {
+                                                        if viewModel.expandedTodos.contains(todo.id) {
                                                             VStack(spacing: 4) {
                                                                 // Inline subtask input textbox (only show for incomplete tasks)
                                                                 if !todo.isCompleted {
                                                                     HStack(spacing: 8) {
                                                                         TextField("Subtask title...", text: Binding(
-                                                                            get: { newSubtaskTexts[todo.id] ?? "" },
-                                                                            set: { newSubtaskTexts[todo.id] = $0 }
+                                                                            get: { viewModel.newSubtaskTexts[todo.id] ?? "" },
+                                                                            set: { viewModel.newSubtaskTexts[todo.id] = $0 }
                                                                         ))
                                                                             .textFieldStyle(.roundedBorder)
                                                                             .focused($subtaskInputFocused, equals: todo.id)
                                                                             .onSubmit {
-                                                                                addSubtask(to: todo)
+                                                                                viewModel.addSubtask(to: todo)
                                                                             }
                                                                         
                                                                         Button(action: {
-                                                                            addSubtask(to: todo)
+                                                                            viewModel.addSubtask(to: todo)
                                                                         }) {
                                                                             Image(systemName: "plus.circle.fill")
                                                                                 .foregroundColor(.blue)
                                                                                 .font(.title3)
                                                                         }
                                                                         .buttonStyle(.plain)
-                                                                        .disabled((newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+                                                                        .disabled((viewModel.newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
                                                                     }
                                                                     .padding(.horizontal, 12)
                                                                     .padding(.top, 8)
@@ -546,10 +411,10 @@ struct ContentView: View {
                                                             subtask: subtask,
                                                             parentTodoCompleted: todo.isCompleted,
                                                             parentTodoRunning: todo.isRunning,
-                                                            timerUpdateTrigger: timerUpdateTrigger,
-                                                            onToggle: { toggleSubtask(subtask, in: todo) },
-                                                            onDelete: { deleteSubtask(subtask, from: todo) },
-                                                            onToggleTimer: { toggleSubtaskTimer(subtask, in: todo) }
+                                                            timerUpdateTrigger: viewModel.timerUpdateTrigger,
+                                                            onToggle: { viewModel.toggleSubtask(subtask, in: todo) },
+                                                            onDelete: { viewModel.deleteSubtask(subtask, from: todo) },
+                                                            onToggleTimer: { viewModel.toggleSubtaskTimer(subtask, in: todo) }
                                                         )
                                                         .padding(.horizontal, 12)
                                                     }
@@ -568,7 +433,7 @@ struct ContentView: View {
                                                     // Preview shown while dragging
                                                     TodoRow(
                                                         todo: todo,
-                                                        timerUpdateTrigger: timerUpdateTrigger,
+                                                        timerUpdateTrigger: viewModel.timerUpdateTrigger,
                                                         isExpanded: false,
                                                         isAdvancedMode: false,
                                                         onToggle: {},
@@ -585,12 +450,12 @@ struct ContentView: View {
                                                 .dropDestination(for: String.self) { droppedItems, location in
                                                     guard let droppedIdString = droppedItems.first,
                                                           let droppedId = UUID(uuidString: droppedIdString),
-                                                          let fromIndex = todos.firstIndex(where: { $0.id == droppedId }),
-                                                          let toIndex = todos.firstIndex(where: { $0.id == todo.id }) else {
+                                                          let fromIndex = viewModel.todos.firstIndex(where: { $0.id == droppedId }),
+                                                          let toIndex = viewModel.todos.firstIndex(where: { $0.id == todo.id }) else {
                                                         return false
                                                     }
                                                     
-                                                    moveTodo(from: fromIndex, to: toIndex)
+                                                    viewModel.moveTodo(from: fromIndex, to: toIndex)
                                                     return true
                                                 }
                                             }
@@ -609,15 +474,20 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 400, minHeight: 300)
-        .onReceive(timer) { _ in
-            // Update UI every second if any timer is running
-            if todos.contains(where: { $0.isRunning }) {
-                timerUpdateTrigger += 1
-                
-                // Note: Timer completion is handled by the floating window
-                // The floating window will notify ContentView when to clear timer fields
-            }
+        .onAppear {
+            viewModel.activateReminders = activateReminders
+            viewModel.confirmTaskDeletion = confirmTaskDeletion
+            viewModel.confirmSubtaskDeletion = confirmSubtaskDeletion
+            viewModel.showTimeWhenCollapsed = showTimeWhenCollapsed
+            viewModel.autoPlayAfterSwitching = autoPlayAfterSwitching
+            viewModel.autoPauseAfterMinutes = autoPauseAfterMinutes
         }
+        .onChange(of: activateReminders) { viewModel.activateReminders = $0 }
+        .onChange(of: confirmTaskDeletion) { viewModel.confirmTaskDeletion = $0 }
+        .onChange(of: confirmSubtaskDeletion) { viewModel.confirmSubtaskDeletion = $0 }
+        .onChange(of: showTimeWhenCollapsed) { viewModel.showTimeWhenCollapsed = $0 }
+        .onChange(of: autoPlayAfterSwitching) { viewModel.autoPlayAfterSwitching = $0 }
+        .onChange(of: autoPauseAfterMinutes) { viewModel.autoPauseAfterMinutes = $0 }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ToggleSubtaskFromFloatingWindow"))) { notification in
             guard let userInfo = notification.userInfo,
                   let taskId = userInfo["taskId"] as? UUID,
@@ -625,30 +495,24 @@ struct ContentView: View {
                 return
             }
             
-            // Toggle the subtask in the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
-               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) {
-                todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }),
+               let subtaskIndex = viewModel.todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) {
+                viewModel.todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
                 
-                // If the subtask was just completed, move it above all non-completed subtasks
-                let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
+                let wasCompleted = viewModel.todos[todoIndex].subtasks[subtaskIndex].isCompleted
                 if wasCompleted {
-                    let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
-                    todos[todoIndex].subtasks.remove(at: subtaskIndex)
+                    let completedSubtask = viewModel.todos[todoIndex].subtasks[subtaskIndex]
+                    viewModel.todos[todoIndex].subtasks.remove(at: subtaskIndex)
                     
-                    // Find the position of the first non-completed subtask
-                    if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
-                        todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
+                    if let firstIncompleteIndex = viewModel.todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                        viewModel.todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
                     } else {
-                        // All subtasks are completed, add at the beginning
-                        todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
+                        viewModel.todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
                     }
                 }
                 
-                saveTodos()
-                
-                // Update the floating window with the new task state
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+                viewModel.saveTodos()
+                FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AddSubtaskFromFloatingWindow"))) { notification in
@@ -658,14 +522,11 @@ struct ContentView: View {
                 return
             }
             
-            // Add the subtask to the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
                 let newSubtask = Subtask(title: subtaskTitle, description: "")
-                todos[todoIndex].subtasks.append(newSubtask)
-                saveTodos()
-                
-                // Update the floating window with the new task state
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+                viewModel.todos[todoIndex].subtasks.append(newSubtask)
+                viewModel.saveTodos()
+                FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DeleteSubtaskFromFloatingWindow"))) { notification in
@@ -675,13 +536,10 @@ struct ContentView: View {
                 return
             }
             
-            // Delete the subtask from the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                todos[todoIndex].subtasks.removeAll { $0.id == subtaskId }
-                saveTodos()
-                
-                // Update the floating window with the new task state
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
+                viewModel.todos[todoIndex].subtasks.removeAll { $0.id == subtaskId }
+                viewModel.saveTodos()
+                FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ToggleSubtaskTimerFromFloatingWindow"))) { notification in
@@ -691,35 +549,29 @@ struct ContentView: View {
                 return
             }
             
-            // Toggle the subtask timer in the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
-               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) {
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }),
+               let subtaskIndex = viewModel.todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) {
                 
-                if todos[todoIndex].subtasks[subtaskIndex].isRunning {
-                    // Pause the subtask timer
-                    if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
-                        todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                if viewModel.todos[todoIndex].subtasks[subtaskIndex].isRunning {
+                    if let startTime = viewModel.todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
+                        viewModel.todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
                     }
-                    todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
+                    viewModel.todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
                 } else {
-                    // Pause any other running subtasks first
-                    for i in 0..<todos[todoIndex].subtasks.count {
-                        if todos[todoIndex].subtasks[i].isRunning {
-                            if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
-                                todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    for i in 0..<viewModel.todos[todoIndex].subtasks.count {
+                        if viewModel.todos[todoIndex].subtasks[i].isRunning {
+                            if let startTime = viewModel.todos[todoIndex].subtasks[i].lastStartTime {
+                                viewModel.todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                             }
-                            todos[todoIndex].subtasks[i].lastStartTime = nil
+                            viewModel.todos[todoIndex].subtasks[i].lastStartTime = nil
                         }
                     }
                     
-                    // Start the subtask timer
-                    todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
+                    viewModel.todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
                 }
                 
-                saveTodos()
-                
-                // Update the floating window with the new task state
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+                viewModel.saveTodos()
+                FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateNotesFromFloatingWindow"))) { notification in
@@ -729,10 +581,9 @@ struct ContentView: View {
                 return
             }
             
-            // Update the notes in the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                todos[todoIndex].notes = notes
-                saveTodos()
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
+                viewModel.todos[todoIndex].notes = notes
+                viewModel.saveTodos()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CompleteTaskFromFloatingWindow"))) { notification in
@@ -741,43 +592,33 @@ struct ContentView: View {
                 return
             }
             
-            // Complete the task in the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                // Use the existing toggleTodo functionality to mark as complete, but don't close window
-                let todo = todos[todoIndex]
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
+                viewModel.todos[todoIndex].isCompleted.toggle()
                 
-                // Toggle completion state
-                todos[todoIndex].isCompleted.toggle()
-                
-                // Set or clear completedAt timestamp
-                if todos[todoIndex].isCompleted {
-                    todos[todoIndex].completedAt = Date().timeIntervalSince1970
+                if viewModel.todos[todoIndex].isCompleted {
+                    viewModel.todos[todoIndex].completedAt = Date().timeIntervalSince1970
                     
-                    // Automatically pause timer when task is completed
-                    if todos[todoIndex].isRunning {
-                        if let startTime = todos[todoIndex].lastStartTime {
-                            todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    if viewModel.todos[todoIndex].isRunning {
+                        if let startTime = viewModel.todos[todoIndex].lastStartTime {
+                            viewModel.todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
                         }
-                        todos[todoIndex].lastStartTime = nil
-                        runningTaskId = nil
-                        // Don't close window - let user click "Close" button instead
+                        viewModel.todos[todoIndex].lastStartTime = nil
+                        viewModel.runningTaskId = nil
                     }
                     
-                    // RULE: Pause all subtasks when parent task is paused/completed
-                    for i in 0..<todos[todoIndex].subtasks.count {
-                        if todos[todoIndex].subtasks[i].isRunning {
-                            if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
-                                todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    for i in 0..<viewModel.todos[todoIndex].subtasks.count {
+                        if viewModel.todos[todoIndex].subtasks[i].isRunning {
+                            if let startTime = viewModel.todos[todoIndex].subtasks[i].lastStartTime {
+                                viewModel.todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                             }
-                            todos[todoIndex].subtasks[i].lastStartTime = nil
+                            viewModel.todos[todoIndex].subtasks[i].lastStartTime = nil
                         }
                     }
                 } else {
-                    todos[todoIndex].completedAt = nil
+                    viewModel.todos[todoIndex].completedAt = nil
                 }
                 
-                // Save to persistent storage
-                saveTodos()
+                viewModel.saveTodos()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PauseTaskFromFloatingWindow"))) { notification in
@@ -788,40 +629,34 @@ struct ContentView: View {
             
             let keepWindowOpen = userInfo["keepWindowOpen"] as? Bool ?? false
             
-            // Pause the task in the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                // Stop the timer - accumulate time spent
-                if let startTime = todos[todoIndex].lastStartTime {
-                    todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
+                if let startTime = viewModel.todos[todoIndex].lastStartTime {
+                    viewModel.todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
-                todos[todoIndex].lastStartTime = nil
+                viewModel.todos[todoIndex].lastStartTime = nil
                 
-                // Update countdown elapsed time when pausing
-                if todos[todoIndex].countdownTime > 0, let countdownStart = todos[todoIndex].countdownStartTime {
+                if viewModel.todos[todoIndex].countdownTime > 0, let countdownStart = viewModel.todos[todoIndex].countdownStartTime {
                     let sessionElapsed = Date().timeIntervalSince(countdownStart)
-                    todos[todoIndex].countdownElapsedAtPause += sessionElapsed
-                    todos[todoIndex].countdownStartTime = nil
+                    viewModel.todos[todoIndex].countdownElapsedAtPause += sessionElapsed
+                    viewModel.todos[todoIndex].countdownStartTime = nil
                 }
                 
-                // RULE: Pause all subtasks when parent task is paused
-                for i in 0..<todos[todoIndex].subtasks.count {
-                    if todos[todoIndex].subtasks[i].isRunning {
-                        if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
-                            todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                for i in 0..<viewModel.todos[todoIndex].subtasks.count {
+                    if viewModel.todos[todoIndex].subtasks[i].isRunning {
+                        if let startTime = viewModel.todos[todoIndex].subtasks[i].lastStartTime {
+                            viewModel.todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                         }
-                        todos[todoIndex].subtasks[i].lastStartTime = nil
+                        viewModel.todos[todoIndex].subtasks[i].lastStartTime = nil
                     }
                 }
                 
-                saveTodos()
+                viewModel.saveTodos()
                 
-                // Only close window if not keeping it open
                 if !keepWindowOpen {
-                    runningTaskId = nil
+                    viewModel.runningTaskId = nil
                     FloatingWindowManager.shared.closeFloatingWindow()
                 } else {
-                    // Update the floating window with the paused state
-                    FloatingWindowManager.shared.updateTask(todos[todoIndex])
+                    FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
                 }
             }
         }
@@ -831,29 +666,23 @@ struct ContentView: View {
                 return
             }
             
-            // Resume the task in the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                // Start the timer for this task
-                todos[todoIndex].lastStartTime = Date()
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
+                viewModel.todos[todoIndex].lastStartTime = Date()
                 
-                // Resume countdown timer if it's set and not completed
-                if todos[todoIndex].countdownTime > 0 && todos[todoIndex].countdownElapsedAtPause < todos[todoIndex].countdownTime {
-                    todos[todoIndex].countdownStartTime = Date()
+                if viewModel.todos[todoIndex].countdownTime > 0 && viewModel.todos[todoIndex].countdownElapsedAtPause < viewModel.todos[todoIndex].countdownTime {
+                    viewModel.todos[todoIndex].countdownStartTime = Date()
                 }
                 
-                // Set startedAt timestamp if this is the first time starting
-                if todos[todoIndex].startedAt == nil {
-                    todos[todoIndex].startedAt = Date().timeIntervalSince1970
+                if viewModel.todos[todoIndex].startedAt == nil {
+                    viewModel.todos[todoIndex].startedAt = Date().timeIntervalSince1970
                 }
                 
-                // Update lastPlayedAt timestamp every time play is clicked (for "Recently Played" sorting)
-                todos[todoIndex].lastPlayedAt = Date().timeIntervalSince1970
+                viewModel.todos[todoIndex].lastPlayedAt = Date().timeIntervalSince1970
                 
-                runningTaskId = taskId
-                saveTodos()
+                viewModel.runningTaskId = taskId
+                viewModel.saveTodos()
                 
-                // Update the floating window with the resumed state
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+                FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("EditTaskFromFloatingWindow"))) { notification in
@@ -862,9 +691,8 @@ struct ContentView: View {
                 return
             }
             
-            // Open the edit sheet for this task
-            if let todo = todos.first(where: { $0.id == taskId }) {
-                editingTodo = todo
+            if let todo = viewModel.todos.first(where: { $0.id == taskId }) {
+                viewModel.editingTodo = todo
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateTaskFromFloatingWindow"))) { notification in
@@ -873,37 +701,33 @@ struct ContentView: View {
                 return
             }
             
-            // Update the task in the main todos array
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
                 if let text = userInfo["text"] as? String {
-                    todos[todoIndex].text = text
+                    viewModel.todos[todoIndex].text = text
                 }
                 if let description = userInfo["description"] as? String {
-                    todos[todoIndex].description = description
+                    viewModel.todos[todoIndex].description = description
                 }
                 if let notes = userInfo["notes"] as? String {
-                    todos[todoIndex].notes = notes
+                    viewModel.todos[todoIndex].notes = notes
                 }
                 if let dueDate = userInfo["dueDate"] as? Date {
-                    todos[todoIndex].dueDate = dueDate
+                    viewModel.todos[todoIndex].dueDate = dueDate
                 } else if userInfo["dueDate"] != nil {
-                    // dueDate was explicitly set to nil
-                    todos[todoIndex].dueDate = nil
+                    viewModel.todos[todoIndex].dueDate = nil
                 }
                 if let isAdhoc = userInfo["isAdhoc"] as? Bool {
-                    todos[todoIndex].isAdhoc = isAdhoc
+                    viewModel.todos[todoIndex].isAdhoc = isAdhoc
                 }
                 if let fromWho = userInfo["fromWho"] as? String {
-                    todos[todoIndex].fromWho = fromWho
+                    viewModel.todos[todoIndex].fromWho = fromWho
                 }
                 if let estimatedTime = userInfo["estimatedTime"] as? TimeInterval {
-                    todos[todoIndex].estimatedTime = estimatedTime
+                    viewModel.todos[todoIndex].estimatedTime = estimatedTime
                 }
                 
-                saveTodos()
-                
-                // Update the floating window with the modified task
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+                viewModel.saveTodos()
+                FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SetCountdownFromFloatingWindow"))) { notification in
@@ -913,15 +737,12 @@ struct ContentView: View {
                 return
             }
             
-            // Set the countdown timer for the task
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                todos[todoIndex].countdownTime = countdownTime
-                todos[todoIndex].countdownStartTime = Date()
-                todos[todoIndex].countdownElapsedAtPause = 0  // Reset elapsed time for new timer
-                saveTodos()
-                
-                // Update the floating window with the new task state
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
+                viewModel.todos[todoIndex].countdownTime = countdownTime
+                viewModel.todos[todoIndex].countdownStartTime = Date()
+                viewModel.todos[todoIndex].countdownElapsedAtPause = 0
+                viewModel.saveTodos()
+                FloatingWindowManager.shared.updateTask(viewModel.todos[todoIndex])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ClearCountdownFromFloatingWindow"))) { notification in
@@ -930,12 +751,11 @@ struct ContentView: View {
                 return
             }
             
-            // Clear the countdown timer for the task
-            if let todoIndex = todos.firstIndex(where: { $0.id == taskId }) {
-                todos[todoIndex].countdownTime = 0
-                todos[todoIndex].countdownStartTime = nil
-                todos[todoIndex].countdownElapsedAtPause = 0
-                saveTodos()
+            if let todoIndex = viewModel.todos.firstIndex(where: { $0.id == taskId }) {
+                viewModel.todos[todoIndex].countdownTime = 0
+                viewModel.todos[todoIndex].countdownStartTime = nil
+                viewModel.todos[todoIndex].countdownElapsedAtPause = 0
+                viewModel.saveTodos()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CreateTaskFromFloatingWindow"))) { notification in
@@ -945,88 +765,78 @@ struct ContentView: View {
                 return
             }
             
-            // Create a new task
-            let newIndex = todos.count
+            let newIndex = viewModel.todos.count
             let newTodo = TodoItem(text: taskTitle, index: newIndex)
-            todos.append(newTodo)
-            saveTodos()
+            viewModel.todos.append(newTodo)
+            viewModel.saveTodos()
             
-            // Update the floating window with the new todos list
-            FloatingWindowManager.shared.updateAllTodos(todos)
+            FloatingWindowManager.shared.updateAllTodos(viewModel.todos)
             
-            // If "Create and Switch" was clicked, switch to the new task
             if switchToIt {
-                // Stop any currently running task
-                if let currentRunningId = runningTaskId,
-                   let runningIndex = todos.firstIndex(where: { $0.id == currentRunningId }) {
-                    if let startTime = todos[runningIndex].lastStartTime {
-                        todos[runningIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                if let currentRunningId = viewModel.runningTaskId,
+                   let runningIndex = viewModel.todos.firstIndex(where: { $0.id == currentRunningId }) {
+                    if let startTime = viewModel.todos[runningIndex].lastStartTime {
+                        viewModel.todos[runningIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
                     }
-                    todos[runningIndex].lastStartTime = nil
+                    viewModel.todos[runningIndex].lastStartTime = nil
                     
-                    // Update countdown elapsed time when pausing
-                    if todos[runningIndex].countdownTime > 0, let countdownStart = todos[runningIndex].countdownStartTime {
+                    if viewModel.todos[runningIndex].countdownTime > 0, let countdownStart = viewModel.todos[runningIndex].countdownStartTime {
                         let sessionElapsed = Date().timeIntervalSince(countdownStart)
-                        todos[runningIndex].countdownElapsedAtPause += sessionElapsed
-                        todos[runningIndex].countdownStartTime = nil
+                        viewModel.todos[runningIndex].countdownElapsedAtPause += sessionElapsed
+                        viewModel.todos[runningIndex].countdownStartTime = nil
                     }
                 }
                 
-                // Start the new task
-                if let newTaskIndex = todos.firstIndex(where: { $0.id == newTodo.id }) {
-                    todos[newTaskIndex].lastStartTime = Date()
+                if let newTaskIndex = viewModel.todos.firstIndex(where: { $0.id == newTodo.id }) {
+                    viewModel.todos[newTaskIndex].lastStartTime = Date()
                     
-                    // Set startedAt timestamp if this is the first time starting
-                    if todos[newTaskIndex].startedAt == nil {
-                        todos[newTaskIndex].startedAt = Date().timeIntervalSince1970
+                    if viewModel.todos[newTaskIndex].startedAt == nil {
+                        viewModel.todos[newTaskIndex].startedAt = Date().timeIntervalSince1970
                     }
                     
-                    // Update lastPlayedAt timestamp
-                    todos[newTaskIndex].lastPlayedAt = Date().timeIntervalSince1970
+                    viewModel.todos[newTaskIndex].lastPlayedAt = Date().timeIntervalSince1970
                     
-                    // Resume countdown timer if it's set
-                    if todos[newTaskIndex].countdownTime > 0 && todos[newTaskIndex].countdownElapsedAtPause < todos[newTaskIndex].countdownTime {
-                        todos[newTaskIndex].countdownStartTime = Date()
+                    if viewModel.todos[newTaskIndex].countdownTime > 0 && viewModel.todos[newTaskIndex].countdownElapsedAtPause < viewModel.todos[newTaskIndex].countdownTime {
+                        viewModel.todos[newTaskIndex].countdownStartTime = Date()
                     }
                     
-                    runningTaskId = newTodo.id
-                    saveTodos()
+                    viewModel.runningTaskId = newTodo.id
+                    viewModel.saveTodos()
                     
-                    // Switch to the new task in the floating window
-                    FloatingWindowManager.shared.switchToTask(todos[newTaskIndex])
+                    FloatingWindowManager.shared.switchToTask(viewModel.todos[newTaskIndex])
                 }
             }
         }
-        .sheet(item: $editingTodo) { todoToEdit in
-            if let index = todos.firstIndex(where: { $0.id == todoToEdit.id }) {
-                EditTodoSheet(todo: $todos[index], onSave: {
-                    saveTodos()
-                    editingTodo = nil
+        .sheet(item: $viewModel.editingTodo) { todoToEdit in
+            if let index = viewModel.todos.firstIndex(where: { $0.id == todoToEdit.id }) {
+                EditTodoSheet(todo: $viewModel.todos[index], onSave: {
+                    viewModel.saveTodos()
+                    viewModel.editingTodo = nil
                 })
             }
         }
-        .sheet(isPresented: $showingMassOperations) {
-            MassOperationsSheet(todos: $todos, onSave: {
-                saveTodos()
+        .sheet(isPresented: $viewModel.showingMassOperations) {
+            MassOperationsSheet(todos: $viewModel.todos, onSave: {
+                viewModel.saveTodos()
             })
         }
-        .sheet(isPresented: $showingSettings) {
+        .sheet(isPresented: $viewModel.showingSettings) {
             SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes)
         }
         .confirmationDialog(
             "Delete Task",
             isPresented: Binding(
-                get: { todoToDelete != nil },
-                set: { if !$0 { todoToDelete = nil } }
+                get: { viewModel.todoToDelete != nil },
+                set: { if !$0 { viewModel.todoToDelete = nil } }
             ),
-            presenting: todoToDelete
+            presenting: viewModel.todoToDelete
         ) { todo in
             Button("Delete", role: .destructive) {
-                performDeleteTodo(todo)
-                todoToDelete = nil
+                viewModel.performDeleteTodo(todo)
+                viewModel.todoToDelete = nil
             }
             Button("Cancel", role: .cancel) {
-                todoToDelete = nil
+                viewModel.todoToDelete = nil
             }
         } message: { todo in
             Text("Are you sure you want to delete '\(todo.text)'?")
@@ -1034,3365 +844,51 @@ struct ContentView: View {
         .confirmationDialog(
             "Delete Subtask",
             isPresented: Binding(
-                get: { subtaskToDelete != nil },
-                set: { if !$0 { subtaskToDelete = nil } }
+                get: { viewModel.subtaskToDelete != nil },
+                set: { if !$0 { viewModel.subtaskToDelete = nil } }
             ),
-            presenting: subtaskToDelete
+            presenting: viewModel.subtaskToDelete
         ) { data in
             Button("Delete", role: .destructive) {
-                performDeleteSubtask(data.subtask, from: data.parentTodo)
-                subtaskToDelete = nil
+                viewModel.performDeleteSubtask(data.subtask, from: data.parentTodo)
+                viewModel.subtaskToDelete = nil
             }
             Button("Cancel", role: .cancel) {
-                subtaskToDelete = nil
+                viewModel.subtaskToDelete = nil
             }
         } message: { data in
             Text("Are you sure you want to delete the subtask '\(data.subtask.title)'?")
         }
     }
     
-    private func addTodo() {
-        let trimmedText = newTodoText.trimmingCharacters(in: .whitespaces)
-        guard !trimmedText.isEmpty else { return }
-        
-        let newIndex = todos.count
-        let newTodo = TodoItem(text: trimmedText, index: newIndex)
-        todos.append(newTodo)
-        newTodoText = ""
-        
-        // Save to persistent storage
-        saveTodos()
-    }
-    
-    private func toggleTodo(_ todo: TodoItem) {
-        if let index = todos.firstIndex(where: { $0.id == todo.id }) {
-            todos[index].isCompleted.toggle()
-            
-            // Set or clear completedAt timestamp
-            if todos[index].isCompleted {
-                todos[index].completedAt = Date().timeIntervalSince1970
-                
-                // Automatically pause timer when task is completed
-                if todos[index].isRunning {
-                    if let startTime = todos[index].lastStartTime {
-                        todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
-                    }
-                    todos[index].lastStartTime = nil
-                    runningTaskId = nil
-                    FloatingWindowManager.shared.closeFloatingWindow()
-                }
-                
-                // RULE: Pause all subtasks when parent task is completed
-                for i in 0..<todos[index].subtasks.count {
-                    if todos[index].subtasks[i].isRunning {
-                        if let startTime = todos[index].subtasks[i].lastStartTime {
-                            todos[index].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
-                        }
-                        todos[index].subtasks[i].lastStartTime = nil
-                    }
-                }
-            } else {
-                todos[index].completedAt = nil
-            }
-            
-            // Save to persistent storage
-            saveTodos()
-        }
-    }
-    
-    private func deleteTodo(_ todo: TodoItem) {
-        if confirmTaskDeletion {
-            todoToDelete = todo
-        } else {
-            performDeleteTodo(todo)
-        }
-    }
-    
-    private func performDeleteTodo(_ todo: TodoItem) {
-        // Close floating window if this task was running
-        if todo.id == runningTaskId {
-            runningTaskId = nil
-            FloatingWindowManager.shared.closeFloatingWindow()
-        }
-        
-        todos.removeAll { $0.id == todo.id }
-        
-        // Reindex remaining todos
-        for (index, _) in todos.enumerated() {
-            todos[index].index = index
-        }
-        
-        // Save to persistent storage
-        saveTodos()
-    }
-    
-    private func saveTodos() {
-        TodoStorage.save(todos: todos)
-        // Update the floating window manager with the latest todos
-        FloatingWindowManager.shared.updateAllTodos(todos)
-    }
-    
-    private func editTodo(_ todo: TodoItem) {
-        editingTodo = todo
-    }
-    
-    private func switchToTask(_ newTask: TodoItem) {
-        // Stop the currently running task
-        for i in 0..<todos.count {
-            if todos[i].isRunning {
-                if let startTime = todos[i].lastStartTime {
-                    todos[i].totalTimeSpent += Date().timeIntervalSince(startTime)
-                }
-                todos[i].lastStartTime = nil
-                
-                // Update countdown elapsed time
-                if todos[i].countdownTime > 0, let countdownStart = todos[i].countdownStartTime {
-                    let sessionElapsed = Date().timeIntervalSince(countdownStart)
-                    todos[i].countdownElapsedAtPause += sessionElapsed
-                    todos[i].countdownStartTime = nil
-                }
-                
-                // RULE: When parent task is paused, pause all subtasks
-                for j in 0..<todos[i].subtasks.count {
-                    if todos[i].subtasks[j].isRunning {
-                        if let startTime = todos[i].subtasks[j].lastStartTime {
-                            todos[i].subtasks[j].totalTimeSpent += Date().timeIntervalSince(startTime)
-                        }
-                        todos[i].subtasks[j].lastStartTime = nil
-                    }
-                }
-            }
-        }
-        
-        // Start the new task only if auto-play is enabled
-        if autoPlayAfterSwitching, let index = todos.firstIndex(where: { $0.id == newTask.id }) {
-            todos[index].lastStartTime = Date()
-            
-            // Resume countdown timer if it's set and not completed
-            if todos[index].countdownTime > 0 && todos[index].countdownElapsedAtPause < todos[index].countdownTime {
-                todos[index].countdownStartTime = Date()
-            }
-            
-            runningTaskId = newTask.id
-            
-            // Set startedAt timestamp if this is the first time starting
-            if todos[index].startedAt == nil {
-                todos[index].startedAt = Date().timeIntervalSince1970
-            }
-            
-            // Update lastPlayedAt timestamp
-            todos[index].lastPlayedAt = Date().timeIntervalSince1970
-            
-            // Save changes
-            saveTodos()
-            
-            // Update floating window with the running task
-            FloatingWindowManager.shared.updateTask(todos[index])
-        } else {
-            // If auto-play is disabled, just clear the running task and update window with paused state
-            runningTaskId = nil
-            saveTodos()
-            
-            // Update floating window with the paused task
-            if let index = todos.firstIndex(where: { $0.id == newTask.id }) {
-                FloatingWindowManager.shared.updateTask(todos[index])
-            }
-        }
-    }
-    
-    private func toggleTimer(_ todo: TodoItem) {
-        if let index = todos.firstIndex(where: { $0.id == todo.id }) {
-            if todos[index].isRunning {
-                // Stop the timer - accumulate time spent
-                if let startTime = todos[index].lastStartTime {
-                    todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
-                }
-                todos[index].lastStartTime = nil
-                
-                // Update countdown elapsed time when pausing
-                if todos[index].countdownTime > 0, let countdownStart = todos[index].countdownStartTime {
-                    let sessionElapsed = Date().timeIntervalSince(countdownStart)
-                    todos[index].countdownElapsedAtPause += sessionElapsed
-                    todos[index].countdownStartTime = nil
-                }
-                
-                // RULE: When parent task is paused, pause all subtasks
-                for i in 0..<todos[index].subtasks.count {
-                    if todos[index].subtasks[i].isRunning {
-                        if let startTime = todos[index].subtasks[i].lastStartTime {
-                            todos[index].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
-                        }
-                        todos[index].subtasks[i].lastStartTime = nil
-                    }
-                }
-                
-                runningTaskId = nil
-                FloatingWindowManager.shared.closeFloatingWindow()
-            } else {
-                // Pause any other running tasks first
-                for i in 0..<todos.count {
-                    if todos[i].isRunning {
-                        if let startTime = todos[i].lastStartTime {
-                            todos[i].totalTimeSpent += Date().timeIntervalSince(startTime)
-                        }
-                        todos[i].lastStartTime = nil
-                        
-                        // Update countdown elapsed time for the other task
-                        if todos[i].countdownTime > 0, let countdownStart = todos[i].countdownStartTime {
-                            let sessionElapsed = Date().timeIntervalSince(countdownStart)
-                            todos[i].countdownElapsedAtPause += sessionElapsed
-                            todos[i].countdownStartTime = nil
-                        }
-                        
-                        // Pause all subtasks of the other task
-                        for j in 0..<todos[i].subtasks.count {
-                            if todos[i].subtasks[j].isRunning {
-                                if let startTime = todos[i].subtasks[j].lastStartTime {
-                                    todos[i].subtasks[j].totalTimeSpent += Date().timeIntervalSince(startTime)
-                                }
-                                todos[i].subtasks[j].lastStartTime = nil
-                            }
-                        }
-                    }
-                }
-                
-                // Start the timer for this task
-                todos[index].lastStartTime = Date()
-                
-                // Resume countdown timer if it's set and not completed
-                if todos[index].countdownTime > 0 && todos[index].countdownElapsedAtPause < todos[index].countdownTime {
-                    todos[index].countdownStartTime = Date()
-                }
-                
-                runningTaskId = todo.id
-                FloatingWindowManager.shared.showFloatingWindow(
-                    for: todos[index],
-                    allTodos: todos,
-                    activateReminders: activateReminders,
-                    showTimeWhenCollapsed: showTimeWhenCollapsed,
-                    autoPlayAfterSwitching: autoPlayAfterSwitching,
-                    autoPauseAfterMinutes: autoPauseAfterMinutes,
-                    onTaskSwitch: { [self] newTask in
-                        // Handle task switching from the floating window
-                        self.switchToTask(newTask)
-                    }
-                )
-                
-                // Set startedAt timestamp if this is the first time starting
-                if todos[index].startedAt == nil {
-                    todos[index].startedAt = Date().timeIntervalSince1970
-                }
-                
-                // Update lastPlayedAt timestamp every time play is clicked (for "Recently Played" sorting)
-                todos[index].lastPlayedAt = Date().timeIntervalSince1970
-            }
-            
-            // Save to persistent storage
-            saveTodos()
-        }
-    }
-    
-    private func toggleSubtaskTimer(_ subtask: Subtask, in todo: TodoItem) {
-        guard let todoIndex = todos.firstIndex(where: { $0.id == todo.id }),
-              let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) else {
-            return
-        }
-        
-        // Rule: Parent task must be running for subtask to be played
-        guard todos[todoIndex].isRunning else {
-            return
-        }
-        
-        if todos[todoIndex].subtasks[subtaskIndex].isRunning {
-            // Pause the subtask timer
-            if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
-                todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
-            }
-            todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
-        } else {
-            // Pause any other running subtasks in this task first
-            for i in 0..<todos[todoIndex].subtasks.count {
-                if todos[todoIndex].subtasks[i].isRunning {
-                    if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
-                        todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
-                    }
-                    todos[todoIndex].subtasks[i].lastStartTime = nil
-                }
-            }
-            
-            // Start the subtask timer
-            todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
-        }
-        
-        // Save to persistent storage
-        saveTodos()
-        
-        // Update floating window if this task is currently shown
-        if todo.id == runningTaskId {
-            FloatingWindowManager.shared.updateTask(todos[todoIndex])
-        }
-    }
-    
-    private func moveTodo(from sourceIndex: Int, to destinationIndex: Int) {
-        guard sourceIndex != destinationIndex else { return }
-        
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            // Move the item in the array
-            let movedTodo = todos.remove(at: sourceIndex)
-            todos.insert(movedTodo, at: destinationIndex)
-            
-            // Reindex all todos to maintain correct order
-            for (index, _) in todos.enumerated() {
-                todos[index].index = index
-            }
-        }
-        
-        // Save to persistent storage (without animation)
-        saveTodos()
-    }
-    
     private func addSubtask(to todo: TodoItem) {
-        let trimmedTitle = (newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces)
-        guard !trimmedTitle.isEmpty else { return }
-        
-        if let index = todos.firstIndex(where: { $0.id == todo.id }) {
-            let newSubtask = Subtask(title: trimmedTitle, description: "")
-            todos[index].subtasks.append(newSubtask)
-            
-            // Clear the input for this specific task and refocus for rapid succession
-            newSubtaskTexts[todo.id] = ""
-            
-            // Refocus the textbox after a brief delay to ensure UI is updated
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                subtaskInputFocused = todo.id
-            }
-            
-            saveTodos()
-            
-            // Update floating window if this task is currently running
-            if todo.id == runningTaskId {
-                FloatingWindowManager.shared.updateTask(todos[index])
-            }
+        viewModel.addSubtask(to: todo)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            subtaskInputFocused = todo.id
         }
     }
     
     private func toggleExpanded(_ todo: TodoItem) {
-        if expandedTodos.contains(todo.id) {
-            expandedTodos.remove(todo.id)
-            newSubtaskTexts[todo.id] = ""
-            subtaskInputFocused = nil
-            // Update areAllTasksExpanded state
-            areAllTasksExpanded = false
-        } else {
-            expandedTodos.insert(todo.id)
-            
-            // Focus the textbox after a brief delay to ensure UI is updated
+        viewModel.toggleExpanded(todo)
+        if viewModel.expandedTodos.contains(todo.id) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 subtaskInputFocused = todo.id
             }
-            
-            // Check if all tasks are now expanded
-            let allTaskIds = todos.map { $0.id }
-            areAllTasksExpanded = Set(allTaskIds).isSubset(of: expandedTodos)
+        } else {
+            subtaskInputFocused = nil
         }
     }
     
     private func toggleExpandAll() {
-        if areAllTasksExpanded {
-            // Collapse all tasks
-            expandedTodos.removeAll()
-            newSubtaskTexts.removeAll()
-            subtaskInputFocused = nil
-            areAllTasksExpanded = false
-        } else {
-            // Expand all tasks
-            let allTaskIds = todos.map { $0.id }
-            expandedTodos = Set(allTaskIds)
-            areAllTasksExpanded = true
-        }
+        viewModel.toggleExpandAll()
+        subtaskInputFocused = nil
     }
-    
-    private func toggleSubtask(_ subtask: Subtask, in todo: TodoItem) {
-        if let todoIndex = todos.firstIndex(where: { $0.id == todo.id }),
-           let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) {
-            todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
-            
-            // If the subtask was just completed, move it above all non-completed subtasks
-            let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
-            if wasCompleted {
-                let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
-                todos[todoIndex].subtasks.remove(at: subtaskIndex)
-                
-                // Find the position of the first non-completed subtask
-                if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
-                    todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
-                } else {
-                    // All subtasks are completed, add at the beginning
-                    todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
-                }
-            }
-            
-            saveTodos()
-            
-            // Update floating window if this task is currently running
-            if todo.id == runningTaskId {
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
-            }
-        }
-    }
-    
-    private func deleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
-        if confirmSubtaskDeletion {
-            subtaskToDelete = (subtask, todo)
-        } else {
-            performDeleteSubtask(subtask, from: todo)
-        }
-    }
-    
-    private func performDeleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
-        if let todoIndex = todos.firstIndex(where: { $0.id == todo.id }) {
-            todos[todoIndex].subtasks.removeAll { $0.id == subtask.id }
-            saveTodos()
-            
-            // Update floating window if this task is currently running
-            if todo.id == runningTaskId {
-                FloatingWindowManager.shared.updateTask(todos[todoIndex])
-            }
-        }
-    }
-    
-    private func generateExportTextForTask(_ todo: TodoItem) -> String {
-        var text = ""
-        
-        // Title
-        text += "TASK: \(todo.text)\n"
-        text += String(repeating: "=", count: todo.text.count + 6) + "\n\n"
-        
-        // Status
-        text += "Status: \(todo.isCompleted ? "✓ Completed" : "○ In Progress")\n"
-        if todo.isRunning {
-            text += "Currently Running: Yes\n"
-        }
-        text += "\n"
-        
-        // Description
-        if !todo.description.isEmpty {
-            text += "Description:\n"
-            text += todo.description + "\n\n"
-        }
-        
-        // Task Info
-        if todo.isAdhoc || !todo.fromWho.isEmpty {
-            text += "Task Info:\n"
-            if todo.isAdhoc {
-                text += "  • Type: Adhoc Task\n"
-            }
-            if !todo.fromWho.isEmpty {
-                text += "  • From: \(todo.fromWho)\n"
-            }
-            text += "\n"
-        }
-        
-        // Time tracking
-        text += "Time Tracking:\n"
-        text += "  • Time Spent: \(TimeFormatter.formatTime(todo.currentTimeSpent))\n"
-        if todo.estimatedTime > 0 {
-            text += "  • Estimated: \(TimeFormatter.formatTime(todo.estimatedTime))\n"
-            let progress = (todo.currentTimeSpent / todo.estimatedTime) * 100
-            text += "  • Progress: \(String(format: "%.1f", progress))%\n"
-            if todo.currentTimeSpent > todo.estimatedTime {
-                let over = todo.currentTimeSpent - todo.estimatedTime
-                text += "  • Over by: \(TimeFormatter.formatTime(over))\n"
-            }
-        }
-        if todo.countdownTime > 0 {
-            text += "  • Countdown: \(TimeFormatter.formatTime(todo.countdownTime))\n"
-            text += "  • Countdown Elapsed: \(TimeFormatter.formatTime(todo.countdownElapsed))\n"
-        }
-        text += "\n"
-        
-        // Dates
-        text += "Important Dates:\n"
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
-        
-        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
-        text += "  • Created: \(dateFormatter.string(from: createdDate))\n"
-        
-        if let startedAt = todo.startedAt {
-            let startedDate = Date(timeIntervalSince1970: startedAt)
-            text += "  • First Started: \(dateFormatter.string(from: startedDate))\n"
-        }
-        
-        if let lastPlayedAt = todo.lastPlayedAt {
-            let lastPlayedDate = Date(timeIntervalSince1970: lastPlayedAt)
-            text += "  • Last Played: \(dateFormatter.string(from: lastPlayedDate))\n"
-        }
-        
-        if let dueDate = todo.dueDate {
-            text += "  • Due: \(dateFormatter.string(from: dueDate))\n"
-            let now = Date()
-            if now > dueDate {
-                let overdue = now.timeIntervalSince(dueDate)
-                text += "  • Status: Overdue by \(TimeFormatter.formatTimeRemaining(overdue))\n"
-            } else {
-                let remaining = dueDate.timeIntervalSince(now)
-                text += "  • Time Remaining: \(TimeFormatter.formatTimeRemaining(remaining))\n"
-            }
-        }
-        
-        if let completedAt = todo.completedAt {
-            let completedDate = Date(timeIntervalSince1970: completedAt)
-            text += "  • Completed: \(dateFormatter.string(from: completedDate))\n"
-        }
-        text += "\n"
-        
-        // Subtasks
-        if !todo.subtasks.isEmpty {
-            let completedCount = todo.subtasks.filter { $0.isCompleted }.count
-            let totalSubtaskTime = todo.subtasks.reduce(0) { $0 + $1.totalTimeSpent }
-            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed, \(TimeFormatter.formatTime(totalSubtaskTime)) total):\n"
-            for (index, subtask) in todo.subtasks.enumerated() {
-                let checkbox = subtask.isCompleted ? "✓" : "○"
-                text += "  \(index + 1). \(checkbox) \(subtask.title)"
-                if subtask.totalTimeSpent > 0 {
-                    text += " - \(TimeFormatter.formatTime(subtask.totalTimeSpent))"
-                }
-                text += "\n"
-                if !subtask.description.isEmpty {
-                    text += "     \(subtask.description)\n"
-                }
-            }
-            text += "\n"
-        }
-        
-        // Notes
-        if !todo.notes.isEmpty {
-            text += "Notes:\n"
-            text += todo.notes + "\n\n"
-        }
-        
-        return text
-    }
-    
-    private func generateExportTextForAllTasks() -> String {
-        var text = ""
-        
-        // Header
-        text += String(repeating: "=", count: 80) + "\n"
-        text += "TIME CONTROL - ALL TASKS EXPORT\n"
-        text += String(repeating: "=", count: 80) + "\n\n"
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .full
-        dateFormatter.timeStyle = .long
-        text += "Exported on: \(dateFormatter.string(from: Date()))\n"
-        text += "Total tasks: \(todos.count)\n"
-        
-        let completedCount = todos.filter { $0.isCompleted }.count
-        text += "Completed: \(completedCount)\n"
-        text += "In progress: \(todos.count - completedCount)\n"
-        
-        let totalTimeSpent = todos.reduce(0) { $0 + $1.currentTimeSpent }
-        text += "Total time spent: \(TimeFormatter.formatTime(totalTimeSpent))\n\n"
-        
-        text += String(repeating: "=", count: 80) + "\n\n"
-        
-        // Incomplete tasks first
-        let incompleteTasks = todos.filter { !$0.isCompleted }
-        if !incompleteTasks.isEmpty {
-            text += "INCOMPLETE TASKS (\(incompleteTasks.count))\n"
-            text += String(repeating: "-", count: 80) + "\n\n"
-            
-            for (index, todo) in incompleteTasks.enumerated() {
-                text += "[\(index + 1)/\(incompleteTasks.count)]\n\n"
-                text += generateExportTextForTask(todo)
-                text += String(repeating: "-", count: 80) + "\n\n"
-            }
-        }
-        
-        // Completed tasks
-        let completedTasks = todos.filter { $0.isCompleted }
-        if !completedTasks.isEmpty {
-            text += "COMPLETED TASKS (\(completedTasks.count))\n"
-            text += String(repeating: "-", count: 80) + "\n\n"
-            
-            for (index, todo) in completedTasks.enumerated() {
-                text += "[\(index + 1)/\(completedTasks.count)]\n\n"
-                text += generateExportTextForTask(todo)
-                text += String(repeating: "-", count: 80) + "\n\n"
-            }
-        }
-        
-        // Footer
-        text += String(repeating: "=", count: 80) + "\n"
-        text += "END OF EXPORT\n"
-        text += String(repeating: "=", count: 80) + "\n"
-        
-        return text
-    }
-    
     
     private func editSubtask(_ subtask: Subtask, in todo: TodoItem) {
     }
 }
 
-struct TodoRow: View {
-    let todo: TodoItem
-    let timerUpdateTrigger: Int  // Used to trigger UI updates
-    let isExpanded: Bool
-    let isAdvancedMode: Bool  // Show advanced information
-    let onToggle: () -> Void
-    let onDelete: () -> Void
-    let onToggleTimer: () -> Void
-    let onEdit: () -> Void
-    let onToggleExpanded: () -> Void
-    let onToggleSubtask: (Subtask) -> Void
-    let onDeleteSubtask: (Subtask) -> Void
-    let onEditSubtask: (Subtask) -> Void
-    
-    @State private var showExportText: Bool = false
-    
-    private func dueDateProgress() -> (elapsed: TimeInterval, total: TimeInterval, isOverdue: Bool) {
-        guard let dueDate = todo.dueDate else {
-            return (0, 0, false)
-        }
-        
-        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
-        let now = Date()
-        let total = dueDate.timeIntervalSince(createdDate)
-        let elapsed = now.timeIntervalSince(createdDate)
-        let isOverdue = now > dueDate
-        
-        return (elapsed, total, isOverdue)
-    }
-    
-    private func generateExportText() -> String {
-        var text = ""
-        
-        // Title
-        text += "TASK: \(todo.text)\n"
-        text += String(repeating: "=", count: todo.text.count + 6) + "\n\n"
-        
-        // Status
-        text += "Status: \(todo.isCompleted ? "✓ Completed" : "○ In Progress")\n"
-        if todo.isRunning {
-            text += "Currently Running: Yes\n"
-        }
-        text += "\n"
-        
-        // Description
-        if !todo.description.isEmpty {
-            text += "Description:\n"
-            text += todo.description + "\n\n"
-        }
-        
-        // Task Info
-        if todo.isAdhoc || !todo.fromWho.isEmpty {
-            text += "Task Info:\n"
-            if todo.isAdhoc {
-                text += "  • Type: Adhoc Task\n"
-            }
-            if !todo.fromWho.isEmpty {
-                text += "  • From: \(todo.fromWho)\n"
-            }
-            text += "\n"
-        }
-        
-        // Time tracking
-        text += "Time Tracking:\n"
-        text += "  • Time Spent: \(TimeFormatter.formatTime(todo.currentTimeSpent))\n"
-        if todo.estimatedTime > 0 {
-            text += "  • Estimated: \(TimeFormatter.formatTime(todo.estimatedTime))\n"
-            let progress = (todo.currentTimeSpent / todo.estimatedTime) * 100
-            text += "  • Progress: \(String(format: "%.1f", progress))%\n"
-            if todo.currentTimeSpent > todo.estimatedTime {
-                let over = todo.currentTimeSpent - todo.estimatedTime
-                text += "  • Over by: \(TimeFormatter.formatTime(over))\n"
-            }
-        }
-        if todo.countdownTime > 0 {
-            text += "  • Countdown: \(TimeFormatter.formatTime(todo.countdownTime))\n"
-            text += "  • Countdown Elapsed: \(TimeFormatter.formatTime(todo.countdownElapsed))\n"
-        }
-        text += "\n"
-        
-        // Dates
-        text += "Important Dates:\n"
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
-        
-        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
-        text += "  • Created: \(dateFormatter.string(from: createdDate))\n"
-        
-        if let startedAt = todo.startedAt {
-            let startedDate = Date(timeIntervalSince1970: startedAt)
-            text += "  • First Started: \(dateFormatter.string(from: startedDate))\n"
-        }
-        
-        if let lastPlayedAt = todo.lastPlayedAt {
-            let lastPlayedDate = Date(timeIntervalSince1970: lastPlayedAt)
-            text += "  • Last Played: \(dateFormatter.string(from: lastPlayedDate))\n"
-        }
-        
-        if let dueDate = todo.dueDate {
-            text += "  • Due: \(dateFormatter.string(from: dueDate))\n"
-            let now = Date()
-            if now > dueDate {
-                let overdue = now.timeIntervalSince(dueDate)
-                text += "  • Status: Overdue by \(TimeFormatter.formatTimeRemaining(overdue))\n"
-            } else {
-                let remaining = dueDate.timeIntervalSince(now)
-                text += "  • Time Remaining: \(TimeFormatter.formatTimeRemaining(remaining))\n"
-            }
-        }
-        
-        if let completedAt = todo.completedAt {
-            let completedDate = Date(timeIntervalSince1970: completedAt)
-            text += "  • Completed: \(dateFormatter.string(from: completedDate))\n"
-        }
-        text += "\n"
-        
-        // Subtasks
-        if !todo.subtasks.isEmpty {
-            let completedCount = todo.subtasks.filter { $0.isCompleted }.count
-            let totalSubtaskTime = todo.subtasks.reduce(0) { $0 + $1.totalTimeSpent }
-            text += "Subtasks (\(completedCount)/\(todo.subtasks.count) completed, \(TimeFormatter.formatTime(totalSubtaskTime)) total):\n"
-            for (index, subtask) in todo.subtasks.enumerated() {
-                let checkbox = subtask.isCompleted ? "✓" : "○"
-                text += "  \(index + 1). \(checkbox) \(subtask.title)"
-                if subtask.totalTimeSpent > 0 {
-                    text += " - \(TimeFormatter.formatTime(subtask.totalTimeSpent))"
-                }
-                text += "\n"
-                if !subtask.description.isEmpty {
-                    text += "     \(subtask.description)\n"
-                }
-            }
-            text += "\n"
-        }
-        
-        // Notes
-        if !todo.notes.isEmpty {
-            text += "Notes:\n"
-            text += todo.notes + "\n\n"
-        }
-        
-        // Footer
-        text += String(repeating: "-", count: 50) + "\n"
-        text += "Exported on: \(dateFormatter.string(from: Date()))\n"
-        
-        return text
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: onToggle) {
-                    Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(todo.isCompleted ? .green : .secondary)
-                        .font(.title2)
-                }
-                .buttonStyle(.plain)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(todo.text)
-                        .strikethrough(todo.isCompleted)
-                        .foregroundColor(todo.isCompleted ? .secondary : .primary)
-                        .fontWeight(todo.isRunning ? .semibold : .regular)
-                    
-                    if todo.totalTimeSpent > 0 || todo.isRunning {
-                        HStack(spacing: 4) {
-                            if todo.isRunning {
-                                Circle()
-                                    .fill(Color.orange)
-                                    .frame(width: 12, height: 12)
-                                    .opacity(0.8)
-                            }
-                            Text(TimeFormatter.formatTime(todo.currentTimeSpent))
-                                .font(.subheadline)
-                                .foregroundColor(todo.isRunning ? .orange : .secondary)
-                                .monospacedDigit()
-                                .fontWeight(todo.isRunning ? .semibold : .regular)
-                                .id(timerUpdateTrigger)  // Force update when trigger changes
-                        }
-                    }
-                    
-                    // Show estimate and time elapsed as numbers when advanced mode is on and not expanded
-                    if isAdvancedMode && !isExpanded && todo.estimatedTime > 0 {
-                        HStack(spacing: 8) {
-                            Text("Est: \(TimeFormatter.formatTime(todo.estimatedTime))")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .monospacedDigit()
-                            Text("•")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Text("Elapsed: \(TimeFormatter.formatTime(todo.currentTimeSpent))")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .monospacedDigit()
-                                .id(timerUpdateTrigger)
-                        }
-                    }
-                    
-                    // Show due date information when advanced mode is on and not expanded
-                    if isAdvancedMode && !isExpanded, let dueDate = todo.dueDate {
-                        let progress = dueDateProgress()
-                        let now = Date()
-                        let remaining = dueDate.timeIntervalSince(now)
-                        
-                        HStack(spacing: 8) {
-                            Text("Due: \(TimeFormatter.formatDueDate(dueDate))")
-                                .font(.subheadline)
-                                .foregroundColor(progress.isOverdue ? .red : .secondary)
-                            Text("•")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            if progress.isOverdue {
-                                Text("Overdue by \(TimeFormatter.formatTimeRemaining(remaining))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.red)
-                            } else {
-                                Text("\(TimeFormatter.formatTimeRemaining(remaining)) left")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    if !todo.subtasks.isEmpty {
-                        Text("\(todo.subtasks.count) subtask\(todo.subtasks.count == 1 ? "" : "s")")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer()
-                
-                // Chevron button to toggle subtask area (input + existing subtasks)
-                Button(action: onToggleExpanded) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .foregroundColor(.secondary)
-                        .font(.title3)
-                }
-                .buttonStyle(.plain)
-                
-                Button(action: onToggleTimer) {
-                    Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                        .foregroundColor(todo.isCompleted ? .gray : (todo.isRunning ? .orange : .blue))
-                        .font(.title2)
-                }
-                .buttonStyle(.plain)
-                .disabled(todo.isCompleted)
-                
-                Button(action: onEdit) {
-                    Image(systemName: "pencil")
-                        .foregroundColor(todo.isCompleted ? .gray : .blue)
-                        .font(.title3)
-                }
-                .buttonStyle(.plain)
-                .disabled(todo.isCompleted)
-                
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .foregroundColor(todo.isCompleted ? .gray : .red)
-                        .font(.title3)
-                }
-                .buttonStyle(.plain)
-                .disabled(todo.isCompleted)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            
-            // Description (shown when expanded and advanced mode is on and description is not empty)
-            if isAdvancedMode && isExpanded && !todo.description.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .padding(.horizontal, 12)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Description")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                        
-                        Text(todo.description)
-                            .font(.title3)
-                            .foregroundColor(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                }
-            }
-            
-            // Notes (shown when expanded and advanced mode is on and notes is not empty)
-            if isAdvancedMode && isExpanded && !todo.notes.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .padding(.horizontal, 12)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Notes")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                        
-                        Text(todo.notes)
-                            .font(.title3)
-                            .foregroundColor(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                }
-            }
-            
-            // Task metadata (shown when expanded and advanced mode is on)
-            if isAdvancedMode && isExpanded && (todo.isAdhoc || !todo.fromWho.isEmpty) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .padding(.horizontal, 12)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Task Info")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            if todo.isAdhoc {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "bolt.fill")
-                                        .font(.subheadline)
-                                        .foregroundColor(.orange)
-                                    Text("Adhoc Task")
-                                        .font(.title3)
-                                        .foregroundColor(.primary)
-                                }
-                            }
-                            
-                            if !todo.fromWho.isEmpty {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "person.fill")
-                                        .font(.subheadline)
-                                        .foregroundColor(.blue)
-                                    Text("From: \(todo.fromWho)")
-                                        .font(.title3)
-                                        .foregroundColor(.primary)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                }
-            }
-            
-            // Progress bar (shown when expanded and advanced mode is on and estimated time is set)
-            if isAdvancedMode && isExpanded && todo.estimatedTime > 0 {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .padding(.horizontal, 12)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        // Time indicators
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Elapsed")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                Text(TimeFormatter.formatTime(todo.currentTimeSpent))
-                                    .font(.title2)
-                                    .foregroundColor(.primary)
-                                    .monospacedDigit()
-                                    .id(timerUpdateTrigger)
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("Estimated")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                Text(TimeFormatter.formatTime(todo.estimatedTime))
-                                    .font(.title2)
-                                    .foregroundColor(.secondary)
-                                    .monospacedDigit()
-                            }
-                        }
-                        
-                        // Progress bar
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                // Background
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 12)
-                                    .cornerRadius(6)
-                                
-                                // Progress
-                                let progress = min(todo.currentTimeSpent / todo.estimatedTime, 1.0)
-                                Rectangle()
-                                    .fill(progress > 1.0 ? Color.orange : Color.blue)
-                                    .frame(width: geometry.size.width * progress, height: 12)
-                                    .cornerRadius(6)
-                                    .id(timerUpdateTrigger)
-                            }
-                        }
-                        .frame(height: 12)
-                        
-                        // Over/under time indicator
-                        if todo.currentTimeSpent > todo.estimatedTime {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.subheadline)
-                                    .foregroundColor(.orange)
-                                Text("Over by \(TimeFormatter.formatTime(todo.currentTimeSpent - todo.estimatedTime))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.orange)
-                                    .monospacedDigit()
-                                    .id(timerUpdateTrigger)
-                            }
-                        } else {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.subheadline)
-                                    .foregroundColor(.green)
-                                Text("Remaining \(TimeFormatter.formatTime(todo.estimatedTime - todo.currentTimeSpent))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .monospacedDigit()
-                                    .id(timerUpdateTrigger)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                }
-            }
-            
-            // Due date progress bar (shown when expanded and advanced mode is on and due date is set)
-            if isAdvancedMode && isExpanded, let dueDate = todo.dueDate {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .padding(.horizontal, 12)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        let progress = dueDateProgress()
-                        let now = Date()
-                        let createdDate = Date(timeIntervalSince1970: todo.createdAt)
-                        
-                        // Time indicators
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Created")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                Text(TimeFormatter.formatDueDate(createdDate))
-                                    .font(.title2)
-                                    .foregroundColor(.primary)
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("Due")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                Text(TimeFormatter.formatDueDate(dueDate))
-                                    .font(.title2)
-                                    .foregroundColor(progress.isOverdue ? .red : .secondary)
-                            }
-                        }
-                        
-                        // Progress bar
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                // Background
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 12)
-                                    .cornerRadius(6)
-                                
-                                // Progress
-                                let progressValue = progress.total > 0 ? min(progress.elapsed / progress.total, 1.0) : 0
-                                Rectangle()
-                                    .fill(progress.isOverdue ? Color.red : Color.purple)
-                                    .frame(width: geometry.size.width * progressValue, height: 12)
-                                    .cornerRadius(6)
-                            }
-                        }
-                        .frame(height: 12)
-                        
-                        // Time remaining/overdue indicator
-                        let remaining = dueDate.timeIntervalSince(now)
-                        if progress.isOverdue {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.subheadline)
-                                    .foregroundColor(.red)
-                                Text("Overdue by \(TimeFormatter.formatTimeRemaining(remaining))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.red)
-                            }
-                        } else {
-                            HStack {
-                                Image(systemName: "clock.fill")
-                                    .font(.subheadline)
-                                    .foregroundColor(.purple)
-                                Text("\(TimeFormatter.formatTimeRemaining(remaining)) remaining")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                }
-            }
-            
-            // Export to text section (shown when expanded and advanced mode is on)
-            if isAdvancedMode && isExpanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .padding(.horizontal, 12)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Button(action: {
-                            showExportText.toggle()
-                        }) {
-                            HStack {
-                                Image(systemName: showExportText ? "chevron.down" : "chevron.right")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Text("Export to Text")
-                                    .font(.title3)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        
-                        if showExportText {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Copy the text below:")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                
-                                TextEditor(text: .constant(generateExportText()))
-                                    .font(.system(.title3, design: .monospaced))
-                                    .frame(height: 300)
-                                    .border(Color.gray.opacity(0.3), width: 1)
-                                    .cornerRadius(4)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                }
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(todo.isRunning ? 
-                      Color.orange.opacity(0.12) : 
-                      Color(NSColor.controlBackgroundColor))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(
-                    todo.isRunning ? Color.orange.opacity(0.4) : Color.clear,
-                    lineWidth: 2
-                )
-        )
-        .shadow(color: todo.isRunning ? Color.orange.opacity(0.2) : Color.clear, 
-                radius: 4, x: 0, y: 2)
-    }
-}
 
-struct EditTodoSheet: View {
-    @Binding var todo: TodoItem
-    let onSave: () -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    @State private var title: String
-    @State private var description: String
-    @State private var dueDate: Date
-    @State private var hasDueDate: Bool
-    @State private var isAdhoc: Bool
-    @State private var fromWho: String
-    @State private var estimateHours: Int
-    @State private var estimateMinutes: Int
-    @State private var notes: String
-    
-    init(todo: Binding<TodoItem>, onSave: @escaping () -> Void) {
-        self._todo = todo
-        self.onSave = onSave
-        
-        // Initialize state from todo
-        _title = State(initialValue: todo.wrappedValue.text)
-        _description = State(initialValue: todo.wrappedValue.description)
-        _dueDate = State(initialValue: todo.wrappedValue.dueDate ?? Date())
-        _hasDueDate = State(initialValue: todo.wrappedValue.dueDate != nil)
-        _isAdhoc = State(initialValue: todo.wrappedValue.isAdhoc)
-        _fromWho = State(initialValue: todo.wrappedValue.fromWho)
-        _notes = State(initialValue: todo.wrappedValue.notes)
-        
-        // Convert estimated time from seconds to hours and minutes
-        let totalMinutes = Int(todo.wrappedValue.estimatedTime / 60)
-        _estimateHours = State(initialValue: totalMinutes / 60)
-        _estimateMinutes = State(initialValue: totalMinutes % 60)
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Custom toolbar
-            HStack {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .keyboardShortcut(.cancelAction)
-                
-                Spacer()
-                
-                Text("Edit Task")
-                    .font(.title2)
-                
-                Spacer()
-                
-                Button("Save") {
-                    saveChanges()
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            .padding()
-            .background(Color(NSColor.windowBackgroundColor))
-            
-            Divider()
-            
-            // Form content
-            Form {
-                Section(header: Text("Task Details")) {
-                    TextField("Title", text: $title)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Description")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        TextEditor(text: $description)
-                            .frame(minHeight: 100, maxHeight: 200)
-                            .border(Color.gray.opacity(0.2), width: 1)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Notes")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        TextEditor(text: $notes)
-                            .frame(minHeight: 150, maxHeight: 300)
-                            .border(Color.gray.opacity(0.2), width: 1)
-                    }
-                }
-                
-                Section(header: Text("Timestamps")) {
-                    HStack {
-                        Text("Created:")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(formatTimestamp(todo.createdAt))
-                    }
-                    
-                    if let startedAt = todo.startedAt {
-                        HStack {
-                            Text("Started:")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(formatTimestamp(startedAt))
-                        }
-                    }
-                    
-                    if let completedAt = todo.completedAt {
-                        HStack {
-                            Text("Completed:")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(formatTimestamp(completedAt))
-                        }
-                    }
-                }
-                
-                Section(header: Text("Estimate")) {
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Hours")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Picker("", selection: $estimateHours) {
-                                ForEach(0..<24, id: \.self) { hour in
-                                    Text("\(hour)").tag(hour)
-                                }
-                            }
-                            .labelsHidden()
-                            .frame(width: 80)
-                        }
-                        
-                        Text(":")
-                            .font(.title)
-                            .padding(.top, 16)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Minutes")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Picker("", selection: $estimateMinutes) {
-                                ForEach(0..<60, id: \.self) { minute in
-                                    Text("\(minute)").tag(minute)
-                                }
-                            }
-                            .labelsHidden()
-                            .frame(width: 80)
-                        }
-                    }
-                }
-                
-                Section(header: Text("Due Date")) {
-                    Toggle("Set Due Date", isOn: $hasDueDate)
-                    
-                    if hasDueDate {
-                        DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
-                    }
-                }
-                
-                Section(header: Text("Additional Information")) {
-                    Toggle("Adhoc Task", isOn: $isAdhoc)
-                    
-                    TextField("From Who?", text: $fromWho)
-                }
-            }
-            .formStyle(.grouped)
-        }
-        .frame(minWidth: 500, minHeight: 500)
-    }
-    
-    private func saveChanges() {
-        todo.text = title
-        todo.description = description
-        todo.dueDate = hasDueDate ? dueDate : nil
-        todo.isAdhoc = isAdhoc
-        todo.fromWho = fromWho
-        todo.notes = notes
-        
-        // Convert hours and minutes to seconds
-        let clampedHours = max(0, estimateHours)
-        let clampedMinutes = max(0, min(59, estimateMinutes))
-        todo.estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
-        
-        onSave()
-        dismiss()
-    }
-    
-    private func formatTimestamp(_ timestamp: TimeInterval) -> String {
-        let date = Date(timeIntervalSince1970: timestamp)
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .medium
-        return formatter.string(from: date)
-    }
-}
-
-// Floating Edit View for editing tasks from the floating window
-struct FloatingEditView: View {
-    let task: TodoItem
-    let onSave: (TodoItem) -> Void
-    let onCancel: () -> Void
-    
-    @State private var title: String
-    @State private var description: String
-    @State private var dueDate: Date
-    @State private var hasDueDate: Bool
-    @State private var isAdhoc: Bool
-    @State private var fromWho: String
-    @State private var estimateHours: Int
-    @State private var estimateMinutes: Int
-    @State private var notes: String
-    
-    init(task: TodoItem, onSave: @escaping (TodoItem) -> Void, onCancel: @escaping () -> Void) {
-        self.task = task
-        self.onSave = onSave
-        self.onCancel = onCancel
-        
-        // Initialize state from task
-        _title = State(initialValue: task.text)
-        _description = State(initialValue: task.description)
-        _dueDate = State(initialValue: task.dueDate ?? Date())
-        _hasDueDate = State(initialValue: task.dueDate != nil)
-        _isAdhoc = State(initialValue: task.isAdhoc)
-        _fromWho = State(initialValue: task.fromWho)
-        _notes = State(initialValue: task.notes)
-        
-        // Convert estimated time from seconds to hours and minutes
-        let totalMinutes = Int(task.estimatedTime / 60)
-        _estimateHours = State(initialValue: totalMinutes / 60)
-        _estimateMinutes = State(initialValue: totalMinutes % 60)
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Custom toolbar
-            HStack {
-                Button("Cancel") {
-                    onCancel()
-                }
-                .keyboardShortcut(.cancelAction)
-                
-                Spacer()
-                
-                Text("Edit Task")
-                    .font(.title2)
-                
-                Spacer()
-                
-                Button("Save") {
-                    saveChanges()
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            .padding()
-            .background(Color(NSColor.windowBackgroundColor))
-            
-            Divider()
-            
-            // Form content
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Task Details Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Task Details")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        TextField("Title", text: $title)
-                            .textFieldStyle(.roundedBorder)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Description")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            TextEditor(text: $description)
-                                .frame(minHeight: 80, maxHeight: 150)
-                                .border(Color.gray.opacity(0.2), width: 1)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Notes")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            TextEditor(text: $notes)
-                                .frame(minHeight: 100, maxHeight: 200)
-                                .border(Color.gray.opacity(0.2), width: 1)
-                        }
-                    }
-                    .padding()
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(8)
-                    
-                    // Timestamps Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Timestamps")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack {
-                            Text("Created:")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(formatTimestamp(task.createdAt))
-                        }
-                        
-                        if let startedAt = task.startedAt {
-                            HStack {
-                                Text("Started:")
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text(formatTimestamp(startedAt))
-                            }
-                        }
-                        
-                        if let completedAt = task.completedAt {
-                            HStack {
-                                Text("Completed:")
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text(formatTimestamp(completedAt))
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(8)
-                    
-                    // Estimate Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Estimate")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Hours")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Picker("", selection: $estimateHours) {
-                                    ForEach(0..<24, id: \.self) { hour in
-                                        Text("\(hour)").tag(hour)
-                                    }
-                                }
-                                .labelsHidden()
-                                .frame(width: 80)
-                            }
-                            
-                            Text(":")
-                                .font(.title)
-                                .padding(.top, 16)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Minutes")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Picker("", selection: $estimateMinutes) {
-                                    ForEach(0..<60, id: \.self) { minute in
-                                        Text("\(minute)").tag(minute)
-                                    }
-                                }
-                                .labelsHidden()
-                                .frame(width: 80)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(8)
-                    
-                    // Due Date Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Due Date")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        Toggle("Set Due Date", isOn: $hasDueDate)
-                        
-                        if hasDueDate {
-                            DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
-                        }
-                    }
-                    .padding()
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(8)
-                    
-                    // Additional Information Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Additional Information")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        Toggle("Adhoc Task", isOn: $isAdhoc)
-                        
-                        TextField("From Who?", text: $fromWho)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    .padding()
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(8)
-                }
-                .padding()
-            }
-        }
-        .frame(minWidth: 400, minHeight: 500)
-    }
-    
-    private func saveChanges() {
-        var updatedTask = task
-        updatedTask.text = title
-        updatedTask.description = description
-        updatedTask.dueDate = hasDueDate ? dueDate : nil
-        updatedTask.isAdhoc = isAdhoc
-        updatedTask.fromWho = fromWho
-        updatedTask.notes = notes
-        
-        // Convert hours and minutes to seconds
-        let clampedHours = max(0, estimateHours)
-        let clampedMinutes = max(0, min(59, estimateMinutes))
-        updatedTask.estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
-        
-        onSave(updatedTask)
-    }
-    
-    private func formatTimestamp(_ timestamp: TimeInterval) -> String {
-        let date = Date(timeIntervalSince1970: timestamp)
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .medium
-        return formatter.string(from: date)
-    }
-}
-
-struct MassOperationsSheet: View {
-    @Binding var todos: [TodoItem]
-    let onSave: () -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    @State private var operationType: MassOperationType = .fill
-    @State private var selectedField: EditableField = .title
-    @State private var showingEditor: Bool = false
-    
-    // Local edit dictionaries for different field types
-    @State private var textValues: [UUID: String] = [:]
-    @State private var boolValues: [UUID: Bool] = [:]
-    @State private var estimateHours: [UUID: Int] = [:]
-    @State private var estimateMinutes: [UUID: Int] = [:]
-    @State private var dueDates: [UUID: Date] = [:]
-    @State private var hasDueDate: [UUID: Bool] = [:]
-    
-    // Computed property to get filtered tasks
-    private var filteredTasks: [TodoItem] {
-        let incompleteTasks = todos.filter { !$0.isCompleted }
-        
-        if operationType == .edit {
-            // Edit mode: return all incomplete tasks
-            return incompleteTasks
-        } else {
-            // Fill mode: return only tasks where the selected field is empty
-            return incompleteTasks.filter { task in
-                switch selectedField {
-                case .title:
-                    return task.text.trimmingCharacters(in: .whitespaces).isEmpty
-                case .description:
-                    return task.description.isEmpty
-                case .notes:
-                    return task.notes.isEmpty
-                case .fromWho:
-                    return task.fromWho.isEmpty
-                case .adhoc:
-                    return task.isAdhoc == false
-                case .estimation:
-                    return task.estimatedTime == 0
-                case .dueDate:
-                    return task.dueDate == nil
-                }
-            }
-        }
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Custom toolbar
-            HStack {
-                if showingEditor {
-                    Button("Back") {
-                        showingEditor = false
-                    }
-                } else {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .keyboardShortcut(.cancelAction)
-                }
-                
-                Spacer()
-                
-                Text("Mass Operations")
-                    .font(.title2)
-                
-                Spacer()
-                
-                // Placeholder for symmetry
-                Button("Cancel") {
-                    dismiss()
-                }
-                .keyboardShortcut(.cancelAction)
-                .hidden()
-            }
-            .padding()
-            .background(Color(NSColor.windowBackgroundColor))
-            
-            Divider()
-            
-            if !showingEditor {
-                // Phase 1: Operation type and field selection
-                phase1View
-            } else {
-                // Phase 2: Task editor view
-                phase2View
-            }
-        }
-        .frame(minWidth: showingEditor ? 600 : 400, minHeight: showingEditor ? 500 : 350)
-    }
-    
-    private var phase1View: some View {
-        Form {
-            Section(header: Text("Operation Type")) {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(MassOperationType.allCases) { type in
-                        Button(action: {
-                            operationType = type
-                        }) {
-                            HStack {
-                                Image(systemName: operationType == type ? "largecircle.fill.circle" : "circle")
-                                    .foregroundColor(operationType == type ? .accentColor : .secondary)
-                                    .font(.title3)
-                                Text(type.rawValue)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            
-            Section(header: Text("Select Field")) {
-                Picker("Field", selection: $selectedField) {
-                    ForEach(EditableField.allCases) { field in
-                        Text(field.rawValue).tag(field)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-            
-            Section {
-                Button(action: {
-                    handleContinue()
-                }) {
-                    HStack {
-                        Spacer()
-                        Text("Continue")
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .formStyle(.grouped)
-    }
-    
-    private var phase2View: some View {
-        VStack(spacing: 0) {
-            if filteredTasks.isEmpty {
-                // No tasks found message
-                VStack {
-                    Spacer()
-                    Text("No tasks found")
-                        .font(.title)
-                        .foregroundColor(.secondary)
-                    Text(operationType == .fill ? "All tasks already have this field filled" : "No incomplete tasks")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-            } else {
-                // Scrollable list of tasks with editors
-                ScrollView {
-                    VStack(spacing: 20) {
-                        ForEach(filteredTasks) { task in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(task.text)
-                                    .font(.title2)
-                                
-                                fieldEditor(for: task)
-                            }
-                            .padding()
-                            .background(Color(NSColor.controlBackgroundColor))
-                            .cornerRadius(8)
-                        }
-                    }
-                    .padding()
-                }
-                
-                Divider()
-                
-                // Save button
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        handleSave()
-                    }) {
-                        Text("Save")
-                            .frame(minWidth: 100)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .padding()
-                }
-                .background(Color(NSColor.windowBackgroundColor))
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func fieldEditor(for task: TodoItem) -> some View {
-        switch selectedField {
-        case .title:
-            TextField("Title", text: Binding(
-                get: { textValues[task.id] ?? "" },
-                set: { textValues[task.id] = $0 }
-            ))
-            
-        case .description:
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Description")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                TextEditor(text: Binding(
-                    get: { textValues[task.id] ?? "" },
-                    set: { textValues[task.id] = $0 }
-                ))
-                .frame(minHeight: 100, maxHeight: 150)
-                .border(Color.gray.opacity(0.2), width: 1)
-            }
-            
-        case .notes:
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Notes")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                TextEditor(text: Binding(
-                    get: { textValues[task.id] ?? "" },
-                    set: { textValues[task.id] = $0 }
-                ))
-                .frame(minHeight: 100, maxHeight: 150)
-                .border(Color.gray.opacity(0.2), width: 1)
-            }
-            
-        case .fromWho:
-            TextField("From Who?", text: Binding(
-                get: { textValues[task.id] ?? "" },
-                set: { textValues[task.id] = $0 }
-            ))
-            
-        case .adhoc:
-            Toggle("Adhoc Task", isOn: Binding(
-                get: { boolValues[task.id] ?? false },
-                set: { boolValues[task.id] = $0 }
-            ))
-            
-        case .estimation:
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Hours")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Picker("", selection: Binding(
-                        get: { estimateHours[task.id] ?? 0 },
-                        set: { estimateHours[task.id] = $0 }
-                    )) {
-                        ForEach(0..<24, id: \.self) { hour in
-                            Text("\(hour)").tag(hour)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(width: 80)
-                }
-                
-                Text(":")
-                    .font(.title)
-                    .padding(.top, 16)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Minutes")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Picker("", selection: Binding(
-                        get: { estimateMinutes[task.id] ?? 0 },
-                        set: { estimateMinutes[task.id] = $0 }
-                    )) {
-                        ForEach(0..<60, id: \.self) { minute in
-                            Text("\(minute)").tag(minute)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(width: 80)
-                }
-            }
-            
-        case .dueDate:
-            VStack(alignment: .leading, spacing: 8) {
-                Toggle("Set Due Date", isOn: Binding(
-                    get: { hasDueDate[task.id] ?? false },
-                    set: { hasDueDate[task.id] = $0 }
-                ))
-                
-                if hasDueDate[task.id] ?? false {
-                    DatePicker("Date & Time", selection: Binding(
-                        get: { dueDates[task.id] ?? Date() },
-                        set: { dueDates[task.id] = $0 }
-                    ), displayedComponents: [.date, .hourAndMinute])
-                }
-            }
-        }
-    }
-    
-    private func handleContinue() {
-        let tasks = filteredTasks
-        
-        // Initialize local dictionaries with current values
-        for task in tasks {
-            switch selectedField {
-            case .title:
-                textValues[task.id] = task.text
-            case .description:
-                textValues[task.id] = task.description
-            case .notes:
-                textValues[task.id] = task.notes
-            case .fromWho:
-                textValues[task.id] = task.fromWho
-            case .adhoc:
-                boolValues[task.id] = task.isAdhoc
-            case .estimation:
-                let totalMinutes = Int(task.estimatedTime / 60)
-                estimateHours[task.id] = totalMinutes / 60
-                estimateMinutes[task.id] = totalMinutes % 60
-            case .dueDate:
-                if let dueDate = task.dueDate {
-                    dueDates[task.id] = dueDate
-                    hasDueDate[task.id] = true
-                } else {
-                    dueDates[task.id] = Date()
-                    hasDueDate[task.id] = false
-                }
-            }
-        }
-        
-        showingEditor = true
-    }
-    
-    private func handleSave() {
-        // Write dictionary values back to todos binding
-        for task in filteredTasks {
-            if let index = todos.firstIndex(where: { $0.id == task.id }) {
-                switch selectedField {
-                case .title:
-                    if let value = textValues[task.id] {
-                        todos[index].text = value
-                    }
-                case .description:
-                    if let value = textValues[task.id] {
-                        todos[index].description = value
-                    }
-                case .notes:
-                    if let value = textValues[task.id] {
-                        todos[index].notes = value
-                    }
-                case .fromWho:
-                    if let value = textValues[task.id] {
-                        todos[index].fromWho = value
-                    }
-                case .adhoc:
-                    if let value = boolValues[task.id] {
-                        todos[index].isAdhoc = value
-                    }
-                case .estimation:
-                    let hours = estimateHours[task.id] ?? 0
-                    let minutes = estimateMinutes[task.id] ?? 0
-                    let clampedHours = max(0, hours)
-                    let clampedMinutes = max(0, min(59, minutes))
-                    todos[index].estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
-                case .dueDate:
-                    if hasDueDate[task.id] ?? false {
-                        todos[index].dueDate = dueDates[task.id]
-                    } else {
-                        todos[index].dueDate = nil
-                    }
-                }
-            }
-        }
-        
-        onSave()
-        dismiss()
-    }
-}
-
-struct FloatingTaskWindowView: View {
-    let task: TodoItem
-    @ObservedObject var windowManager: FloatingWindowManager
-    @State private var localTask: TodoItem
-    @State private var isCollapsed: Bool = false
-    @State private var notesText: String = ""
-    @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timer
-    @State private var notesWindow: NSWindow?
-    @State private var reminderWindow: NSWindow?
-    @State private var timerPickerWindow: NSWindow?
-    @State private var newTaskPopupWindow: NSWindow?
-    @State private var editWindow: NSWindow?
-    @State private var newSubtaskText: String = ""  // Text for new subtask
-    @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
-    @State private var showingTimerPicker: Bool = false  // Show timer picker sheet
-    @State private var timerHours: Int = 0  // Hours for countdown timer
-    @State private var timerMinutes: Int = 25  // Minutes for countdown timer (default 25)
-    @State private var timerJustCompleted: Bool = false  // Track if timer just completed
-    @State private var showTimerCompletedMessage: Bool = false  // Show "Timer's up!" message
-    @State private var showingNewTaskPopup: Bool = false  // Show new task popup
-    @State private var newTaskTitle: String = ""  // Title for new task
-    
-    // Reminder functionality
-    let activateReminders: Bool  // User setting for reminders
-    let showTimeWhenCollapsed: Bool  // User setting for showing time when collapsed
-    let autoPauseAfterMinutes: Int  // User setting for auto-pause duration
-    let autoPlayAfterSwitching: Bool  // User setting for auto-playing after switching tasks
-    @State private var lastReminderTime: Date? = nil  // When the last reminder was shown
-    @State private var showingReminder: Bool = false  // Show reminder popup
-    @State private var reminderResponseDeadline: Date? = nil  // When to auto-pause if no response
-    @State private var showTaskPausedAlert: Bool = false  // Show "Task Paused!" alert
-    @State private var taskMarkedComplete: Bool = false  // Track if task has been marked complete
-    
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    
-    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPauseAfterMinutes: Int = 0, autoPlayAfterSwitching: Bool = false) {
-        self.task = task
-        self.windowManager = windowManager
-        self.activateReminders = activateReminders
-        self.showTimeWhenCollapsed = showTimeWhenCollapsed
-        self.autoPauseAfterMinutes = autoPauseAfterMinutes
-        self.autoPlayAfterSwitching = autoPlayAfterSwitching
-        self._localTask = State(initialValue: task)
-        self._notesText = State(initialValue: task.notes)
-        
-        // Initialize timer hours/minutes from existing countdown time
-        if task.countdownTime > 0 {
-            let totalMinutes = Int(task.countdownTime / 60)
-            self._timerHours = State(initialValue: totalMinutes / 60)
-            self._timerMinutes = State(initialValue: totalMinutes % 60)
-        }
-    }
-    
-    private var availableTasks: [TodoItem] {
-        windowManager.allTodos
-            .filter { !$0.isCompleted }
-            .sorted { task1, task2 in
-                let time1 = task1.lastPlayedAt ?? task1.startedAt ?? task1.createdAt
-                let time2 = task2.lastPlayedAt ?? task2.startedAt ?? task2.createdAt
-                return time1 > time2
-            }
-    }
-    
-    var body: some View {
-        ZStack(alignment: .top) {
-            // Main content
-            VStack(alignment: .leading, spacing: 0) {
-                // Collapse/expand button and Notes button at the top
-                HStack {
-                                    
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isCollapsed.toggle()
-                            resizeWindow()
-                        }
-                    }) {
-                        Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                            .frame(width: 20, height: 20)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip(isCollapsed ? "Expand" : "Collapse")
-                    
-                    Button(action: {
-                        openMainWindow()
-                    }) {
-                        Image(systemName: "macwindow")
-                            .foregroundColor(.blue)
-                            .font(.caption)
-                            .frame(width: 20, height: 20)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Open task list")
-                    
-                    Button(action: {
-                        openNotesWindow()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "note.text")
-                                .font(.subheadline)
-                         
-                        }
-                        .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Take notes while working on this task")
-                    .disabled(taskMarkedComplete)
-                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
-
-                    Button(action: {
-                        showingTimerPicker = true
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "timer")
-                                .font(.subheadline)
-                       
-                        }
-                        .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Set a countdown timer")
-                    .disabled(taskMarkedComplete)
-                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                    
-                    Button(action: {
-                        editTask()
-                    }) {
-                        Image(systemName: "pencil")
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Edit task")
-                    .disabled(taskMarkedComplete)
-                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                    
-                    // Show time elapsed when collapsed and setting is enabled
-                    if isCollapsed && showTimeWhenCollapsed {
-                        Spacer()
-                        
-                        Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
-                            .monospacedDigit()
-                            .id(timerUpdateTrigger)
-                    }
-                    
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-            
-            // Content (hidden when collapsed)
-            if !isCollapsed {
-                VStack(alignment: .leading, spacing: 8) {
-                    // Task title dropdown with new task button
-                    HStack(spacing: 8) {
-                        Picker("Current Task", selection: Binding(
-                            get: { localTask.id },
-                            set: { newTaskId in
-                                if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
-                                    // Store if the current task was marked complete
-                                    let wasComplete = taskMarkedComplete
-                                    
-                                    // Switch to the new task
-                                    windowManager.switchToTask(selectedTask)
-                                    
-                                    // Reset completion state when switching tasks
-                                    taskMarkedComplete = false
-                                    
-                                    // If switching from a complete task to a non-complete task and auto-play is enabled
-                                    if wasComplete && !selectedTask.isCompleted && autoPlayAfterSwitching {
-                                        // Resume the new task
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                            resumeTask()
-                                        }
-                                    }
-                                }
-                            }
-                        )) {
-                            ForEach(availableTasks) { task in
-                                Text(task.text)
-                                    .lineLimit(1)
-                                    .tag(task.id)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .font(.title2)
-                        .labelsHidden()
-                        
-                        Button(action: {
-                            showingNewTaskPopup = true
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip("Create new task")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                    }
-                    
-                    // Task description
-                    if !localTask.description.isEmpty {
-                        Text(localTask.description)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                            .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                    }
-                    
-                    // Time tracking section
-                    VStack(alignment: .leading, spacing: 4) {
-                        Divider()
-                        
-                        HStack(alignment: .top, spacing: 16) {
-                            // Time elapsed
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Time Elapsed")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
-                                    .font(.title)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.blue)
-                                    .monospacedDigit()
-                                    .id(timerUpdateTrigger)
-                            }
-                            .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            
-                            Spacer()
-                            
-                            // Attention Check countdown (only shown when reminders are active and task is running)
-                            if activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("Attention Check")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .textCase(.uppercase)
-                                    
-                                    if let lastReminder = lastReminderTime {
-                                        let elapsed = Date().timeIntervalSince(lastReminder)
-                                        let remaining = max(0, 120 - elapsed)  // 120 seconds = 2 minutes
-                                        
-                                        Text(TimeFormatter.formatTime(remaining))
-                                            .font(.title)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(remaining < 30 ? .orange : .purple)
-                                            .monospacedDigit()
-                                            .id(timerUpdateTrigger)
-                                    } else {
-                                        Text(TimeFormatter.formatTime(120))
-                                            .font(.title)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.purple)
-                                            .monospacedDigit()
-                                            .id(timerUpdateTrigger)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Timer's up! message (shown after timer completes and is cleared)
-                    if showTimerCompletedMessage && !taskMarkedComplete {
-                        VStack(spacing: 8) {
-                            Divider()
-                            
-                            HStack {
-                                Spacer()
-                                VStack(spacing: 8) {
-                                    Image(systemName: "bell.badge.fill")
-                                        .font(.system(size: 80))
-                                        .foregroundColor(.red)
-                                    
-                                    Text("Timer's up!")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.red)
-                                    
-                                    Button(action: {
-                                        withAnimation {
-                                            showTimerCompletedMessage = false
-                                        }
-                                    }) {
-                                        Text("Dismiss")
-                                            .font(.subheadline)
-                                            .foregroundColor(.blue)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                    }
-                    
-                    // Countdown Timer section (if set)
-                    if localTask.countdownTime > 0 {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Divider()
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Timer")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                
-                                HStack {
-                                    // Show elapsed time
-                                    Text(TimeFormatter.formatTime(localTask.countdownElapsed))
-                                        .font(.title)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(localTask.countdownElapsed >= localTask.countdownTime ? .red : .orange)
-                                        .monospacedDigit()
-                                        .id(timerUpdateTrigger)
-                                    
-                                    Text("/")
-                                        .font(.title2)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text(TimeFormatter.formatTime(localTask.countdownTime))
-                                        .font(.title2)
-                                        .foregroundColor(.secondary)
-                                        .monospacedDigit()
-                                    
-                                    Spacer()
-                                    
-                                    if localTask.countdownElapsed >= localTask.countdownTime {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "bell.fill")
-                                                .font(.subheadline)
-                                                .foregroundColor(.red)
-                                            Text("Time's up!")
-                                                .font(.subheadline)
-                                                .foregroundColor(.red)
-                                        }
-                                    }
-                                }
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                                
-                                // Progress bar for countdown (fills up as time progresses)
-                                GeometryReader { geometry in
-                                    ZStack(alignment: .leading) {
-                                        // Background
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.2))
-                                            .frame(height: 12)
-                                            .cornerRadius(6)
-                                        
-                                        // Progress (fills up as time elapses)
-                                        let progress = localTask.countdownTime > 0 ? min(localTask.countdownElapsed / localTask.countdownTime, 1.0) : 0
-                                        Rectangle()
-                                            .fill(progress >= 1.0 ? Color.red : Color.orange)
-                                            .frame(width: geometry.size.width * progress, height: 12)
-                                            .cornerRadius(6)
-                                            .id(timerUpdateTrigger)
-                                    }
-                                }
-                                .frame(height: 12)
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            }
-                        }
-                    }
-                    
-                    // Subtasks section
-                    Divider()
-                    
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Subtasks")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            
-                            // Textfield and button for adding new subtasks
-                            HStack(spacing: 8) {
-                                TextField("Subtask title...", text: $newSubtaskText)
-                                    .textFieldStyle(.roundedBorder)
-                                    .focused($subtaskInputFocused)
-                                    .onSubmit {
-                                        addSubtask()
-                                    }
-                                    .disabled(taskMarkedComplete)
-                                
-                                Button(action: {
-                                    addSubtask()
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .font(.title3)
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete)
-                                .opacity((newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete) ? 0.3 : 1.0)
-                            }
-                            .padding(.bottom, 4)
-                            
-                            // Existing subtasks
-                            if !localTask.subtasks.isEmpty {
-                                ForEach(localTask.subtasks) { subtask in
-                                    HStack(spacing: 8) {
-                                        Button(action: {
-                                            toggleSubtask(subtask)
-                                        }) {
-                                            Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
-                                                .foregroundColor(subtask.isCompleted ? .green : .secondary)
-                                                .font(.body)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(taskMarkedComplete)
-                                        
-                                        Text(subtask.title)
-                                            .font(.title3)
-                                            .strikethrough(subtask.isCompleted)
-                                            .foregroundColor(subtask.isCompleted ? .secondary : .primary)
-                                            .lineLimit(2)
-                                        
-                                        Spacer()
-                                        
-                                        // Time display
-                                        Text(TimeFormatter.formatTime(subtask.currentTimeSpent))
-                                            .font(.body)
-                                            .foregroundColor(.secondary)
-                                            .monospacedDigit()
-                                            .id(timerUpdateTrigger) // Force update when trigger changes
-                                        
-                                        // Play/Pause button
-                                        Button(action: {
-                                            toggleSubtaskTimer(subtask)
-                                        }) {
-                                            Image(systemName: subtask.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                                                .foregroundColor(subtask.isRunning ? .orange : .blue)
-                                                .font(.body)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(!localTask.isRunning || taskMarkedComplete)
-                                        .opacity((localTask.isRunning && !taskMarkedComplete) ? 1.0 : 0.3)
-                                        
-                                        Button(action: {
-                                            deleteSubtask(subtask)
-                                        }) {
-                                            Image(systemName: "trash")
-                                                .font(.subheadline)
-                                                .foregroundColor(.red)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(taskMarkedComplete)
-                                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                                    }
-                                    .padding(.horizontal, 8)
-                                    .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Pause/Resume and Complete buttons at the bottom
-                    HStack(spacing: 12) {
-                        Spacer()
-                        
-                        Button(action: {
-                            if localTask.isRunning {
-                                pauseTask()
-                            } else {
-                                resumeTask()
-                            }
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: localTask.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                                    .font(.title3)
-                                Text(localTask.isRunning ? "Pause" : "Resume")
-                                    .font(.title3)
-                                    .fontWeight(.medium)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(localTask.isRunning ? Color.orange : Color.blue)
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip(localTask.isRunning ? "Pause this task" : "Resume this task")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                        
-                        Button(action: {
-                            completeTask()
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
-                                    .font(.title3)
-                                Text(taskMarkedComplete ? "Close" : "Complete")
-                                    .font(.title3)
-                                    .fontWeight(.medium)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(taskMarkedComplete ? Color.gray : Color.green)
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip(taskMarkedComplete ? "Close this task view" : "Mark this task as complete")
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            
-            // "Task Paused!" Alert (shown when auto-pause triggers)
-            if showTaskPausedAlert {
-                VStack {
-                    Spacer()
-                    
-                    HStack(spacing: 8) {
-                        Image(systemName: "pause.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                        
-                        Text("Task Paused due to inactivity!")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
-                    .background(Color.orange)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
-                    .padding(.bottom, 60)
-                    
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .transition(.opacity)
-            }
-        }
-        .onReceive(timer) { _ in
-            // Update UI every second for running timer
-            timerUpdateTrigger += 1
-            
-            // Reminder functionality - check every second if we need to show reminder or auto-pause
-            if activateReminders && localTask.isRunning {
-                let now = Date()
-                
-                // Check if we need to show a reminder (every 2 minutes)
-                if !showingReminder {
-                    if lastReminderTime == nil {
-                        // First time - set the timer
-                        lastReminderTime = now
-                    } else                     if let lastReminder = lastReminderTime {
-                        let timeSinceLastReminder = now.timeIntervalSince(lastReminder)
-                        if timeSinceLastReminder >= 120 {  // 2 minutes = 120 seconds
-                            // Show the reminder window
-                            showingReminder = true
-                            openReminderWindow()
-                            reminderResponseDeadline = now.addingTimeInterval(10)  // 10 seconds to respond
-                        }
-                    }
-                }
-                
-                // Check if we need to auto-pause (10 seconds after showing reminder)
-                if showingReminder, let deadline = reminderResponseDeadline {
-                    if now >= deadline {
-                        // Auto-pause the task and show alert
-                        handleReminderResponse(.pause, isAutoPause: true)
-                    }
-                }
-            }
-            
-            // Auto-pause on inactivity - check if user has been idle for the specified duration
-            if autoPauseAfterMinutes > 0 && localTask.isRunning {
-                let idleSeconds = CGEventSource.secondsSinceLastEventType(
-                    .hidSystemState,
-                    eventType: CGEventType(rawValue: ~0)!
-                )
-                let autoPauseThreshold = TimeInterval(autoPauseAfterMinutes * 60)
-                
-                if idleSeconds >= autoPauseThreshold {
-                    // Auto-pause the task
-                    pauseTask()
-                    
-                    // Expand window if collapsed
-                    if isCollapsed {
-                        withAnimation {
-                            isCollapsed = false
-                        }
-                        resizeWindow()
-                    }
-                    
-                    // Show "Task Paused!" alert
-                    withAnimation {
-                        showTaskPausedAlert = true
-                    }
-                    
-                    // Hide the alert after 3 seconds with fade
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                        withAnimation(.easeOut(duration: 0.5)) {
-                            showTaskPausedAlert = false
-                        }
-                    }
-                }
-            }
-            
-            // Check if countdown timer has completed
-            if localTask.isRunning && localTask.countdownTime > 0 && !timerJustCompleted {
-                let elapsed = localTask.countdownElapsed
-                if elapsed >= localTask.countdownTime {
-                    // Countdown completed - mark as just completed
-                    timerJustCompleted = true
-                    
-                    // Expand window if collapsed
-                    if isCollapsed {
-                        withAnimation {
-                            isCollapsed = false
-                        }
-                        resizeWindow()
-                    }
-                    
-                    // Play notification sound
-                    NSSound.beep()
-                    
-                    // Show the "Timer's up!" message with animation
-                    withAnimation {
-                        showTimerCompletedMessage = true
-                    }
-                    
-                    // Clear all timer fields locally after a brief delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        localTask.countdownTime = 0
-                        localTask.countdownStartTime = nil
-                        localTask.countdownElapsedAtPause = 0
-                        
-                        // Notify ContentView to clear timer fields in storage
-                        NotificationCenter.default.post(
-                            name: NSNotification.Name("ClearCountdownFromFloatingWindow"),
-                            object: nil,
-                            userInfo: ["taskId": localTask.id]
-                        )
-                    }
-                }
-            }
-        }
-        .onChange(of: windowManager.currentTask) { newTask in
-            if let newTask = newTask {
-                // Check if task running state changed
-                let wasRunning = localTask.isRunning
-                let isNowRunning = newTask.isRunning
-                
-                // Reset reminder timer when task state changes
-                if wasRunning != isNowRunning {
-                    if isNowRunning {
-                        // Task just started - reset reminder timer
-                        lastReminderTime = Date()
-                    } else {
-                        // Task paused - clear reminder state
-                        lastReminderTime = nil
-                        showingReminder = false
-                        reminderResponseDeadline = nil
-                    }
-                }
-                
-                // Check if subtasks changed to trigger resize
-                let subtasksChanged = localTask.subtasks.count != newTask.subtasks.count
-                
-                // Don't overwrite localTask if timer just completed (let it finish the completion process)
-                if timerJustCompleted && localTask.countdownTime == 0 {
-                    // Timer already cleared locally, just update other fields
-                    localTask.text = newTask.text
-                    localTask.description = newTask.description
-                    localTask.subtasks = newTask.subtasks
-                    localTask.totalTimeSpent = newTask.totalTimeSpent
-                    localTask.lastStartTime = newTask.lastStartTime
-                    localTask.estimatedTime = newTask.estimatedTime
-                    notesText = newTask.notes
-                } else {
-                    // Normal update
-                    localTask = newTask
-                    notesText = newTask.notes
-                }
-                
-                // If timer was cleared externally (from ContentView), reset completion flags
-                if newTask.countdownTime == 0 && timerJustCompleted {
-                    timerJustCompleted = false
-                }
-                
-                // If a new timer was set externally, reset flags
-                if newTask.countdownTime > 0 && newTask.countdownElapsedAtPause == 0 {
-                    timerJustCompleted = false
-                    showTimerCompletedMessage = false
-                }
-                
-                // Resize window if subtasks changed
-                if subtasksChanged && !isCollapsed {
-                    resizeWindow()
-                }
-            }
-        }
-        .onChange(of: showingTimerPicker) { newValue in
-            if newValue {
-                openTimerPickerWindow()
-            }
-        }
-        .onChange(of: showingNewTaskPopup) { newValue in
-            if newValue {
-                openNewTaskPopupWindow()
-            }
-        }
-        .onChange(of: showTimerCompletedMessage) { _ in
-            if !isCollapsed {
-                resizeWindow()
-            }
-        }
-        .onChange(of: localTask.countdownTime) { _ in
-            if !isCollapsed {
-                resizeWindow()
-            }
-        }
-    }
-    
-    private func openMainWindow() {
-        // Find and activate the main window
-        if let mainWindow = NSApp.windows.first(where: { $0.title == "TimeControl" || $0.isMainWindow }) {
-            mainWindow.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-        }
-    }
-    
-    private func openNotesWindow() {
-        // Close existing notes window if any
-        notesWindow?.close()
-        
-        // Create the SwiftUI view for notes editor
-        let contentView = NotesEditorView(notes: $notesText, taskId: localTask.id, onClose: {
-            notesWindow?.close()
-            notesWindow = nil
-        })
-        let hostingView = NSHostingView(rootView: contentView)
-        
-        // Calculate position (next to the floating task window)
-        guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
-        let taskFrame = taskWindow.frame
-        
-        let windowWidth: CGFloat = 500
-        let windowHeight: CGFloat = 400
-        
-        // Position to the left of the task window
-        let xPos = taskFrame.minX - windowWidth - 20
-        let yPos = taskFrame.minY
-        
-        // Create a floating window for notes
-        let window = NSPanel(
-            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
-            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        window.title = "Task Notes"
-        window.contentView = hostingView
-        window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.isFloatingPanel = true
-        window.becomesKeyOnlyIfNeeded = true
-        window.hidesOnDeactivate = false
-        window.minSize = NSSize(width: 300, height: 200)
-        
-        notesWindow = window
-        window.orderFrontRegardless()
-    }
-    
-    private func openReminderWindow() {
-        // Close existing reminder window if any
-        reminderWindow?.close()
-        
-        // Create the SwiftUI view for reminder alert
-        let contentView = ReminderAlertView(
-            taskText: localTask.text,
-            reminderResponseDeadline: $reminderResponseDeadline,
-            timerUpdateTrigger: timerUpdateTrigger,
-            onResponse: { response in
-                handleReminderResponse(response)
-                reminderWindow?.close()
-                reminderWindow = nil
-            }
-        )
-        let hostingView = NSHostingView(rootView: contentView)
-        
-        // Calculate position (centered on top of the task window)
-        let windowWidth: CGFloat = 400
-        let windowHeight: CGFloat = 200
-        
-        var xPos: CGFloat
-        var yPos: CGFloat
-        
-        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
-            let taskFrame = taskWindow.frame
-            // Position centered on top of the task window
-            xPos = taskFrame.midX - windowWidth / 2
-            yPos = taskFrame.midY - windowHeight / 2
-        } else {
-            // Center on screen
-            if let screen = NSScreen.main {
-                let screenFrame = screen.visibleFrame
-                xPos = screenFrame.midX - windowWidth / 2
-                yPos = screenFrame.midY - windowHeight / 2
-            } else {
-                xPos = 100
-                yPos = 100
-            }
-        }
-        
-        // Create a floating panel for the reminder
-        let window = NSPanel(
-            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
-            styleMask: [.nonactivatingPanel, .titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        window.title = "Attention Check"
-        window.contentView = hostingView
-        window.level = .statusBar  // Higher than floating to ensure visibility
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.isFloatingPanel = true
-        window.becomesKeyOnlyIfNeeded = false
-        window.hidesOnDeactivate = false
-        
-        reminderWindow = window
-        window.orderFrontRegardless()
-        window.makeKey()  // Make it the key window to get focus
-    }
-    
-    private func openTimerPickerWindow() {
-        // Close existing timer picker window if any
-        timerPickerWindow?.close()
-        
-        // Create the SwiftUI view for timer picker
-        let contentView = TimerPickerSheet(
-            hours: $timerHours,
-            minutes: $timerMinutes,
-            onSet: {
-                setCountdownTimer()
-                timerPickerWindow?.close()
-                timerPickerWindow = nil
-                showingTimerPicker = false
-            },
-            onCancel: {
-                timerPickerWindow?.close()
-                timerPickerWindow = nil
-                showingTimerPicker = false
-            }
-        )
-        let hostingView = NSHostingView(rootView: contentView)
-        
-        // Calculate position (centered on top of the task window)
-        let windowWidth: CGFloat = 400
-        let windowHeight: CGFloat = 250
-        
-        var xPos: CGFloat
-        var yPos: CGFloat
-        
-        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
-            let taskFrame = taskWindow.frame
-            // Position centered on top of the task window
-            xPos = taskFrame.midX - windowWidth / 2
-            yPos = taskFrame.midY - windowHeight / 2
-        } else {
-            // Center on screen
-            if let screen = NSScreen.main {
-                let screenFrame = screen.visibleFrame
-                xPos = screenFrame.midX - windowWidth / 2
-                yPos = screenFrame.midY - windowHeight / 2
-            } else {
-                xPos = 100
-                yPos = 100
-            }
-        }
-        
-        // Create a floating panel for the timer picker
-        let window = NSPanel(
-            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
-            styleMask: [.nonactivatingPanel, .titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        window.title = "Set Countdown Timer"
-        window.contentView = hostingView
-        window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.isFloatingPanel = true
-        window.becomesKeyOnlyIfNeeded = true
-        window.hidesOnDeactivate = false
-        
-        timerPickerWindow = window
-        window.orderFrontRegardless()
-    }
-    
-    private func openNewTaskPopupWindow() {
-        // Close existing new task popup window if any
-        newTaskPopupWindow?.close()
-        
-        // Create the SwiftUI view for new task popup
-        let contentView = NewTaskPopupView(
-            taskTitle: $newTaskTitle,
-            onCreate: {
-                createNewTask(switchToIt: false)
-                newTaskPopupWindow?.close()
-                newTaskPopupWindow = nil
-                showingNewTaskPopup = false
-            },
-            onCreateAndSwitch: {
-                createNewTask(switchToIt: true)
-                newTaskPopupWindow?.close()
-                newTaskPopupWindow = nil
-                showingNewTaskPopup = false
-            },
-            onCancel: {
-                newTaskPopupWindow?.close()
-                newTaskPopupWindow = nil
-                showingNewTaskPopup = false
-                newTaskTitle = ""
-            }
-        )
-        let hostingView = NSHostingView(rootView: contentView)
-        
-        // Calculate position (centered on top of the task window)
-        let windowWidth: CGFloat = 400
-        let windowHeight: CGFloat = 150
-        
-        var xPos: CGFloat
-        var yPos: CGFloat
-        
-        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
-            let taskFrame = taskWindow.frame
-            // Position centered on top of the task window
-            xPos = taskFrame.midX - windowWidth / 2
-            yPos = taskFrame.midY - windowHeight / 2
-        } else {
-            // Center on screen
-            if let screen = NSScreen.main {
-                let screenFrame = screen.visibleFrame
-                xPos = screenFrame.midX - windowWidth / 2
-                yPos = screenFrame.midY - windowHeight / 2
-            } else {
-                xPos = 100
-                yPos = 100
-            }
-        }
-        
-        // Create a floating panel for the new task popup
-        let window = NSPanel(
-            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
-            styleMask: [.nonactivatingPanel, .titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        window.title = "New Task"
-        window.contentView = hostingView
-        window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.isFloatingPanel = true
-        window.becomesKeyOnlyIfNeeded = true
-        window.hidesOnDeactivate = false
-        
-        newTaskPopupWindow = window
-        window.orderFrontRegardless()
-        window.makeKey()
-    }
-    
-    private func calculateDynamicHeight() -> CGFloat {
-        // Base height for header, task title, description, time tracking, and buttons
-        var height: CGFloat = 0
-        
-        // Header with buttons (collapse, notes, timer)
-        height += 40  // Header row
-        
-        // Task title dropdown
-        height += 40
-        
-        // Description (if present)
-        if !localTask.description.isEmpty {
-            height += 50  // Approximate height for 2 lines of description
-        }
-        
-        // Time tracking section (Time Elapsed + optional Attention Check)
-        height += 80  // Divider + time section
-        
-        // Countdown timer section (if active)
-        if localTask.countdownTime > 0 {
-            height += 80  // Timer display + progress bar
-        }
-        
-        // Timer completed message (if shown)
-        if showTimerCompletedMessage {
-            height += 120
-        }
-        
-        // Subtasks section header + input field
-        height += 80  // "SUBTASKS" label + input field with button
-        
-        // Subtasks list - calculate based on number of subtasks
-        let subtaskCount = localTask.subtasks.count
-        if subtaskCount > 0 {
-            // Each subtask is approximately 40 pixels tall
-            let subtasksHeight = min(CGFloat(subtaskCount) * 40, 200)  // Cap at 200px for scrolling
-            height += subtasksHeight
-        }
-        
-        // Bottom buttons (Pause/Resume and Complete)
-        height += 60
-        
-        // Add some padding
-        height += 20
-        
-        // Clamp between min and max heights
-        return min(max(height, 400), 550)
-    }
-    
-    private func resizeWindow() {
-        // Get the window from the view hierarchy
-        DispatchQueue.main.async {
-            guard let window = NSApp.windows.first(where: { $0.title == "Current Task" }),
-                  let screen = window.screen else { return }
-            
-            let currentFrame = window.frame
-            let newHeight: CGFloat = isCollapsed ? 50 : calculateDynamicHeight()
-            
-            // Calculate new frame anchored at bottom-left corner
-            var newY = currentFrame.maxY - newHeight
-            let newFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
-            
-            // Check if the new frame would go below the screen's visible area
-            let screenMinY = screen.visibleFrame.minY
-            if newFrame.minY < screenMinY {
-                // Adjust window position to stay within screen bounds
-                newY = screenMinY
-            }
-            
-            let adjustedFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
-            
-            window.setFrame(adjustedFrame, display: true, animate: true)
-        }
-    }
-    
-    private func toggleSubtask(_ subtask: Subtask) {
-        // Find the subtask and toggle it
-        if let subtaskIndex = localTask.subtasks.firstIndex(where: { $0.id == subtask.id }) {
-            localTask.subtasks[subtaskIndex].isCompleted.toggle()
-            
-            // If the subtask was just completed, move it above all non-completed subtasks
-            let wasCompleted = localTask.subtasks[subtaskIndex].isCompleted
-            if wasCompleted {
-                let completedSubtask = localTask.subtasks[subtaskIndex]
-                localTask.subtasks.remove(at: subtaskIndex)
-                
-                // Find the position of the first non-completed subtask
-                if let firstIncompleteIndex = localTask.subtasks.firstIndex(where: { !$0.isCompleted }) {
-                    localTask.subtasks.insert(completedSubtask, at: firstIncompleteIndex)
-                } else {
-                    // All subtasks are completed, add at the beginning
-                    localTask.subtasks.insert(completedSubtask, at: 0)
-                }
-            }
-            
-            // Update the stored todos in ContentView
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ToggleSubtaskFromFloatingWindow"),
-                object: nil,
-                userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
-            )
-        }
-    }
-    
-    private func toggleSubtaskTimer(_ subtask: Subtask) {
-        // Rule: Parent task must be running for subtask to be played
-        guard localTask.isRunning else {
-            return
-        }
-        
-        if let subtaskIndex = localTask.subtasks.firstIndex(where: { $0.id == subtask.id }) {
-            if localTask.subtasks[subtaskIndex].isRunning {
-                // Pause the subtask timer
-                if let startTime = localTask.subtasks[subtaskIndex].lastStartTime {
-                    localTask.subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
-                }
-                localTask.subtasks[subtaskIndex].lastStartTime = nil
-            } else {
-                // Pause any other running subtasks first
-                for i in 0..<localTask.subtasks.count {
-                    if localTask.subtasks[i].isRunning {
-                        if let startTime = localTask.subtasks[i].lastStartTime {
-                            localTask.subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
-                        }
-                        localTask.subtasks[i].lastStartTime = nil
-                    }
-                }
-                
-                // Start the subtask timer
-                localTask.subtasks[subtaskIndex].lastStartTime = Date()
-            }
-            
-            // Notify ContentView to update the subtask timer in the main todos array
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ToggleSubtaskTimerFromFloatingWindow"),
-                object: nil,
-                userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
-            )
-        }
-    }
-    
-    private func addSubtask() {
-        let trimmedTitle = newSubtaskText.trimmingCharacters(in: .whitespaces)
-        guard !trimmedTitle.isEmpty else { return }
-        
-        let newSubtask = Subtask(title: trimmedTitle, description: "")
-        localTask.subtasks.append(newSubtask)
-        
-        // Notify ContentView to add the subtask to the main todos array
-        NotificationCenter.default.post(
-            name: NSNotification.Name("AddSubtaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "subtaskTitle": trimmedTitle]
-        )
-        
-        // Clear the input and refocus for rapid succession
-        newSubtaskText = ""
-        
-        // Resize window to accommodate new subtask
-        resizeWindow()
-        
-        // Refocus the textbox after a brief delay to ensure UI is updated
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            subtaskInputFocused = true
-        }
-    }
-    
-    private func createNewTask(switchToIt: Bool) {
-        let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespaces)
-        guard !trimmedTitle.isEmpty else { return }
-        
-        // Notify ContentView to create the new task
-        NotificationCenter.default.post(
-            name: NSNotification.Name("CreateTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskTitle": trimmedTitle, "switchToIt": switchToIt]
-        )
-        
-        // Clear the input
-        newTaskTitle = ""
-    }
-    
-    private func deleteSubtask(_ subtask: Subtask) {
-        // Remove the subtask from the local task
-        localTask.subtasks.removeAll { $0.id == subtask.id }
-        
-        // Notify ContentView to delete the subtask from the main todos array
-        NotificationCenter.default.post(
-            name: NSNotification.Name("DeleteSubtaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
-        )
-        
-        // Resize window to reflect removed subtask
-        resizeWindow()
-    }
-    
-    private func completeTask() {
-        if taskMarkedComplete {
-            // If already marked complete, close the window
-            FloatingWindowManager.shared.closeFloatingWindow()
-        } else {
-            // Pause the task if it's currently running
-            if localTask.isRunning {
-                pauseTask()
-            }
-            
-            // Mark the task as complete in the main todos array
-            NotificationCenter.default.post(
-                name: NSNotification.Name("CompleteTaskFromFloatingWindow"),
-                object: nil,
-                userInfo: ["taskId": localTask.id]
-            )
-            
-            // Update local state to change button to "Close"
-            taskMarkedComplete = true
-        }
-    }
-    
-    private func pauseTask() {
-        // Pause all running subtasks first
-        for i in 0..<localTask.subtasks.count {
-            if localTask.subtasks[i].isRunning {
-                if let startTime = localTask.subtasks[i].lastStartTime {
-                    localTask.subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
-                }
-                localTask.subtasks[i].lastStartTime = nil
-            }
-        }
-        
-        // Pause the task by notifying the main view to stop the timer (but don't close window)
-        NotificationCenter.default.post(
-            name: NSNotification.Name("PauseTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "keepWindowOpen": true]
-        )
-    }
-    
-    private func resumeTask() {
-        // Resume the task by notifying the main view to restart the timer
-        NotificationCenter.default.post(
-            name: NSNotification.Name("ResumeTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id]
-        )
-    }
-    
-    private func editTask() {
-        openEditWindow()
-    }
-    
-    private func openEditWindow() {
-        // Close existing edit window if any
-        editWindow?.close()
-        
-        // Create the SwiftUI view for edit form
-        let contentView = FloatingEditView(
-            task: localTask,
-            onSave: { updatedTask in
-                // Notify ContentView to update the task
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("UpdateTaskFromFloatingWindow"),
-                    object: nil,
-                    userInfo: [
-                        "taskId": localTask.id,
-                        "text": updatedTask.text,
-                        "description": updatedTask.description,
-                        "notes": updatedTask.notes,
-                        "dueDate": updatedTask.dueDate as Any,
-                        "isAdhoc": updatedTask.isAdhoc,
-                        "fromWho": updatedTask.fromWho,
-                        "estimatedTime": updatedTask.estimatedTime
-                    ]
-                )
-                editWindow?.close()
-                editWindow = nil
-            },
-            onCancel: {
-                editWindow?.close()
-                editWindow = nil
-            }
-        )
-        let hostingView = NSHostingView(rootView: contentView)
-        
-        // Calculate position (next to the floating task window)
-        guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
-        let taskFrame = taskWindow.frame
-        
-        let windowWidth: CGFloat = 500
-        let windowHeight: CGFloat = 600
-        
-        // Position to the right of the task window
-        let xPos = taskFrame.maxX + 20
-        let yPos = taskFrame.minY
-        
-        // Create a floating window for editing
-        let window = NSPanel(
-            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
-            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        window.title = "Edit Task"
-        window.contentView = hostingView
-        window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.isFloatingPanel = true
-        window.becomesKeyOnlyIfNeeded = true
-        window.hidesOnDeactivate = false
-        window.minSize = NSSize(width: 400, height: 500)
-        
-        editWindow = window
-        window.orderFrontRegardless()
-    }
-    
-    private func setCountdownTimer() {
-        // Calculate total countdown time in seconds
-        let totalSeconds = TimeInterval((timerHours * 3600) + (timerMinutes * 60))
-        
-        // Reset completion flags when setting a new timer
-        timerJustCompleted = false
-        showTimerCompletedMessage = false
-        
-        // Notify ContentView to set the countdown timer
-        NotificationCenter.default.post(
-            name: NSNotification.Name("SetCountdownFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "countdownTime": totalSeconds]
-        )
-        
-        showingTimerPicker = false
-    }
-    
-    private func handleReminderResponse(_ response: ReminderResponse, isAutoPause: Bool = false) {
-        // Close the reminder window
-        reminderWindow?.close()
-        reminderWindow = nil
-        showingReminder = false
-        reminderResponseDeadline = nil
-        lastReminderTime = Date()  // Reset the timer for the next reminder
-        
-        switch response {
-        case .yes:
-            // Do nothing - task continues running
-            break
-            
-        case .pause:
-            // Pause the task
-            pauseTask()
-            
-            // Expand window if collapsed
-            if isCollapsed {
-                withAnimation {
-                    isCollapsed = false
-                }
-                resizeWindow()
-            }
-            
-            // Show "Task Paused!" alert if this was an auto-pause
-            if isAutoPause {
-                withAnimation {
-                    showTaskPausedAlert = true
-                }
-                
-                // Hide the alert after 3 seconds with fade
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        showTaskPausedAlert = false
-                    }
-                }
-            }
-            
-        case .openTaskList:
-            // Pause the task before opening the main window
-            pauseTask()
-            
-            // Expand window if collapsed
-            if isCollapsed {
-                withAnimation {
-                    isCollapsed = false
-                }
-                resizeWindow()
-            }
-            
-            // Open the main window
-            openMainWindow()
-        }
-    }
-}
 
 #Preview {
     ContentView()
