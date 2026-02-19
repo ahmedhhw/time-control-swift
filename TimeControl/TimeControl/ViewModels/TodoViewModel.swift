@@ -301,17 +301,7 @@ class TodoViewModel: ObservableObject {
                 }
                 
                 runningTaskId = todo.id
-                FloatingWindowManager.shared.showFloatingWindow(
-                    for: todos[index],
-                    allTodos: todos,
-                    activateReminders: activateReminders,
-                    showTimeWhenCollapsed: showTimeWhenCollapsed,
-                    autoPlayAfterSwitching: autoPlayAfterSwitching,
-                    autoPauseAfterMinutes: autoPauseAfterMinutes,
-                    onTaskSwitch: { [weak self] newTask in
-                        self?.switchToTask(newTask)
-                    }
-                )
+                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
                 
                 if todos[index].startedAt == nil {
                     todos[index].startedAt = Date().timeIntervalSince1970
@@ -556,5 +546,278 @@ class TodoViewModel: ObservableObject {
         }
         
         return text
+    }
+    
+    func pauseTask(_ taskId: UUID, keepWindowOpen: Bool) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        if let startTime = todos[todoIndex].lastStartTime {
+            todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+        }
+        todos[todoIndex].lastStartTime = nil
+        
+        if todos[todoIndex].countdownTime > 0, let countdownStart = todos[todoIndex].countdownStartTime {
+            let sessionElapsed = Date().timeIntervalSince(countdownStart)
+            todos[todoIndex].countdownElapsedAtPause += sessionElapsed
+            todos[todoIndex].countdownStartTime = nil
+        }
+        
+        for i in 0..<todos[todoIndex].subtasks.count {
+            if todos[todoIndex].subtasks[i].isRunning {
+                if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
+                    todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[todoIndex].subtasks[i].lastStartTime = nil
+            }
+        }
+        
+        saveTodos()
+        
+        if !keepWindowOpen {
+            runningTaskId = nil
+            FloatingWindowManager.shared.closeFloatingWindow()
+        } else {
+            FloatingWindowManager.shared.updateTask(todos[todoIndex])
+        }
+    }
+    
+    func resumeTask(_ taskId: UUID) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        todos[todoIndex].lastStartTime = Date()
+        
+        if todos[todoIndex].countdownTime > 0 && todos[todoIndex].countdownElapsedAtPause < todos[todoIndex].countdownTime {
+            todos[todoIndex].countdownStartTime = Date()
+        }
+        
+        if todos[todoIndex].startedAt == nil {
+            todos[todoIndex].startedAt = Date().timeIntervalSince1970
+        }
+        
+        todos[todoIndex].lastPlayedAt = Date().timeIntervalSince1970
+        
+        runningTaskId = taskId
+        saveTodos()
+        
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+    }
+    
+    func updateTaskFields(id: UUID, text: String?, description: String?, notes: String?, dueDate: Date?, isAdhoc: Bool?, fromWho: String?, estimatedTime: TimeInterval?) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        
+        if let text = text {
+            todos[todoIndex].text = text
+        }
+        if let description = description {
+            todos[todoIndex].description = description
+        }
+        if let notes = notes {
+            todos[todoIndex].notes = notes
+        }
+        if let dueDate = dueDate {
+            todos[todoIndex].dueDate = dueDate
+        } else if dueDate == nil {
+            todos[todoIndex].dueDate = nil
+        }
+        if let isAdhoc = isAdhoc {
+            todos[todoIndex].isAdhoc = isAdhoc
+        }
+        if let fromWho = fromWho {
+            todos[todoIndex].fromWho = fromWho
+        }
+        if let estimatedTime = estimatedTime {
+            todos[todoIndex].estimatedTime = estimatedTime
+        }
+        
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+    }
+    
+    func setCountdown(taskId: UUID, time: TimeInterval) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        todos[todoIndex].countdownTime = time
+        todos[todoIndex].countdownStartTime = Date()
+        todos[todoIndex].countdownElapsedAtPause = 0
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+    }
+    
+    func clearCountdown(taskId: UUID) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        todos[todoIndex].countdownTime = 0
+        todos[todoIndex].countdownStartTime = nil
+        todos[todoIndex].countdownElapsedAtPause = 0
+        saveTodos()
+    }
+    
+    func createTask(title: String, switchToIt: Bool) {
+        let newIndex = todos.count
+        let newTodo = TodoItem(text: title, index: newIndex)
+        todos.append(newTodo)
+        saveTodos()
+        
+        FloatingWindowManager.shared.updateAllTodos(todos)
+        
+        if switchToIt {
+            if let currentRunningId = runningTaskId,
+               let runningIndex = todos.firstIndex(where: { $0.id == currentRunningId }) {
+                if let startTime = todos[runningIndex].lastStartTime {
+                    todos[runningIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[runningIndex].lastStartTime = nil
+                
+                if todos[runningIndex].countdownTime > 0, let countdownStart = todos[runningIndex].countdownStartTime {
+                    let sessionElapsed = Date().timeIntervalSince(countdownStart)
+                    todos[runningIndex].countdownElapsedAtPause += sessionElapsed
+                    todos[runningIndex].countdownStartTime = nil
+                }
+            }
+            
+            if let newTaskIndex = todos.firstIndex(where: { $0.id == newTodo.id }) {
+                todos[newTaskIndex].lastStartTime = Date()
+                
+                if todos[newTaskIndex].startedAt == nil {
+                    todos[newTaskIndex].startedAt = Date().timeIntervalSince1970
+                }
+                
+                todos[newTaskIndex].lastPlayedAt = Date().timeIntervalSince1970
+                
+                if todos[newTaskIndex].countdownTime > 0 && todos[newTaskIndex].countdownElapsedAtPause < todos[newTaskIndex].countdownTime {
+                    todos[newTaskIndex].countdownStartTime = Date()
+                }
+                
+                runningTaskId = newTodo.id
+                saveTodos()
+                
+                FloatingWindowManager.shared.switchToTask(todos[newTaskIndex])
+            }
+        }
+    }
+    
+    func toggleSubtaskFromFloatingWindow(_ subtaskId: UUID, in taskId: UUID) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
+              let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) else {
+            return
+        }
+        
+        todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
+        
+        let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
+        if wasCompleted {
+            let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
+            todos[todoIndex].subtasks.remove(at: subtaskIndex)
+            
+            if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
+            } else {
+                todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
+            }
+        }
+        
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+    }
+    
+    func addSubtaskFromFloatingWindow(to taskId: UUID, title: String) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        let newSubtask = Subtask(title: title, description: "")
+        todos[todoIndex].subtasks.append(newSubtask)
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+    }
+    
+    func deleteSubtaskFromFloatingWindow(_ subtaskId: UUID, from taskId: UUID) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        todos[todoIndex].subtasks.removeAll { $0.id == subtaskId }
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+    }
+    
+    func toggleSubtaskTimerFromFloatingWindow(_ subtaskId: UUID, in taskId: UUID) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
+              let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) else {
+            return
+        }
+        
+        if todos[todoIndex].subtasks[subtaskIndex].isRunning {
+            if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
+                todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+            }
+            todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
+        } else {
+            for i in 0..<todos[todoIndex].subtasks.count {
+                if todos[todoIndex].subtasks[i].isRunning {
+                    if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
+                        todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    }
+                    todos[todoIndex].subtasks[i].lastStartTime = nil
+                }
+            }
+            
+            todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
+        }
+        
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+    }
+    
+    func updateNotesFromFloatingWindow(_ notes: String, for taskId: UUID) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        todos[todoIndex].notes = notes
+        saveTodos()
+    }
+    
+    func completeTaskFromFloatingWindow(_ taskId: UUID) {
+        guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
+            return
+        }
+        
+        todos[todoIndex].isCompleted.toggle()
+        
+        if todos[todoIndex].isCompleted {
+            todos[todoIndex].completedAt = Date().timeIntervalSince1970
+            
+            if todos[todoIndex].isRunning {
+                if let startTime = todos[todoIndex].lastStartTime {
+                    todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[todoIndex].lastStartTime = nil
+                runningTaskId = nil
+            }
+            
+            for i in 0..<todos[todoIndex].subtasks.count {
+                if todos[todoIndex].subtasks[i].isRunning {
+                    if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
+                        todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                    }
+                    todos[todoIndex].subtasks[i].lastStartTime = nil
+                }
+            }
+        } else {
+            todos[todoIndex].completedAt = nil
+        }
+        
+        saveTodos()
     }
 }

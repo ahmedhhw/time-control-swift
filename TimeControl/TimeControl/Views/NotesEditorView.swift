@@ -12,11 +12,13 @@ struct NotesEditorView: View {
     @Binding var notes: String
     let taskId: UUID
     let onClose: () -> Void
+    @ObservedObject var viewModel: TodoViewModel
     @State private var localNotes: String
     
-    init(notes: Binding<String>, taskId: UUID, onClose: @escaping () -> Void) {
+    init(notes: Binding<String>, taskId: UUID, viewModel: TodoViewModel, onClose: @escaping () -> Void) {
         self._notes = notes
         self.taskId = taskId
+        self.viewModel = viewModel
         self.onClose = onClose
         self._localNotes = State(initialValue: notes.wrappedValue)
     }
@@ -64,11 +66,7 @@ struct NotesEditorView: View {
     private func saveNotes() {
         notes = localNotes
         
-        NotificationCenter.default.post(
-            name: NSNotification.Name("UpdateNotesFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": taskId, "notes": localNotes]
-        )
+        viewModel.updateNotesFromFloatingWindow(localNotes, for: taskId)
         
         onClose()
     }

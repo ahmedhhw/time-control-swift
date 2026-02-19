@@ -15,23 +15,19 @@ class FloatingWindowManager: ObservableObject {
     @Published var allTodos: [TodoItem] = []
     private var windowDelegate: FloatingWindowDelegate?
     var onTaskSwitch: ((TodoItem) -> Void)?
-    var activateReminders: Bool = false
-    var showTimeWhenCollapsed: Bool = false
-    var autoPlayAfterSwitching: Bool = false
-    var autoPauseAfterMinutes: Int = 0
+    weak var viewModel: TodoViewModel?
     
-    func showFloatingWindow(for task: TodoItem, allTodos: [TodoItem], activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPlayAfterSwitching: Bool = false, autoPauseAfterMinutes: Int = 0, onTaskSwitch: @escaping (TodoItem) -> Void) {
+    func showFloatingWindow(for task: TodoItem, viewModel: TodoViewModel) {
         closeFloatingWindow()
         
         currentTask = task
-        self.allTodos = allTodos
-        self.activateReminders = activateReminders
-        self.showTimeWhenCollapsed = showTimeWhenCollapsed
-        self.autoPlayAfterSwitching = autoPlayAfterSwitching
-        self.autoPauseAfterMinutes = autoPauseAfterMinutes
-        self.onTaskSwitch = onTaskSwitch
+        self.allTodos = viewModel.todos
+        self.viewModel = viewModel
+        self.onTaskSwitch = { [weak viewModel] newTask in
+            viewModel?.switchToTask(newTask)
+        }
         
-        let contentView = FloatingTaskWindowView(task: task, windowManager: self, activateReminders: activateReminders, showTimeWhenCollapsed: showTimeWhenCollapsed, autoPauseAfterMinutes: autoPauseAfterMinutes, autoPlayAfterSwitching: autoPlayAfterSwitching)
+        let contentView = FloatingTaskWindowView(task: task, windowManager: self, viewModel: viewModel)
         let hostingView = NSHostingView(rootView: contentView)
         
         let initialHeight = Self.calculateInitialHeight(for: task)
@@ -104,6 +100,7 @@ class FloatingWindowManager: ObservableObject {
         allTodos = []
         onTaskSwitch = nil
         windowDelegate = nil
+        viewModel = nil
     }
     
     func updateTask(_ task: TodoItem) {

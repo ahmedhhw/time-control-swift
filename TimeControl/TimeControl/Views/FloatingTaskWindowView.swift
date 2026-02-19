@@ -5,49 +5,41 @@ import AVFoundation
 struct FloatingTaskWindowView: View {
     let task: TodoItem
     @ObservedObject var windowManager: FloatingWindowManager
+    @ObservedObject var viewModel: TodoViewModel
     @State private var localTask: TodoItem
     @State private var isCollapsed: Bool = false
     @State private var notesText: String = ""
-    @State private var timerUpdateTrigger = 0  // Used to trigger UI updates for running timer
+    @State private var timerUpdateTrigger = 0
     @State private var notesWindow: NSWindow?
     @State private var reminderWindow: NSWindow?
     @State private var timerPickerWindow: NSWindow?
     @State private var newTaskPopupWindow: NSWindow?
     @State private var editWindow: NSWindow?
-    @State private var newSubtaskText: String = ""  // Text for new subtask
-    @FocusState private var subtaskInputFocused: Bool  // Track focused subtask input
-    @State private var showingTimerPicker: Bool = false  // Show timer picker sheet
-    @State private var timerHours: Int = 0  // Hours for countdown timer
-    @State private var timerMinutes: Int = 25  // Minutes for countdown timer (default 25)
-    @State private var timerJustCompleted: Bool = false  // Track if timer just completed
-    @State private var showTimerCompletedMessage: Bool = false  // Show "Timer's up!" message
-    @State private var showingNewTaskPopup: Bool = false  // Show new task popup
-    @State private var newTaskTitle: String = ""  // Title for new task
+    @State private var newSubtaskText: String = ""
+    @FocusState private var subtaskInputFocused: Bool
+    @State private var showingTimerPicker: Bool = false
+    @State private var timerHours: Int = 0
+    @State private var timerMinutes: Int = 25
+    @State private var timerJustCompleted: Bool = false
+    @State private var showTimerCompletedMessage: Bool = false
+    @State private var showingNewTaskPopup: Bool = false
+    @State private var newTaskTitle: String = ""
     
-    // Reminder functionality
-    let activateReminders: Bool  // User setting for reminders
-    let showTimeWhenCollapsed: Bool  // User setting for showing time when collapsed
-    let autoPauseAfterMinutes: Int  // User setting for auto-pause duration
-    let autoPlayAfterSwitching: Bool  // User setting for auto-playing after switching tasks
-    @State private var lastReminderTime: Date? = nil  // When the last reminder was shown
-    @State private var showingReminder: Bool = false  // Show reminder popup
-    @State private var reminderResponseDeadline: Date? = nil  // When to auto-pause if no response
-    @State private var showTaskPausedAlert: Bool = false  // Show "Task Paused!" alert
-    @State private var taskMarkedComplete: Bool = false  // Track if task has been marked complete
+    @State private var lastReminderTime: Date? = nil
+    @State private var showingReminder: Bool = false
+    @State private var reminderResponseDeadline: Date? = nil
+    @State private var showTaskPausedAlert: Bool = false
+    @State private var taskMarkedComplete: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    init(task: TodoItem, windowManager: FloatingWindowManager, activateReminders: Bool = false, showTimeWhenCollapsed: Bool = false, autoPauseAfterMinutes: Int = 0, autoPlayAfterSwitching: Bool = false) {
+    init(task: TodoItem, windowManager: FloatingWindowManager, viewModel: TodoViewModel) {
         self.task = task
         self.windowManager = windowManager
-        self.activateReminders = activateReminders
-        self.showTimeWhenCollapsed = showTimeWhenCollapsed
-        self.autoPauseAfterMinutes = autoPauseAfterMinutes
-        self.autoPlayAfterSwitching = autoPlayAfterSwitching
+        self.viewModel = viewModel
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         
-        // Initialize timer hours/minutes from existing countdown time
         if task.countdownTime > 0 {
             let totalMinutes = Int(task.countdownTime / 60)
             self._timerHours = State(initialValue: totalMinutes / 60)
@@ -140,7 +132,7 @@ struct FloatingTaskWindowView: View {
                     .opacity(taskMarkedComplete ? 0.3 : 1.0)
                     
                     // Show time elapsed when collapsed and setting is enabled
-                    if isCollapsed && showTimeWhenCollapsed {
+                    if isCollapsed && viewModel.showTimeWhenCollapsed {
                         Spacer()
                         
                         Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
@@ -174,7 +166,7 @@ struct FloatingTaskWindowView: View {
                                     taskMarkedComplete = false
                                     
                                     // If switching from a complete task to a non-complete task and auto-play is enabled
-                                    if wasComplete && !selectedTask.isCompleted && autoPlayAfterSwitching {
+                                    if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
                                         // Resume the new task
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                             resumeTask()
@@ -238,7 +230,7 @@ struct FloatingTaskWindowView: View {
                             Spacer()
                             
                             // Attention Check countdown (only shown when reminders are active and task is running)
-                            if activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
+                            if viewModel.activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text("Attention Check")
                                         .font(.subheadline)
@@ -554,7 +546,7 @@ struct FloatingTaskWindowView: View {
             timerUpdateTrigger += 1
             
             // Reminder functionality - check every second if we need to show reminder or auto-pause
-            if activateReminders && localTask.isRunning {
+            if viewModel.activateReminders && localTask.isRunning {
                 let now = Date()
                 
                 // Check if we need to show a reminder (every 2 minutes)
@@ -583,12 +575,12 @@ struct FloatingTaskWindowView: View {
             }
             
             // Auto-pause on inactivity - check if user has been idle for the specified duration
-            if autoPauseAfterMinutes > 0 && localTask.isRunning {
+            if viewModel.autoPauseAfterMinutes > 0 && localTask.isRunning {
                 let idleSeconds = CGEventSource.secondsSinceLastEventType(
                     .hidSystemState,
                     eventType: CGEventType(rawValue: ~0)!
                 )
-                let autoPauseThreshold = TimeInterval(autoPauseAfterMinutes * 60)
+                let autoPauseThreshold = TimeInterval(viewModel.autoPauseAfterMinutes * 60)
                 
                 if idleSeconds >= autoPauseThreshold {
                     // Auto-pause the task
@@ -645,12 +637,7 @@ struct FloatingTaskWindowView: View {
                         localTask.countdownStartTime = nil
                         localTask.countdownElapsedAtPause = 0
                         
-                        // Notify ContentView to clear timer fields in storage
-                        NotificationCenter.default.post(
-                            name: NSNotification.Name("ClearCountdownFromFloatingWindow"),
-                            object: nil,
-                            userInfo: ["taskId": localTask.id]
-                        )
+                        viewModel.clearCountdown(taskId: localTask.id)
                     }
                 }
             }
@@ -741,13 +728,11 @@ struct FloatingTaskWindowView: View {
     }
     
     private func openNotesWindow() {
-        // Close existing notes window if any
         notesWindow?.close()
         
-        // Create the SwiftUI view for notes editor
-        let contentView = NotesEditorView(notes: $notesText, taskId: localTask.id, onClose: {
-            notesWindow?.close()
-            notesWindow = nil
+        let contentView = NotesEditorView(notes: $notesText, taskId: localTask.id, viewModel: viewModel, onClose: {
+            self.notesWindow?.close()
+            self.notesWindow = nil
         })
         let hostingView = NSHostingView(rootView: contentView)
         
@@ -1079,12 +1064,7 @@ struct FloatingTaskWindowView: View {
                 }
             }
             
-            // Update the stored todos in ContentView
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ToggleSubtaskFromFloatingWindow"),
-                object: nil,
-                userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
-            )
+            viewModel.toggleSubtaskFromFloatingWindow(subtask.id, in: localTask.id)
         }
     }
     
@@ -1116,12 +1096,7 @@ struct FloatingTaskWindowView: View {
                 localTask.subtasks[subtaskIndex].lastStartTime = Date()
             }
             
-            // Notify ContentView to update the subtask timer in the main todos array
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ToggleSubtaskTimerFromFloatingWindow"),
-                object: nil,
-                userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
-            )
+            viewModel.toggleSubtaskTimerFromFloatingWindow(subtask.id, in: localTask.id)
         }
     }
     
@@ -1132,20 +1107,12 @@ struct FloatingTaskWindowView: View {
         let newSubtask = Subtask(title: trimmedTitle, description: "")
         localTask.subtasks.append(newSubtask)
         
-        // Notify ContentView to add the subtask to the main todos array
-        NotificationCenter.default.post(
-            name: NSNotification.Name("AddSubtaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "subtaskTitle": trimmedTitle]
-        )
+        viewModel.addSubtaskFromFloatingWindow(to: localTask.id, title: trimmedTitle)
         
-        // Clear the input and refocus for rapid succession
         newSubtaskText = ""
         
-        // Resize window to accommodate new subtask
         resizeWindow()
         
-        // Refocus the textbox after a brief delay to ensure UI is updated
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             subtaskInputFocused = true
         }
@@ -1155,56 +1122,34 @@ struct FloatingTaskWindowView: View {
         let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
         
-        // Notify ContentView to create the new task
-        NotificationCenter.default.post(
-            name: NSNotification.Name("CreateTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskTitle": trimmedTitle, "switchToIt": switchToIt]
-        )
+        viewModel.createTask(title: trimmedTitle, switchToIt: switchToIt)
         
-        // Clear the input
         newTaskTitle = ""
     }
     
     private func deleteSubtask(_ subtask: Subtask) {
-        // Remove the subtask from the local task
         localTask.subtasks.removeAll { $0.id == subtask.id }
         
-        // Notify ContentView to delete the subtask from the main todos array
-        NotificationCenter.default.post(
-            name: NSNotification.Name("DeleteSubtaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "subtaskId": subtask.id]
-        )
+        viewModel.deleteSubtaskFromFloatingWindow(subtask.id, from: localTask.id)
         
-        // Resize window to reflect removed subtask
         resizeWindow()
     }
     
     private func completeTask() {
         if taskMarkedComplete {
-            // If already marked complete, close the window
             FloatingWindowManager.shared.closeFloatingWindow()
         } else {
-            // Pause the task if it's currently running
             if localTask.isRunning {
                 pauseTask()
             }
             
-            // Mark the task as complete in the main todos array
-            NotificationCenter.default.post(
-                name: NSNotification.Name("CompleteTaskFromFloatingWindow"),
-                object: nil,
-                userInfo: ["taskId": localTask.id]
-            )
+            viewModel.completeTaskFromFloatingWindow(localTask.id)
             
-            // Update local state to change button to "Close"
             taskMarkedComplete = true
         }
     }
     
     private func pauseTask() {
-        // Pause all running subtasks first
         for i in 0..<localTask.subtasks.count {
             if localTask.subtasks[i].isRunning {
                 if let startTime = localTask.subtasks[i].lastStartTime {
@@ -1214,21 +1159,11 @@ struct FloatingTaskWindowView: View {
             }
         }
         
-        // Pause the task by notifying the main view to stop the timer (but don't close window)
-        NotificationCenter.default.post(
-            name: NSNotification.Name("PauseTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "keepWindowOpen": true]
-        )
+        viewModel.pauseTask(localTask.id, keepWindowOpen: true)
     }
     
     private func resumeTask() {
-        // Resume the task by notifying the main view to restart the timer
-        NotificationCenter.default.post(
-            name: NSNotification.Name("ResumeTaskFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id]
-        )
+        viewModel.resumeTask(localTask.id)
     }
     
     private func editTask() {
@@ -1236,34 +1171,27 @@ struct FloatingTaskWindowView: View {
     }
     
     private func openEditWindow() {
-        // Close existing edit window if any
         editWindow?.close()
         
-        // Create the SwiftUI view for edit form
         let contentView = FloatingEditView(
             task: localTask,
             onSave: { updatedTask in
-                // Notify ContentView to update the task
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("UpdateTaskFromFloatingWindow"),
-                    object: nil,
-                    userInfo: [
-                        "taskId": localTask.id,
-                        "text": updatedTask.text,
-                        "description": updatedTask.description,
-                        "notes": updatedTask.notes,
-                        "dueDate": updatedTask.dueDate as Any,
-                        "isAdhoc": updatedTask.isAdhoc,
-                        "fromWho": updatedTask.fromWho,
-                        "estimatedTime": updatedTask.estimatedTime
-                    ]
+                viewModel.updateTaskFields(
+                    id: self.localTask.id,
+                    text: updatedTask.text,
+                    description: updatedTask.description,
+                    notes: updatedTask.notes,
+                    dueDate: updatedTask.dueDate,
+                    isAdhoc: updatedTask.isAdhoc,
+                    fromWho: updatedTask.fromWho,
+                    estimatedTime: updatedTask.estimatedTime
                 )
-                editWindow?.close()
-                editWindow = nil
+                self.editWindow?.close()
+                self.editWindow = nil
             },
             onCancel: {
-                editWindow?.close()
-                editWindow = nil
+                self.editWindow?.close()
+                self.editWindow = nil
             }
         )
         let hostingView = NSHostingView(rootView: contentView)
@@ -1301,19 +1229,12 @@ struct FloatingTaskWindowView: View {
     }
     
     private func setCountdownTimer() {
-        // Calculate total countdown time in seconds
         let totalSeconds = TimeInterval((timerHours * 3600) + (timerMinutes * 60))
         
-        // Reset completion flags when setting a new timer
         timerJustCompleted = false
         showTimerCompletedMessage = false
         
-        // Notify ContentView to set the countdown timer
-        NotificationCenter.default.post(
-            name: NSNotification.Name("SetCountdownFromFloatingWindow"),
-            object: nil,
-            userInfo: ["taskId": localTask.id, "countdownTime": totalSeconds]
-        )
+        viewModel.setCountdown(taskId: localTask.id, time: totalSeconds)
         
         showingTimerPicker = false
     }
