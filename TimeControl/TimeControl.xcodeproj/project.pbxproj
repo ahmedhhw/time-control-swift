@@ -25,6 +25,11 @@
 		9D1052D52F46DA0000B7B24D /* NewTaskPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */; };
 		9D1052D62F46DA0000B7B24D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052AD2F46DA0000B7B24D /* Enums.swift */; };
 		9D1052D92F46DB1800B7B24D /* TodoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */; };
+		AA000001000000000000002 /* TodoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001000000000000001 /* TodoRow.swift */; };
+		AA000002000000000000002 /* EditTodoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000002000000000000001 /* EditTodoSheet.swift */; };
+		AA000003000000000000002 /* FloatingEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000003000000000000001 /* FloatingEditView.swift */; };
+		AA000004000000000000002 /* MassOperationsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000004000000000000001 /* MassOperationsSheet.swift */; };
+		AA000005000000000000002 /* FloatingTaskWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000005000000000000001 /* FloatingTaskWindowView.swift */; };
 		A1000000000000000000113 /* CompilationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000112 /* CompilationTest.swift */; };
 		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
 		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
@@ -65,6 +70,11 @@
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
 		9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
+		AA000001000000000000001 /* TodoRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoRow.swift; sourceTree = "<group>"; };
+		AA000002000000000000001 /* EditTodoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTodoSheet.swift; sourceTree = "<group>"; };
+		AA000003000000000000001 /* FloatingEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingEditView.swift; sourceTree = "<group>"; };
+		AA000004000000000000001 /* MassOperationsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MassOperationsSheet.swift; sourceTree = "<group>"; };
+		AA000005000000000000001 /* FloatingTaskWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingTaskWindowView.swift; sourceTree = "<group>"; };
 		A1000000000000000000101 /* TimeControlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeControlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000000000000000000112 /* CompilationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationTest.swift; sourceTree = "<group>"; };
 		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
@@ -131,11 +141,16 @@
 				9D1052B92F46DA0000B7B24D /* NotesEditorView.swift */,
 				9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */,
 				9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */,
-				9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */,
-				9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */,
-				9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */,
-			);
-			path = Views;
+			9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */,
+			9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */,
+			9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */,
+			AA000001000000000000001 /* TodoRow.swift */,
+			AA000002000000000000001 /* EditTodoSheet.swift */,
+			AA000003000000000000001 /* FloatingEditView.swift */,
+			AA000004000000000000001 /* MassOperationsSheet.swift */,
+			AA000005000000000000001 /* FloatingTaskWindowView.swift */,
+		);
+		path = Views;
 			sourceTree = "<group>";
 		};
 		9D1052C42F46DA0000B7B24D /* WindowManagement */ = {
@@ -343,8 +358,13 @@
 				9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */,
 				9D1052D52F46DA0000B7B24D /* NewTaskPopupView.swift in Sources */,
 				9D1052D62F46DA0000B7B24D /* Enums.swift in Sources */,
-				A1000003000000000000001 /* ContentView.swift in Sources */,
-				A1000001000000000000001 /* TimeControlApp.swift in Sources */,
+			AA000001000000000000002 /* TodoRow.swift in Sources */,
+			AA000002000000000000002 /* EditTodoSheet.swift in Sources */,
+			AA000003000000000000002 /* FloatingEditView.swift in Sources */,
+			AA000004000000000000002 /* MassOperationsSheet.swift in Sources */,
+			AA000005000000000000002 /* FloatingTaskWindowView.swift in Sources */,
+			A1000003000000000000001 /* ContentView.swift in Sources */,
+			A1000001000000000000001 /* TimeControlApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
