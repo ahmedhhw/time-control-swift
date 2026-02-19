@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BB000001000000000000002 /* TaskListToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000001000000000000001 /* TaskListToolbar.swift */; };
+		BB000002000000000000002 /* TaskListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000002000000000000001 /* TaskListItem.swift */; };
+		BB000003000000000000002 /* CompletedTasksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000003000000000000001 /* CompletedTasksSection.swift */; };
 		9D1052C62F46DA0000B7B24D /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */; };
 		9D1052C72F46DA0000B7B24D /* SubtaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */; };
 		9D1052C82F46DA0000B7B24D /* PauseTaskConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */; };
@@ -52,6 +55,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		BB000001000000000000001 /* TaskListToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListToolbar.swift; sourceTree = "<group>"; };
+		BB000002000000000000001 /* TaskListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListItem.swift; sourceTree = "<group>"; };
+		BB000003000000000000001 /* CompletedTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedTasksSection.swift; sourceTree = "<group>"; };
 		9D1052AD2F46DA0000B7B24D /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		9D1052AE2F46DA0000B7B24D /* TodoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItem.swift; sourceTree = "<group>"; };
 		9D1052B22F46DA0000B7B24D /* TimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatter.swift; sourceTree = "<group>"; };
@@ -136,21 +142,24 @@
 		9D1052BF2F46DA0000B7B24D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BB000001000000000000001 /* TaskListToolbar.swift */,
+				BB000002000000000000001 /* TaskListItem.swift */,
+				BB000003000000000000001 /* CompletedTasksSection.swift */,
 				9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */,
 				9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */,
 				9D1052B92F46DA0000B7B24D /* NotesEditorView.swift */,
 				9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */,
 				9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */,
-			9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */,
-			9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */,
-			9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */,
-			AA000001000000000000001 /* TodoRow.swift */,
-			AA000002000000000000001 /* EditTodoSheet.swift */,
-			AA000003000000000000001 /* FloatingEditView.swift */,
-			AA000004000000000000001 /* MassOperationsSheet.swift */,
-			AA000005000000000000001 /* FloatingTaskWindowView.swift */,
-		);
-		path = Views;
+				9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */,
+				9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */,
+				9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */,
+				AA000001000000000000001 /* TodoRow.swift */,
+				AA000002000000000000001 /* EditTodoSheet.swift */,
+				AA000003000000000000001 /* FloatingEditView.swift */,
+				AA000004000000000000001 /* MassOperationsSheet.swift */,
+				AA000005000000000000001 /* FloatingTaskWindowView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 		9D1052C42F46DA0000B7B24D /* WindowManagement */ = {
@@ -340,6 +349,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB000001000000000000002 /* TaskListToolbar.swift in Sources */,
+				BB000002000000000000002 /* TaskListItem.swift in Sources */,
+				BB000003000000000000002 /* CompletedTasksSection.swift in Sources */,
 				9D1052C62F46DA0000B7B24D /* SettingsSheet.swift in Sources */,
 				9D1052C72F46DA0000B7B24D /* SubtaskRow.swift in Sources */,
 				9D1052C82F46DA0000B7B24D /* PauseTaskConfirmationView.swift in Sources */,
