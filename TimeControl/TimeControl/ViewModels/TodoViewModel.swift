@@ -437,23 +437,51 @@ class TodoViewModel: ObservableObject {
               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) else {
             return
         }
-        
+
         todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
-        
+
         let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
         if wasCompleted {
+            // Pause this subtask if it was running
+            if todos[todoIndex].subtasks[subtaskIndex].isRunning {
+                stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex)
+                if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
+                    todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
+            }
+
+            // Find the next incomplete subtask below this one before reordering
+            let nextIncompleteId = todos[todoIndex].subtasks[(subtaskIndex + 1)...]
+                .first(where: { !$0.isCompleted })?.id
+
             let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
             todos[todoIndex].subtasks.remove(at: subtaskIndex)
-            
+
             if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
                 todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
             } else {
                 todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
             }
+
+            // Auto-start the next incomplete subtask if the parent task is running
+            if let nextId = nextIncompleteId,
+               todos[todoIndex].isRunning,
+               let newNextIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == nextId }) {
+                startSubtaskSession(todoIndex: todoIndex, subtaskIndex: newNextIndex)
+                todos[todoIndex].subtasks[newNextIndex].lastStartTime = Date()
+
+                let startedSubtask = todos[todoIndex].subtasks.remove(at: newNextIndex)
+                if let firstIncompleteIdx = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                    todos[todoIndex].subtasks.insert(startedSubtask, at: firstIncompleteIdx)
+                } else {
+                    todos[todoIndex].subtasks.append(startedSubtask)
+                }
+            }
         }
-        
+
         saveTodos()
-        
+
         if todo.id == runningTaskId {
             FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
@@ -823,21 +851,49 @@ class TodoViewModel: ObservableObject {
               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) else {
             return
         }
-        
+
         todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
-        
+
         let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
         if wasCompleted {
+            // Pause this subtask if it was running
+            if todos[todoIndex].subtasks[subtaskIndex].isRunning {
+                stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex)
+                if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
+                    todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[todoIndex].subtasks[subtaskIndex].lastStartTime = nil
+            }
+
+            // Find the next incomplete subtask below this one before reordering
+            let nextIncompleteId = todos[todoIndex].subtasks[(subtaskIndex + 1)...]
+                .first(where: { !$0.isCompleted })?.id
+
             let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
             todos[todoIndex].subtasks.remove(at: subtaskIndex)
-            
+
             if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
                 todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
             } else {
                 todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
             }
+
+            // Auto-start the next incomplete subtask if the parent task is running
+            if let nextId = nextIncompleteId,
+               todos[todoIndex].isRunning,
+               let newNextIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == nextId }) {
+                startSubtaskSession(todoIndex: todoIndex, subtaskIndex: newNextIndex)
+                todos[todoIndex].subtasks[newNextIndex].lastStartTime = Date()
+
+                let startedSubtask = todos[todoIndex].subtasks.remove(at: newNextIndex)
+                if let firstIncompleteIdx = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                    todos[todoIndex].subtasks.insert(startedSubtask, at: firstIncompleteIdx)
+                } else {
+                    todos[todoIndex].subtasks.append(startedSubtask)
+                }
+            }
         }
-        
+
         saveTodos()
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
