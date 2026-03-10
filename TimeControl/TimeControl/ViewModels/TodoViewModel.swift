@@ -32,6 +32,8 @@ class TodoViewModel: ObservableObject {
     @Published var showTimeWhenCollapsed: Bool = false
     @Published var autoPlayAfterSwitching: Bool = false
     @Published var autoPauseAfterMinutes: Int = 0
+    @Published var timerOnTaskSwitch: Bool = false
+    @Published var shouldAutoShowTimerPicker: Bool = false
     
     private var timer: AnyCancellable?
     
@@ -238,7 +240,13 @@ class TodoViewModel: ObservableObject {
             }
             
             todos[index].lastPlayedAt = Date().timeIntervalSince1970
-            
+
+            if timerOnTaskSwitch && todos[index].countdownTime == 0 {
+                DispatchQueue.main.async {
+                    self.shouldAutoShowTimerPicker = true
+                }
+            }
+
             saveTodos()
             FloatingWindowManager.shared.updateTask(todos[index])
         } else {
@@ -316,18 +324,24 @@ class TodoViewModel: ObservableObject {
                 
                 runningTaskId = todo.id
                 FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
-                
+
                 if todos[index].startedAt == nil {
                     todos[index].startedAt = Date().timeIntervalSince1970
                 }
-                
+
                 todos[index].lastPlayedAt = Date().timeIntervalSince1970
+
+                if timerOnTaskSwitch && todos[index].countdownTime == 0 {
+                    DispatchQueue.main.async {
+                        self.shouldAutoShowTimerPicker = true
+                    }
+                }
             }
-            
+
             saveTodos()
         }
     }
-    
+
     func toggleSubtaskTimer(_ subtask: Subtask, in todo: TodoItem) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == todo.id }),
               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) else {

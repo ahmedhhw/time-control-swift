@@ -19,7 +19,7 @@ struct FloatingTaskWindowView: View {
     @FocusState private var subtaskInputFocused: Bool
     @State private var showingTimerPicker: Bool = false
     @State private var timerHours: Int = 0
-    @State private var timerMinutes: Int = 25
+    @State private var timerMinutes: Int = 15
     @State private var timerJustCompleted: Bool = false
     @State private var showTimerCompletedMessage: Bool = false
     @State private var showingNewTaskPopup: Bool = false
@@ -763,6 +763,12 @@ struct FloatingTaskWindowView: View {
         .onChange(of: showingTimerPicker) { newValue in
             if newValue {
                 openTimerPickerWindow()
+            }
+        }
+        .onChange(of: viewModel.shouldAutoShowTimerPicker) { newValue in
+            if newValue {
+                viewModel.shouldAutoShowTimerPicker = false
+                showingTimerPicker = true
             }
         }
         .onChange(of: showingNewTaskPopup) { newValue in
