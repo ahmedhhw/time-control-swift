@@ -13,6 +13,7 @@ import Quartz
 struct ContentView: View {
     @StateObject private var viewModel = TodoViewModel()
     @FocusState private var subtaskInputFocused: UUID?
+    @State private var notesViewerWindow: NSWindow?
     
     @AppStorage("activateReminders") private var activateReminders: Bool = false
     @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
@@ -36,6 +37,9 @@ struct ContentView: View {
                 onExportAllTasks: {
                     let exportText = viewModel.generateExportTextForAllTasks()
                     ExportWindowManager.shared.showExportWindow(with: exportText)
+                },
+                onOpenNotesViewer: {
+                    openNotesViewerWindow()
                 }
             )
             
@@ -277,6 +281,52 @@ struct ContentView: View {
     }
     
     private func editSubtask(_ subtask: Subtask, in todo: TodoItem) {
+    }
+
+    private func openNotesViewerWindow() {
+        // If already open, just bring it to front with refreshed content
+        if let existing = notesViewerWindow, existing.isVisible {
+            if let hosting = existing.contentView as? NSHostingView<NotesViewerView> {
+                hosting.rootView = NotesViewerView(todos: viewModel.todos)
+            }
+            existing.orderFrontRegardless()
+            return
+        }
+        notesViewerWindow?.close()
+
+        let windowWidth: CGFloat = 800
+        let windowHeight: CGFloat = 520
+
+        let xPos: CGFloat
+        let yPos: CGFloat
+        if let screen = NSScreen.main {
+            xPos = screen.visibleFrame.midX - windowWidth / 2
+            yPos = screen.visibleFrame.midY - windowHeight / 2
+        } else {
+            xPos = 200
+            yPos = 200
+        }
+
+        let contentView = NotesViewerView(todos: viewModel.todos)
+        let hostingView = NSHostingView(rootView: contentView)
+
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Notes"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        window.minSize = NSSize(width: 500, height: 300)
+
+        notesViewerWindow = window
+        window.orderFrontRegardless()
     }
 }
 

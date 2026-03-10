@@ -22,6 +22,7 @@
 		9D1052CF2F46DA0000B7B24D /* FloatingWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */; };
 		9D1052D02F46DA0000B7B24D /* ReminderAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */; };
 		9D1052D12F46DA0000B7B24D /* NotesEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B92F46DA0000B7B24D /* NotesEditorView.swift */; };
+		AA000006000000000000002 /* NotesViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000006000000000000001 /* NotesViewerView.swift */; };
 		9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */; };
 		9D1052D32F46DA0000B7B24D /* TodoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052AE2F46DA0000B7B24D /* TodoItem.swift */; };
 		9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B32F46DA0000B7B24D /* TodoStorage.swift */; };
@@ -66,6 +67,7 @@
 		9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportAllTasksView.swift; sourceTree = "<group>"; };
 		9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskPopupView.swift; sourceTree = "<group>"; };
 		9D1052B92F46DA0000B7B24D /* NotesEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesEditorView.swift; sourceTree = "<group>"; };
+		AA000006000000000000001 /* NotesViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesViewerView.swift; sourceTree = "<group>"; };
 		9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTaskConfirmationView.swift; sourceTree = "<group>"; };
 		9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderAlertView.swift; sourceTree = "<group>"; };
 		9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 				9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */,
 				9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */,
 				9D1052B92F46DA0000B7B24D /* NotesEditorView.swift */,
+				AA000006000000000000001 /* NotesViewerView.swift */,
 				9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */,
 				9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */,
 				9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */,
@@ -365,6 +368,7 @@
 				9D1052CF2F46DA0000B7B24D /* FloatingWindowManager.swift in Sources */,
 				9D1052D02F46DA0000B7B24D /* ReminderAlertView.swift in Sources */,
 				9D1052D12F46DA0000B7B24D /* NotesEditorView.swift in Sources */,
+				AA000006000000000000002 /* NotesViewerView.swift in Sources */,
 				9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */,
 				9D1052D32F46DA0000B7B24D /* TodoItem.swift in Sources */,
 				9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */,

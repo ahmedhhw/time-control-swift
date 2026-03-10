@@ -19,6 +19,7 @@ struct TaskListToolbar: View {
     let onAddTodo: () -> Void
     let onToggleExpandAll: () -> Void
     let onExportAllTasks: () -> Void
+    let onOpenNotesViewer: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -106,6 +107,15 @@ struct TaskListToolbar: View {
                         HStack {
                             Image(systemName: "gear")
                             Text("Settings")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button(action: onOpenNotesViewer) {
+                        HStack {
+                            Image(systemName: "note.text")
+                            Text("Notes")
                         }
                         .font(.body)
                     }
