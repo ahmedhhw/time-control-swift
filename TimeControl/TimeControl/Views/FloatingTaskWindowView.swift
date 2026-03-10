@@ -436,8 +436,8 @@ struct FloatingTaskWindowView: View {
                                                 .font(.body)
                                         }
                                         .buttonStyle(.plain)
-                                        .disabled(!localTask.isRunning || taskMarkedComplete)
-                                        .opacity((localTask.isRunning && !taskMarkedComplete) ? 1.0 : 0.3)
+                                        .disabled(!localTask.isRunning || taskMarkedComplete || subtask.isCompleted)
+                                        .opacity((localTask.isRunning && !taskMarkedComplete && !subtask.isCompleted) ? 1.0 : 0.3)
                                         
                                         Button(action: {
                                             deleteSubtask(subtask)
@@ -1094,6 +1094,14 @@ struct FloatingTaskWindowView: View {
                 
                 // Start the subtask timer
                 localTask.subtasks[subtaskIndex].lastStartTime = Date()
+                
+                // Move the started subtask to the top of the non-completed subtasks list
+                let startedSubtask = localTask.subtasks.remove(at: subtaskIndex)
+                if let firstIncompleteIndex = localTask.subtasks.firstIndex(where: { !$0.isCompleted }) {
+                    localTask.subtasks.insert(startedSubtask, at: firstIncompleteIndex)
+                } else {
+                    localTask.subtasks.append(startedSubtask)
+                }
             }
             
             viewModel.toggleSubtaskTimerFromFloatingWindow(subtask.id, in: localTask.id)

@@ -340,6 +340,14 @@ class TodoViewModel: ObservableObject {
             }
             
             todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
+            
+            // Move the started subtask to the top of the non-completed subtasks list
+            let startedSubtask = todos[todoIndex].subtasks.remove(at: subtaskIndex)
+            if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                todos[todoIndex].subtasks.insert(startedSubtask, at: firstIncompleteIndex)
+            } else {
+                todos[todoIndex].subtasks.append(startedSubtask)
+            }
         }
         
         saveTodos()
@@ -414,6 +422,19 @@ class TodoViewModel: ObservableObject {
         }
         
         todos[todoIndex].subtasks[subtaskIndex].isCompleted.toggle()
+        
+        let wasCompleted = todos[todoIndex].subtasks[subtaskIndex].isCompleted
+        if wasCompleted {
+            let completedSubtask = todos[todoIndex].subtasks[subtaskIndex]
+            todos[todoIndex].subtasks.remove(at: subtaskIndex)
+            
+            if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                todos[todoIndex].subtasks.insert(completedSubtask, at: firstIncompleteIndex)
+            } else {
+                todos[todoIndex].subtasks.insert(completedSubtask, at: 0)
+            }
+        }
+        
         saveTodos()
         
         if todo.id == runningTaskId {
@@ -773,6 +794,14 @@ class TodoViewModel: ObservableObject {
             }
             
             todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
+            
+            // Move the started subtask to the top of the non-completed subtasks list
+            let startedSubtask = todos[todoIndex].subtasks.remove(at: subtaskIndex)
+            if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+                todos[todoIndex].subtasks.insert(startedSubtask, at: firstIncompleteIndex)
+            } else {
+                todos[todoIndex].subtasks.append(startedSubtask)
+            }
         }
         
         saveTodos()

@@ -53,8 +53,8 @@ struct SubtaskRow: View {
                     .font(.body)
             }
             .buttonStyle(.plain)
-            .disabled(parentTodoCompleted || !parentTodoRunning)
-            .opacity((parentTodoCompleted || !parentTodoRunning) ? 0.3 : 1.0)
+            .disabled(parentTodoCompleted || !parentTodoRunning || subtask.isCompleted)
+            .opacity((parentTodoCompleted || !parentTodoRunning || subtask.isCompleted) ? 0.3 : 1.0)
             
             Button(action: onDelete) {
                 Image(systemName: "trash")
