@@ -162,7 +162,7 @@ struct HistoryView: View {
             for subtask in todo.subtasks {
                 for session in subtask.sessions {
                     if let bar = clipSession(session, to: day) {
-                        events.append(TimelineEvent(id: UUID(), label: "↳ \(subtask.title)", colorIndex: colorIdx, bar: bar, isSubtask: true))
+                        events.append(TimelineEvent(id: UUID(), label: subtask.title, colorIndex: colorIdx, bar: bar, isSubtask: true))
                         hasSessions = true
                     }
                 }
@@ -347,31 +347,73 @@ struct HistoryView: View {
         }
     }
 
+    // MARK: - Event Groups
+
+    private struct EventGroup: Identifiable {
+        var id: Int { colorIndex }
+        let colorIndex: Int
+        let parentEvents: [TimelineEvent]
+        let subtaskEvents: [TimelineEvent]
+    }
+
+    private var groupedEventSets: [EventGroup] {
+        var dict: [Int: ([TimelineEvent], [TimelineEvent])] = [:]
+        for event in timelineEvents {
+            var pair = dict[event.colorIndex] ?? ([], [])
+            if event.isSubtask { pair.1.append(event) } else { pair.0.append(event) }
+            dict[event.colorIndex] = pair
+        }
+        return dict
+            .map { EventGroup(colorIndex: $0.key, parentEvents: $0.value.0, subtaskEvents: $0.value.1) }
+            .sorted { $0.colorIndex < $1.colorIndex }
+    }
+
     // MARK: - Vertical Timeline
 
     @ViewBuilder private var verticalTimeline: some View {
         let (startHour, endHour) = timelineHourRange
         let totalHeight = CGFloat(endHour - startHour) * hourHeight
+        let groups = groupedEventSets
 
-        ZStack(alignment: .topLeading) {
-            // Invisible spacer to define the ZStack height
-            Color.clear
-                .frame(maxWidth: .infinity, minHeight: totalHeight)
+        GeometryReader { geo in
+            let blockAreaWidth = geo.size.width - timeLabelWidth - 8
+            let gap: CGFloat = 4
 
-            // Hour grid lines + labels
-            ForEach(startHour...endHour, id: \.self) { hour in
-                hourRow(hour: hour, startHour: startHour)
+            ZStack(alignment: .topLeading) {
+                // Invisible spacer to define the ZStack size
+                Color.clear
+                    .frame(width: geo.size.width, height: totalHeight)
+
+                // Hour grid lines + labels
+                ForEach(startHour...endHour, id: \.self) { hour in
+                    hourRow(hour: hour, startHour: startHour)
+                }
+
+                // Session blocks, split into left (parent) / right (subtask) lanes per group
+                ForEach(groups, id: \.id) { group in
+                    groupLaneBlocks(group, startHour: startHour, blockAreaWidth: blockAreaWidth, gap: gap)
+                }
+
+                // Current time indicator (today only)
+                if let day = selectedDay, Calendar.current.isDateInToday(day) {
+                    currentTimeIndicator(startHour: startHour)
+                }
             }
+        }
+        .frame(minHeight: totalHeight)
+    }
 
-            // Session blocks
-            ForEach(timelineEvents) { event in
-                sessionBlock(event: event, startHour: startHour)
-            }
+    @ViewBuilder
+    private func groupLaneBlocks(_ group: EventGroup, startHour: Int, blockAreaWidth: CGFloat, gap: CGFloat) -> some View {
+        let hasBoth = !group.parentEvents.isEmpty && !group.subtaskEvents.isEmpty
+        let laneWidth = hasBoth ? (blockAreaWidth - gap) / 2 : blockAreaWidth
+        let subtaskXOffset: CGFloat = hasBoth ? laneWidth + gap : 0
 
-            // Current time indicator (today only)
-            if let day = selectedDay, Calendar.current.isDateInToday(day) {
-                currentTimeIndicator(startHour: startHour)
-            }
+        ForEach(group.parentEvents) { event in
+            sessionBlock(event: event, startHour: startHour, xOffset: 0, width: laneWidth)
+        }
+        ForEach(group.subtaskEvents) { event in
+            sessionBlock(event: event, startHour: startHour, xOffset: subtaskXOffset, width: laneWidth)
         }
     }
 
@@ -391,7 +433,7 @@ struct HistoryView: View {
         .offset(y: yOffset)
     }
 
-    private func sessionBlock(event: TimelineEvent, startHour: Int) -> some View {
+    private func sessionBlock(event: TimelineEvent, startHour: Int, xOffset: CGFloat, width: CGFloat) -> some View {
         let yOffset = CGFloat(event.bar.startSeconds / 3600 - Double(startHour)) * hourHeight
         let blockH  = max(24, CGFloat(event.bar.duration / 3600) * hourHeight)
         let color   = ganttPalette[event.colorIndex % ganttPalette.count]
@@ -402,33 +444,25 @@ struct HistoryView: View {
         let endM   = Int(event.bar.endSeconds) / 60 % 60
         let timeStr = String(format: "%d:%02d – %d:%02d", startH, startM, endH, endM)
 
-        return HStack(spacing: 0) {
-            // Align with the grid (leave space for time labels)
-            Spacer().frame(width: timeLabelWidth + 8)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.label)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                if blockH >= 38 {
-                    Text(timeStr)
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.85))
-                }
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(event.label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+            if blockH >= 38 {
+                Text(timeStr)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.85))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .frame(maxWidth: .infinity, minHeight: blockH, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(color.opacity(event.isSubtask ? 0.75 : 1.0))
-            )
-            // Subtask blocks are slightly inset on the right to distinguish them
-            .padding(.trailing, event.isSubtask ? 24 : 0)
         }
-        .frame(maxWidth: .infinity, minHeight: blockH, alignment: .leading)
-        .offset(y: yOffset)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .frame(width: width, height: blockH, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(color.opacity(event.isSubtask ? 0.75 : 1.0))
+        )
+        .offset(x: timeLabelWidth + 8 + xOffset, y: yOffset)
     }
 
     private func currentTimeIndicator(startHour: Int) -> some View {
