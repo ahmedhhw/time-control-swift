@@ -47,28 +47,6 @@ struct TaskListItem: View {
             // Expanded area with inline subtask input and existing subtasks
             if isExpanded {
                 VStack(spacing: 4) {
-                    // Inline subtask input textbox (only show for incomplete tasks)
-                    if !todo.isCompleted {
-                        HStack(spacing: 8) {
-                            TextField("Subtask title...", text: $newSubtaskText)
-                                .textFieldStyle(.roundedBorder)
-                                .focused($subtaskInputFocused, equals: todo.id)
-                                .onSubmit {
-                                    onAddSubtask()
-                                }
-                            
-                            Button(action: onAddSubtask) {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(.blue)
-                                    .font(.title3)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
-                    }
-                    
                     // Existing subtasks
                     if !todo.subtasks.isEmpty {
                         ForEach(todo.subtasks) { subtask in
@@ -84,7 +62,28 @@ struct TaskListItem: View {
                             )
                             .padding(.horizontal, 12)
                         }
-                        .padding(.bottom, 4)
+                    }
+
+                    // Inline subtask input textbox (only show for incomplete tasks)
+                    if !todo.isCompleted {
+                        HStack(spacing: 8) {
+                            TextField("Subtask title...", text: $newSubtaskText)
+                                .textFieldStyle(.roundedBorder)
+                                .focused($subtaskInputFocused, equals: todo.id)
+                                .onSubmit {
+                                    onAddSubtask()
+                                }
+
+                            Button(action: onAddSubtask) {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.blue)
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                     }
                 }
             }

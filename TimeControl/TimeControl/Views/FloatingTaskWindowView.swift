@@ -419,29 +419,6 @@ struct FloatingTaskWindowView: View {
                                 .textCase(.uppercase)
                                 .opacity(taskMarkedComplete ? 0.5 : 1.0)
                             
-                            // Textfield and button for adding new subtasks
-                            HStack(spacing: 8) {
-                                TextField("Subtask title...", text: $newSubtaskText)
-                                    .textFieldStyle(.roundedBorder)
-                                    .focused($subtaskInputFocused)
-                                    .onSubmit {
-                                        addSubtask()
-                                    }
-                                    .disabled(taskMarkedComplete)
-                                
-                                Button(action: {
-                                    addSubtask()
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .font(.title3)
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete)
-                                .opacity((newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete) ? 0.3 : 1.0)
-                            }
-                            .padding(.bottom, 4)
-                            
                             // Existing subtasks
                             if !localTask.subtasks.isEmpty {
                                 ForEach($localTask.subtasks) { $subtask in
@@ -505,9 +482,32 @@ struct FloatingTaskWindowView: View {
                                     .opacity(taskMarkedComplete ? 0.5 : 1.0)
                                 }
                             }
+
+                            // Textfield and button for adding new subtasks
+                            HStack(spacing: 8) {
+                                TextField("Subtask title...", text: $newSubtaskText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .focused($subtaskInputFocused)
+                                    .onSubmit {
+                                        addSubtask()
+                                    }
+                                    .disabled(taskMarkedComplete)
+
+                                Button(action: {
+                                    addSubtask()
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.blue)
+                                        .font(.title3)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete)
+                                .opacity((newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete) ? 0.3 : 1.0)
+                            }
+                            .padding(.top, 4)
                         }
                     }
-                    
+
                     // Pause/Resume and Complete buttons at the bottom
                     HStack(spacing: 12) {
                         Spacer()
