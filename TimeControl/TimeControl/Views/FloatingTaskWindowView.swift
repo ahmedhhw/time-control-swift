@@ -31,6 +31,7 @@ struct FloatingTaskWindowView: View {
     @State private var showTaskPausedAlert: Bool = false
     @State private var taskMarkedComplete: Bool = false
     @State private var windowWidth: CGFloat = 350
+    @State private var shouldScrollToBottom = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -411,6 +412,7 @@ struct FloatingTaskWindowView: View {
                     // Subtasks section
                     Divider()
                     
+                    ScrollViewReader { scrollProxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Subtasks")
@@ -505,8 +507,18 @@ struct FloatingTaskWindowView: View {
                                 .opacity((newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete) ? 0.3 : 1.0)
                             }
                             .padding(.top, 4)
+                            .id("subtaskInput")
                         }
                     }
+                    .onChange(of: shouldScrollToBottom) { _ in
+                        if shouldScrollToBottom {
+                            withAnimation {
+                                scrollProxy.scrollTo("subtaskInput", anchor: .bottom)
+                            }
+                            shouldScrollToBottom = false
+                        }
+                    }
+                    } // ScrollViewReader
 
                     // Pause/Resume and Complete buttons at the bottom
                     HStack(spacing: 12) {
@@ -1169,10 +1181,11 @@ struct FloatingTaskWindowView: View {
         viewModel.addSubtaskFromFloatingWindow(to: localTask.id, title: trimmedTitle)
         
         newSubtaskText = ""
-        
+
         resizeWindow()
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            shouldScrollToBottom = true
             subtaskInputFocused = true
         }
     }
