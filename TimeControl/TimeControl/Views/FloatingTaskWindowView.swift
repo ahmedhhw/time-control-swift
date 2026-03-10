@@ -30,6 +30,7 @@ struct FloatingTaskWindowView: View {
     @State private var reminderResponseDeadline: Date? = nil
     @State private var showTaskPausedAlert: Bool = false
     @State private var taskMarkedComplete: Bool = false
+    @State private var windowWidth: CGFloat = 350
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -57,8 +58,23 @@ struct FloatingTaskWindowView: View {
             }
     }
     
+    // The base window width is 350pt. For every extra 50pt the user has resized,
+    // allow the collapsed picker to grow proportionally, capped so icons always fit.
+    private var collapsedPickerMaxWidth: CGFloat {
+        let baseWindowWidth: CGFloat = 350
+        let extra = max(0, windowWidth - baseWindowWidth)
+        return 120 + extra
+    }
+    
     var body: some View {
         ZStack(alignment: .top) {
+            // Track window width passively so the collapsed picker can adapt when user resizes
+            GeometryReader { geo in
+                Color.clear.preference(key: WidthPreferenceKey.self, value: geo.size.width)
+            }
+            .frame(height: 0)
+            .onPreferenceChange(WidthPreferenceKey.self) { windowWidth = $0 }
+            
             // Main content
             VStack(alignment: .leading, spacing: 0) {
                 // Collapse/expand button and Notes button at the top
@@ -157,8 +173,8 @@ struct FloatingTaskWindowView: View {
                         .pickerStyle(.menu)
                         .font(.subheadline)
                         .labelsHidden()
-                        .fixedSize()
-                         Spacer()
+                        .frame(maxWidth: collapsedPickerMaxWidth)
+                        Spacer()
                         
                         // Show time elapsed when collapsed and setting is enabled
                         if viewModel.showTimeWhenCollapsed {
@@ -1336,5 +1352,12 @@ struct FloatingTaskWindowView: View {
             // Open the main window
             openMainWindow()
         }
+    }
+}
+
+private struct WidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 350
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
