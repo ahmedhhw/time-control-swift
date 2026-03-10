@@ -14,6 +14,7 @@ struct ContentView: View {
     @StateObject private var viewModel = TodoViewModel()
     @FocusState private var subtaskInputFocused: UUID?
     @State private var notesViewerWindow: NSWindow?
+    @State private var historyWindow: NSWindow?
     
     @AppStorage("activateReminders") private var activateReminders: Bool = false
     @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
@@ -40,6 +41,9 @@ struct ContentView: View {
                 },
                 onOpenNotesViewer: {
                     openNotesViewerWindow()
+                },
+                onOpenHistory: {
+                    openHistoryWindow()
                 }
             )
             
@@ -281,6 +285,51 @@ struct ContentView: View {
     }
     
     private func editSubtask(_ subtask: Subtask, in todo: TodoItem) {
+    }
+
+    private func openHistoryWindow() {
+        if let existing = historyWindow, existing.isVisible {
+            if let hosting = existing.contentView as? NSHostingView<HistoryView> {
+                hosting.rootView = HistoryView(todos: viewModel.todos)
+            }
+            existing.orderFrontRegardless()
+            return
+        }
+        historyWindow?.close()
+
+        let windowWidth: CGFloat = 900
+        let windowHeight: CGFloat = 560
+
+        let xPos: CGFloat
+        let yPos: CGFloat
+        if let screen = NSScreen.main {
+            xPos = screen.visibleFrame.midX - windowWidth / 2
+            yPos = screen.visibleFrame.midY - windowHeight / 2
+        } else {
+            xPos = 200
+            yPos = 200
+        }
+
+        let contentView = HistoryView(todos: viewModel.todos)
+        let hostingView = NSHostingView(rootView: contentView)
+
+        let window = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "History"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        window.minSize = NSSize(width: 600, height: 400)
+
+        historyWindow = window
+        window.orderFrontRegardless()
     }
 
     private func openNotesViewerWindow() {

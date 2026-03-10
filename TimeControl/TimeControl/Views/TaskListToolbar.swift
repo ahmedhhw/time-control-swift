@@ -20,6 +20,7 @@ struct TaskListToolbar: View {
     let onToggleExpandAll: () -> Void
     let onExportAllTasks: () -> Void
     let onOpenNotesViewer: () -> Void
+    let onOpenHistory: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -116,6 +117,15 @@ struct TaskListToolbar: View {
                         HStack {
                             Image(systemName: "note.text")
                             Text("Notes")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button(action: onOpenHistory) {
+                        HStack {
+                            Image(systemName: "calendar")
+                            Text("History")
                         }
                         .font(.body)
                     }
