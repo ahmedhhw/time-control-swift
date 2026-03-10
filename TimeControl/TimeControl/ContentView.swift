@@ -313,19 +313,14 @@ struct ContentView: View {
         let contentView = HistoryView(todos: viewModel.todos)
         let hostingView = NSHostingView(rootView: contentView)
 
-        let window = NSPanel(
+        let window = NSWindow(
             contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
-            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "History"
         window.contentView = hostingView
-        window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.isFloatingPanel = true
-        window.becomesKeyOnlyIfNeeded = true
-        window.hidesOnDeactivate = false
         window.minSize = NSSize(width: 600, height: 400)
 
         historyWindow = window
