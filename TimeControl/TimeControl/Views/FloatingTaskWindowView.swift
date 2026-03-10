@@ -131,16 +131,44 @@ struct FloatingTaskWindowView: View {
                     .disabled(taskMarkedComplete)
                     .opacity(taskMarkedComplete ? 0.3 : 1.0)
                     
-                    // Show time elapsed when collapsed and setting is enabled
-                    if isCollapsed && viewModel.showTimeWhenCollapsed {
-                        Spacer()
+                    if isCollapsed {
                         
-                        Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
-                            .monospacedDigit()
-                            .id(timerUpdateTrigger)
+                        Picker("Current Task", selection: Binding(
+                            get: { localTask.id },
+                            set: { newTaskId in
+                                if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
+                                    let wasComplete = taskMarkedComplete
+                                    windowManager.switchToTask(selectedTask)
+                                    taskMarkedComplete = false
+                                    if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                            resumeTask()
+                                        }
+                                    }
+                                }
+                            }
+                        )) {
+                            ForEach(availableTasks) { task in
+                                Text(task.text)
+                                    .lineLimit(1)
+                                    .tag(task.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .font(.subheadline)
+                        .labelsHidden()
+                        .fixedSize()
+                         Spacer()
+                        
+                        // Show time elapsed when collapsed and setting is enabled
+                        if viewModel.showTimeWhenCollapsed {
+                            Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.blue)
+                                .monospacedDigit()
+                                .id(timerUpdateTrigger)
+                        }
                     }
                     
                 }
