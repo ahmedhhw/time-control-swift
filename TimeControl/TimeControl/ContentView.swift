@@ -287,7 +287,9 @@ struct ContentView: View {
         // If already open, just bring it to front with refreshed content
         if let existing = notesViewerWindow, existing.isVisible {
             if let hosting = existing.contentView as? NSHostingView<NotesViewerView> {
-                hosting.rootView = NotesViewerView(todos: viewModel.todos)
+                hosting.rootView = NotesViewerView(todos: viewModel.todos, onSaveNotes: { id, notes in
+                    viewModel.updateNotesFromFloatingWindow(notes, for: id)
+                })
             }
             existing.orderFrontRegardless()
             return
@@ -307,7 +309,9 @@ struct ContentView: View {
             yPos = 200
         }
 
-        let contentView = NotesViewerView(todos: viewModel.todos)
+        let contentView = NotesViewerView(todos: viewModel.todos, onSaveNotes: { id, notes in
+            viewModel.updateNotesFromFloatingWindow(notes, for: id)
+        })
         let hostingView = NSHostingView(rootView: contentView)
 
         let window = NSPanel(

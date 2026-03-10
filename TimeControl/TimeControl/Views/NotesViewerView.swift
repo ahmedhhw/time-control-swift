@@ -8,12 +8,14 @@ import AppKit
 
 struct NotesViewerView: View {
     let todos: [TodoItem]
+    var onSaveNotes: ((UUID, String) -> Void)? = nil
+    @State private var localTodos: [TodoItem] = []
     @State private var selectedTaskId: UUID? = nil
     @State private var searchText: String = ""
     @State private var sortOption: TaskSortOption = .creationDateNewest
 
     private var filteredTodos: [TodoItem] {
-        let withNotes = todos.filter { !$0.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let withNotes = localTodos.filter { !$0.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         let searched: [TodoItem]
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             searched = withNotes
@@ -119,7 +121,14 @@ struct NotesViewerView: View {
             // Detail: note body
             Group {
                 if let todo = selectedTodo {
-                    NotesDetailView(todo: todo, searchQuery: searchText)
+                    NotesDetailView(todo: todo, searchQuery: searchText, onSaveNotes: { id, notes in
+                        // Patch local copy so switching tasks shows up-to-date notes
+                        if let idx = localTodos.firstIndex(where: { $0.id == id }) {
+                            localTodos[idx].notes = notes
+                        }
+                        onSaveNotes?(id, notes)
+                    })
+                    .id(todo.id)
                 } else {
                     VStack {
                         Spacer()
@@ -147,6 +156,7 @@ struct NotesViewerView: View {
             }
         }
         .onAppear {
+            localTodos = todos
             if selectedTaskId == nil {
                 selectedTaskId = filteredTodos.first?.id
             }
@@ -205,6 +215,17 @@ private struct TaskNotesSidebarRow: View {
 private struct NotesDetailView: View {
     let todo: TodoItem
     let searchQuery: String
+    var onSaveNotes: ((UUID, String) -> Void)? = nil
+
+    @State private var editedNotes: String
+
+    init(todo: TodoItem, searchQuery: String, onSaveNotes: ((UUID, String) -> Void)? = nil) {
+        self.todo = todo
+        self.searchQuery = searchQuery
+        self.onSaveNotes = onSaveNotes
+        _editedNotes = State(initialValue: todo.notes)
+    }
+
 
     private var formattedDate: String {
         if let completedAt = todo.completedAt {
@@ -244,15 +265,14 @@ private struct NotesDetailView: View {
 
             Divider()
 
-            // Notes body
-            ScrollView {
-                Text(todo.notes)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .padding()
-            }
+            TextEditor(text: $editedNotes)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .background(Color(NSColor.textBackgroundColor))
+                .padding(8)
+                .onChange(of: editedNotes) { newValue in
+                    onSaveNotes?(todo.id, newValue)
+                }
         }
     }
 }
