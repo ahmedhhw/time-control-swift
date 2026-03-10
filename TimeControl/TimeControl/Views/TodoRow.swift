@@ -16,6 +16,22 @@ struct TodoRow: View {
     let onEditSubtask: (Subtask) -> Void
     
     @State private var showExportText: Bool = false
+    @State private var showSessions: Bool = false
+
+    private static let sessionTimeFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, h:mm:ss a"
+        return f
+    }()
+
+    private func formatSessionTime(_ interval: TimeInterval) -> String {
+        TodoRow.sessionTimeFmt.string(from: Date(timeIntervalSince1970: interval))
+    }
+
+    private func sessionDuration(_ session: TaskSession) -> String {
+        let end = session.stoppedAt ?? Date().timeIntervalSince1970
+        return TimeFormatter.formatTime(end - session.startedAt)
+    }
     
     private func dueDateProgress() -> (elapsed: TimeInterval, total: TimeInterval, isOverdue: Bool) {
         guard let dueDate = todo.dueDate else {
@@ -522,6 +538,11 @@ struct TodoRow: View {
                 }
             }
             
+            // Sessions section (shown when expanded and advanced mode is on)
+            if isAdvancedMode && isExpanded && (!todo.sessions.isEmpty || todo.subtasks.contains(where: { !$0.sessions.isEmpty })) {
+                SessionsSection(todo: todo, showSessions: $showSessions)
+            }
+
             // Export to text section (shown when expanded and advanced mode is on)
             if isAdvancedMode && isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
@@ -576,7 +597,149 @@ struct TodoRow: View {
                     lineWidth: 2
                 )
         )
-        .shadow(color: todo.isRunning ? Color.orange.opacity(0.2) : Color.clear, 
+        .shadow(color: todo.isRunning ? Color.orange.opacity(0.2) : Color.clear,
                 radius: 4, x: 0, y: 2)
+    }
+}
+
+// MARK: - Session Row
+
+private struct SessionRow: View {
+    let index: Int
+    let session: TaskSession
+
+    private static let fmt: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, h:mm:ss a"
+        return f
+    }()
+
+    private func fmt(_ t: TimeInterval) -> String {
+        SessionRow.fmt.string(from: Date(timeIntervalSince1970: t))
+    }
+
+    private var duration: String {
+        let end = session.stoppedAt ?? Date().timeIntervalSince1970
+        return TimeFormatter.formatTime(end - session.startedAt)
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("#\(index)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(width: 24, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 9))
+                        .foregroundColor(.green)
+                    Text(fmt(session.startedAt))
+                        .font(.system(size: 11, design: .monospaced))
+                }
+                if let stopped = session.stoppedAt {
+                    HStack(spacing: 4) {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.red)
+                        Text(fmt(stopped))
+                            .font(.system(size: 11, design: .monospaced))
+                    }
+                } else {
+                    HStack(spacing: 4) {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                        Text("Running…")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            Spacer()
+            Text(duration)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 3)
+        .padding(.horizontal, 8)
+        .background(Color.secondary.opacity(0.06))
+        .cornerRadius(6)
+    }
+}
+
+// MARK: - Sessions Section
+
+private struct SessionsSection: View {
+    let todo: TodoItem
+    @Binding var showSessions: Bool
+
+    private var totalCount: Int {
+        todo.sessions.count + todo.subtasks.reduce(0) { $0 + $1.sessions.count }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+                .padding(.horizontal, 12)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: { showSessions.toggle() }) {
+                    HStack {
+                        Image(systemName: showSessions ? "chevron.down" : "chevron.right")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Text("Sessions")
+                            .font(.title3)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Text("\(totalCount) total")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                if showSessions {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !todo.sessions.isEmpty {
+                            taskSessionGroup
+                        }
+                        ForEach(todo.subtasks.filter { !$0.sessions.isEmpty }) { subtask in
+                            subtaskSessionGroup(subtask)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+        }
+    }
+
+    private var taskSessionGroup: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(todo.text)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            ForEach(Array(todo.sessions.enumerated()), id: \.offset) { idx, session in
+                SessionRow(index: idx + 1, session: session)
+            }
+        }
+    }
+
+    private func subtaskSessionGroup(_ subtask: Subtask) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.turn.down.right")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Text(subtask.title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+            ForEach(Array(subtask.sessions.enumerated()), id: \.offset) { idx, session in
+                SessionRow(index: idx + 1, session: session)
+            }
+        }
     }
 }
