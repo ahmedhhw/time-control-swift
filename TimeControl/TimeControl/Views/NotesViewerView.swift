@@ -15,13 +15,12 @@ struct NotesViewerView: View {
     @State private var sortOption: TaskSortOption = .creationDateNewest
 
     private var filteredTodos: [TodoItem] {
-        let withNotes = localTodos.filter { !$0.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         let searched: [TodoItem]
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            searched = withNotes
+            searched = localTodos
         } else {
             let query = searchText.lowercased()
-            searched = withNotes.filter {
+            searched = localTodos.filter {
                 $0.text.lowercased().contains(query) || $0.notes.lowercased().contains(query)
             }
         }
@@ -102,7 +101,7 @@ struct NotesViewerView: View {
                 if filteredTodos.isEmpty {
                     VStack {
                         Spacer()
-                        Text(searchText.isEmpty ? "No tasks with notes" : "No matches")
+                        Text(searchText.isEmpty ? "No tasks" : "No matches")
                             .foregroundColor(.secondary)
                             .font(.callout)
                         Spacer()
