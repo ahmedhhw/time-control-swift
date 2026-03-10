@@ -132,6 +132,7 @@ class TodoViewModel: ObservableObject {
             
             if todos[index].isCompleted {
                 if todos[index].isRunning {
+                    stopSession(todoIndex: index)
                     if let startTime = todos[index].lastStartTime {
                         todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
                     }
@@ -140,6 +141,7 @@ class TodoViewModel: ObservableObject {
                     
                     for i in 0..<todos[index].subtasks.count {
                         if todos[index].subtasks[i].isRunning {
+                            stopSubtaskSession(todoIndex: index, subtaskIndex: i)
                             if let startTime = todos[index].subtasks[i].lastStartTime {
                                 todos[index].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                             }
@@ -195,6 +197,7 @@ class TodoViewModel: ObservableObject {
     func switchToTask(_ newTask: TodoItem) {
         for i in 0..<todos.count {
             if todos[i].isRunning {
+                stopSession(todoIndex: i)
                 if let startTime = todos[i].lastStartTime {
                     todos[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
@@ -208,6 +211,7 @@ class TodoViewModel: ObservableObject {
                 
                 for j in 0..<todos[i].subtasks.count {
                     if todos[i].subtasks[j].isRunning {
+                        stopSubtaskSession(todoIndex: i, subtaskIndex: j)
                         if let startTime = todos[i].subtasks[j].lastStartTime {
                             todos[i].subtasks[j].totalTimeSpent += Date().timeIntervalSince(startTime)
                         }
@@ -218,6 +222,7 @@ class TodoViewModel: ObservableObject {
         }
         
         if autoPlayAfterSwitching, let index = todos.firstIndex(where: { $0.id == newTask.id }) {
+            startSession(todoIndex: index)
             todos[index].lastStartTime = Date()
             
             if todos[index].countdownTime > 0 && todos[index].countdownElapsedAtPause < todos[index].countdownTime {
@@ -249,6 +254,7 @@ class TodoViewModel: ObservableObject {
     func toggleTimer(_ todo: TodoItem) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             if todos[index].isRunning {
+                stopSession(todoIndex: index)
                 if let startTime = todos[index].lastStartTime {
                     todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
@@ -262,6 +268,7 @@ class TodoViewModel: ObservableObject {
                 
                 for i in 0..<todos[index].subtasks.count {
                     if todos[index].subtasks[i].isRunning {
+                        stopSubtaskSession(todoIndex: index, subtaskIndex: i)
                         if let startTime = todos[index].subtasks[i].lastStartTime {
                             todos[index].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                         }
@@ -274,6 +281,7 @@ class TodoViewModel: ObservableObject {
             } else {
                 for i in 0..<todos.count {
                     if todos[i].isRunning {
+                        stopSession(todoIndex: i)
                         if let startTime = todos[i].lastStartTime {
                             todos[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                         }
@@ -287,6 +295,7 @@ class TodoViewModel: ObservableObject {
                         
                         for j in 0..<todos[i].subtasks.count {
                             if todos[i].subtasks[j].isRunning {
+                                stopSubtaskSession(todoIndex: i, subtaskIndex: j)
                                 if let startTime = todos[i].subtasks[j].lastStartTime {
                                     todos[i].subtasks[j].totalTimeSpent += Date().timeIntervalSince(startTime)
                                 }
@@ -296,6 +305,7 @@ class TodoViewModel: ObservableObject {
                     }
                 }
                 
+                startSession(todoIndex: index)
                 todos[index].lastStartTime = Date()
                 
                 if todos[index].countdownTime > 0 && todos[index].countdownElapsedAtPause < todos[index].countdownTime {
@@ -329,6 +339,7 @@ class TodoViewModel: ObservableObject {
         }
         
         if todos[todoIndex].subtasks[subtaskIndex].isRunning {
+            stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex)
             if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
                 todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
             }
@@ -336,6 +347,7 @@ class TodoViewModel: ObservableObject {
         } else {
             for i in 0..<todos[todoIndex].subtasks.count {
                 if todos[todoIndex].subtasks[i].isRunning {
+                    stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
                     if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
                         todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                     }
@@ -343,6 +355,7 @@ class TodoViewModel: ObservableObject {
                 }
             }
             
+            startSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex)
             todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
             
             // Move the started subtask to the top of the non-completed subtasks list
@@ -446,11 +459,36 @@ class TodoViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Session helpers
+
+    private func startSession(todoIndex: Int) {
+        let session = TaskSession(startedAt: Date().timeIntervalSince1970)
+        todos[todoIndex].sessions.append(session)
+    }
+
+    private func stopSession(todoIndex: Int) {
+        guard let last = todos[todoIndex].sessions.indices.last,
+              todos[todoIndex].sessions[last].stoppedAt == nil else { return }
+        todos[todoIndex].sessions[last].stoppedAt = Date().timeIntervalSince1970
+    }
+
+    private func startSubtaskSession(todoIndex: Int, subtaskIndex: Int) {
+        let session = TaskSession(startedAt: Date().timeIntervalSince1970)
+        todos[todoIndex].subtasks[subtaskIndex].sessions.append(session)
+    }
+
+    private func stopSubtaskSession(todoIndex: Int, subtaskIndex: Int) {
+        guard let last = todos[todoIndex].subtasks[subtaskIndex].sessions.indices.last,
+              todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt == nil else { return }
+        todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt = Date().timeIntervalSince1970
+    }
+
     /// Starts the timer for the first non-completed subtask of the given task index.
     private func autoStartFirstIncompleteSubtask(at todoIndex: Int) {
         guard let firstIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted && !$0.isRunning }) else {
             return
         }
+        startSubtaskSession(todoIndex: todoIndex, subtaskIndex: firstIndex)
         todos[todoIndex].subtasks[firstIndex].lastStartTime = Date()
         
         // Move it to the top of the non-completed list
@@ -620,6 +658,7 @@ class TodoViewModel: ObservableObject {
             return
         }
         
+        stopSession(todoIndex: todoIndex)
         if let startTime = todos[todoIndex].lastStartTime {
             todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
         }
@@ -633,6 +672,7 @@ class TodoViewModel: ObservableObject {
         
         for i in 0..<todos[todoIndex].subtasks.count {
             if todos[todoIndex].subtasks[i].isRunning {
+                stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
                 if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
                     todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
@@ -655,6 +695,7 @@ class TodoViewModel: ObservableObject {
             return
         }
         
+        startSession(todoIndex: todoIndex)
         todos[todoIndex].lastStartTime = Date()
         
         if todos[todoIndex].countdownTime > 0 && todos[todoIndex].countdownElapsedAtPause < todos[todoIndex].countdownTime {
@@ -742,6 +783,7 @@ class TodoViewModel: ObservableObject {
         if switchToIt {
             if let currentRunningId = runningTaskId,
                let runningIndex = todos.firstIndex(where: { $0.id == currentRunningId }) {
+                stopSession(todoIndex: runningIndex)
                 if let startTime = todos[runningIndex].lastStartTime {
                     todos[runningIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
@@ -755,6 +797,7 @@ class TodoViewModel: ObservableObject {
             }
             
             if let newTaskIndex = todos.firstIndex(where: { $0.id == newTodo.id }) {
+                startSession(todoIndex: newTaskIndex)
                 todos[newTaskIndex].lastStartTime = Date()
                 
                 if todos[newTaskIndex].startedAt == nil {
@@ -827,6 +870,7 @@ class TodoViewModel: ObservableObject {
         }
         
         if todos[todoIndex].subtasks[subtaskIndex].isRunning {
+            stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex)
             if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
                 todos[todoIndex].subtasks[subtaskIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
             }
@@ -834,6 +878,7 @@ class TodoViewModel: ObservableObject {
         } else {
             for i in 0..<todos[todoIndex].subtasks.count {
                 if todos[todoIndex].subtasks[i].isRunning {
+                    stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
                     if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
                         todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                     }
@@ -841,6 +886,7 @@ class TodoViewModel: ObservableObject {
                 }
             }
             
+            startSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex)
             todos[todoIndex].subtasks[subtaskIndex].lastStartTime = Date()
             
             // Move the started subtask to the top of the non-completed subtasks list
@@ -876,6 +922,7 @@ class TodoViewModel: ObservableObject {
             todos[todoIndex].completedAt = Date().timeIntervalSince1970
             
             if todos[todoIndex].isRunning {
+                stopSession(todoIndex: todoIndex)
                 if let startTime = todos[todoIndex].lastStartTime {
                     todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
                 }
@@ -885,6 +932,7 @@ class TodoViewModel: ObservableObject {
             
             for i in 0..<todos[todoIndex].subtasks.count {
                 if todos[todoIndex].subtasks[i].isRunning {
+                    stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
                     if let startTime = todos[todoIndex].subtasks[i].lastStartTime {
                         todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
                     }

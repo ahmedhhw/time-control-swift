@@ -46,14 +46,27 @@ class TodoStorage {
                 taskData["completedAt"] = completedAt
             }
             
+            let sessionsArray: [[String: Any]] = todo.sessions.map { session in
+                var s: [String: Any] = ["startedAt": session.startedAt]
+                if let stopped = session.stoppedAt { s["stoppedAt"] = stopped }
+                return s
+            }
+            taskData["sessions"] = sessionsArray
+            
             var subtasksArray: [[String: Any]] = []
             for subtask in todo.subtasks {
+                let subtaskSessions: [[String: Any]] = subtask.sessions.map { session in
+                    var s: [String: Any] = ["startedAt": session.startedAt]
+                    if let stopped = session.stoppedAt { s["stoppedAt"] = stopped }
+                    return s
+                }
                 subtasksArray.append([
                     "id": subtask.id.uuidString,
                     "title": subtask.title,
                     "description": subtask.description,
                     "isCompleted": subtask.isCompleted,
-                    "totalTimeSpent": subtask.totalTimeSpent
+                    "totalTimeSpent": subtask.totalTimeSpent,
+                    "sessions": subtaskSessions
                 ])
             }
             taskData["subtasks"] = subtasksArray
@@ -113,6 +126,11 @@ class TodoStorage {
                     dueDate = Date(timeIntervalSince1970: timestamp)
                 }
                 
+                let taskSessions: [TaskSession] = (taskData["sessions"] as? [[String: Any]] ?? []).compactMap { s in
+                    guard let start = s["startedAt"] as? TimeInterval else { return nil }
+                    return TaskSession(startedAt: start, stoppedAt: s["stoppedAt"] as? TimeInterval)
+                }
+                
                 var subtasks: [Subtask] = []
                 if let subtasksArray = taskData["subtasks"] as? [[String: Any]] {
                     for subtaskData in subtasksArray {
@@ -124,11 +142,15 @@ class TodoStorage {
                         let subtaskDescription = subtaskData["description"] as? String ?? ""
                         let subtaskIsCompleted = subtaskData["isCompleted"] as? Bool ?? false
                         let subtaskTotalTimeSpent = subtaskData["totalTimeSpent"] as? TimeInterval ?? 0
-                        subtasks.append(Subtask(id: subtaskId, title: subtaskTitle, description: subtaskDescription, isCompleted: subtaskIsCompleted, totalTimeSpent: subtaskTotalTimeSpent))
+                        let subtaskSessions: [TaskSession] = (subtaskData["sessions"] as? [[String: Any]] ?? []).compactMap { s in
+                            guard let start = s["startedAt"] as? TimeInterval else { return nil }
+                            return TaskSession(startedAt: start, stoppedAt: s["stoppedAt"] as? TimeInterval)
+                        }
+                        subtasks.append(Subtask(id: subtaskId, title: subtaskTitle, description: subtaskDescription, isCompleted: subtaskIsCompleted, totalTimeSpent: subtaskTotalTimeSpent, sessions: subtaskSessions))
                     }
                 }
                 
-                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt, notes: notes)
+                let todo = TodoItem(id: id, text: title, isCompleted: isCompleted, index: index, totalTimeSpent: totalTimeSpent, lastStartTime: lastStartTime, description: description, dueDate: dueDate, isAdhoc: isAdhoc, fromWho: fromWho, estimatedTime: estimatedTime, subtasks: subtasks, createdAt: createdAt, startedAt: startedAt, completedAt: completedAt, notes: notes, sessions: taskSessions)
                 todos.append(todo)
             }
             
