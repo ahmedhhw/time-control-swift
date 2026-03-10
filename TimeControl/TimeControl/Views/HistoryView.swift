@@ -85,8 +85,11 @@ struct HistoryView: View {
     @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDay: Date? = nil
 
-    private let hourHeight: CGFloat = 64
+    @State private var hourHeight: CGFloat = 64
+    @State private var pinchBaseHourHeight: CGFloat = 64
     private let timeLabelWidth: CGFloat = 52
+    private let minHourHeight: CGFloat = 16
+    private let maxHourHeight: CGFloat = 320
 
     // MARK: - Computed: days with any session data (for dot indicators)
 
@@ -332,6 +335,19 @@ struct HistoryView: View {
                     Text("Total: \(TimeFormatter.formatTime(totalTime))")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+                    Divider().frame(height: 16).padding(.horizontal, 8)
+                    HStack(spacing: 2) {
+                        Button(action: { hourHeight = max(minHourHeight, hourHeight / 1.5) }) {
+                            Image(systemName: "minus.magnifyingglass")
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(hourHeight <= minHourHeight)
+                        Button(action: { hourHeight = min(maxHourHeight, hourHeight * 1.5) }) {
+                            Image(systemName: "plus.magnifyingglass")
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(hourHeight >= maxHourHeight)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -343,6 +359,16 @@ struct HistoryView: View {
                         .padding(.vertical, 12)
                         .padding(.trailing, 12)
                 }
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            hourHeight = (pinchBaseHourHeight * value).clamped(to: minHourHeight...maxHourHeight)
+                        }
+                        .onEnded { value in
+                            hourHeight = (pinchBaseHourHeight * value).clamped(to: minHourHeight...maxHourHeight)
+                            pinchBaseHourHeight = hourHeight
+                        }
+                )
             }
         }
     }
@@ -434,9 +460,12 @@ struct HistoryView: View {
     }
 
     private func sessionBlock(event: TimelineEvent, startHour: Int, xOffset: CGFloat, width: CGFloat) -> some View {
-        let yOffset = CGFloat(event.bar.startSeconds / 3600 - Double(startHour)) * hourHeight
-        let blockH  = max(24, CGFloat(event.bar.duration / 3600) * hourHeight)
-        let color   = ganttPalette[event.colorIndex % ganttPalette.count]
+        let yOffset  = CGFloat(event.bar.startSeconds / 3600 - Double(startHour)) * hourHeight
+        let trueH    = CGFloat(event.bar.duration / 3600) * hourHeight
+        let blockH   = max(3, trueH)  // 3pt minimum so very short sessions are still visible
+        let color    = ganttPalette[event.colorIndex % ganttPalette.count]
+        let showLabel = trueH >= 20
+        let showTime  = trueH >= 38
 
         let startH = Int(event.bar.startSeconds) / 3600
         let startM = Int(event.bar.startSeconds) / 60 % 60
@@ -444,24 +473,29 @@ struct HistoryView: View {
         let endM   = Int(event.bar.endSeconds) / 60 % 60
         let timeStr = String(format: "%d:%02d – %d:%02d", startH, startM, endH, endM)
 
-        return VStack(alignment: .leading, spacing: 2) {
-            Text(event.label)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-            if blockH >= 38 {
-                Text(timeStr)
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.85))
+        return Group {
+            if showLabel {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(event.label)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    if showTime {
+                        Text(timeStr)
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.85))
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .frame(width: width, height: blockH, alignment: .topLeading)
+                .background(RoundedRectangle(cornerRadius: 6).fill(color.opacity(event.isSubtask ? 0.75 : 1.0)))
+            } else {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color.opacity(event.isSubtask ? 0.75 : 1.0))
+                    .frame(width: width, height: blockH)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .frame(width: width, height: blockH, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(color.opacity(event.isSubtask ? 0.75 : 1.0))
-        )
         .offset(x: timeLabelWidth + 8 + xOffset, y: yOffset)
     }
 
@@ -511,5 +545,11 @@ private extension Calendar {
     func startOfMonth(for date: Date) -> Date {
         let comps = dateComponents([.year, .month], from: date)
         return self.date(from: comps) ?? date
+    }
+}
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
     }
 }
