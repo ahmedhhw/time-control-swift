@@ -15,6 +15,24 @@ struct SubtaskRow: View {
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onToggleTimer: () -> Void
+    let onRename: (String) -> Void
+    
+    @State private var editingTitle: String
+    
+    init(subtask: Subtask, parentTodoCompleted: Bool, parentTodoRunning: Bool,
+         timerUpdateTrigger: Int, onToggle: @escaping () -> Void,
+         onDelete: @escaping () -> Void, onToggleTimer: @escaping () -> Void,
+         onRename: @escaping (String) -> Void) {
+        self.subtask = subtask
+        self.parentTodoCompleted = parentTodoCompleted
+        self.parentTodoRunning = parentTodoRunning
+        self.timerUpdateTrigger = timerUpdateTrigger
+        self.onToggle = onToggle
+        self.onDelete = onDelete
+        self.onToggleTimer = onToggleTimer
+        self.onRename = onRename
+        self._editingTitle = State(initialValue: subtask.title)
+    }
     
     var body: some View {
         HStack(spacing: 8) {
@@ -26,10 +44,15 @@ struct SubtaskRow: View {
             .buttonStyle(.plain)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(subtask.title)
+                TextField("", text: $editingTitle)
                     .font(.title3)
-                    .strikethrough(subtask.isCompleted)
                     .foregroundColor(subtask.isCompleted ? .secondary : .primary)
+                    .strikethrough(subtask.isCompleted)
+                    .textFieldStyle(.plain)
+                    .onSubmit { commitRename() }
+                    .onExitCommand { editingTitle = subtask.title }
+                    .disabled(parentTodoCompleted)
+                    .onChange(of: subtask.title) { newTitle in editingTitle = newTitle }
                 
                 if !subtask.description.isEmpty {
                     Text(subtask.description)
@@ -72,5 +95,14 @@ struct SubtaskRow: View {
             RoundedRectangle(cornerRadius: 6)
                 .strokeBorder(Color.gray.opacity(0.15), lineWidth: 1)
         )
+    }
+    
+    private func commitRename() {
+        let trimmed = editingTitle.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            editingTitle = subtask.title
+        } else if trimmed != subtask.title {
+            onRename(trimmed)
+        }
     }
 }

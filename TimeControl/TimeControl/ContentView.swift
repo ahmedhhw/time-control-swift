@@ -85,6 +85,9 @@ struct ContentView: View {
                                     onEditSubtask: { subtask in
                                         editSubtask(subtask, in: todo)
                                     },
+                                    onRenameSubtask: { subtask, newTitle in
+                                        viewModel.renameSubtask(subtask, in: todo, newTitle: newTitle)
+                                    },
                                     onAddSubtask: { addSubtask(to: todo) }
                                 )
                                 .draggable(todo.id.uuidString) {
@@ -166,6 +169,9 @@ struct ContentView: View {
                         },
                         onEditSubtask: { subtask, todo in
                             editSubtask(subtask, in: todo)
+                        },
+                        onRenameSubtask: { subtask, todo, newTitle in
+                            viewModel.renameSubtask(subtask, in: todo, newTitle: newTitle)
                         },
                         onAddSubtask: { todo in
                             viewModel.addSubtask(to: todo)

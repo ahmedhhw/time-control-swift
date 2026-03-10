@@ -224,6 +224,8 @@ class TodoViewModel: ObservableObject {
                 todos[index].countdownStartTime = Date()
             }
             
+            autoStartFirstIncompleteSubtask(at: index)
+            
             runningTaskId = newTask.id
             
             if todos[index].startedAt == nil {
@@ -299,6 +301,8 @@ class TodoViewModel: ObservableObject {
                 if todos[index].countdownTime > 0 && todos[index].countdownElapsedAtPause < todos[index].countdownTime {
                     todos[index].countdownStartTime = Date()
                 }
+                
+                autoStartFirstIncompleteSubtask(at: index)
                 
                 runningTaskId = todo.id
                 FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
@@ -440,6 +444,48 @@ class TodoViewModel: ObservableObject {
         if todo.id == runningTaskId {
             FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
+    }
+    
+    /// Starts the timer for the first non-completed subtask of the given task index.
+    private func autoStartFirstIncompleteSubtask(at todoIndex: Int) {
+        guard let firstIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted && !$0.isRunning }) else {
+            return
+        }
+        todos[todoIndex].subtasks[firstIndex].lastStartTime = Date()
+        
+        // Move it to the top of the non-completed list
+        let startedSubtask = todos[todoIndex].subtasks.remove(at: firstIndex)
+        if let firstIncompleteIndex = todos[todoIndex].subtasks.firstIndex(where: { !$0.isCompleted }) {
+            todos[todoIndex].subtasks.insert(startedSubtask, at: firstIncompleteIndex)
+        } else {
+            todos[todoIndex].subtasks.append(startedSubtask)
+        }
+    }
+    
+    func renameSubtask(_ subtask: Subtask, in todo: TodoItem, newTitle: String) {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty,
+              let todoIndex = todos.firstIndex(where: { $0.id == todo.id }),
+              let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtask.id }) else {
+            return
+        }
+        todos[todoIndex].subtasks[subtaskIndex].title = trimmed
+        saveTodos()
+        if todo.id == runningTaskId {
+            FloatingWindowManager.shared.updateTask(todos[todoIndex])
+        }
+    }
+    
+    func renameSubtaskFromFloatingWindow(_ subtaskId: UUID, in taskId: UUID, newTitle: String) {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty,
+              let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
+              let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) else {
+            return
+        }
+        todos[todoIndex].subtasks[subtaskIndex].title = trimmed
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
     
     func deleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
@@ -614,6 +660,8 @@ class TodoViewModel: ObservableObject {
         if todos[todoIndex].countdownTime > 0 && todos[todoIndex].countdownElapsedAtPause < todos[todoIndex].countdownTime {
             todos[todoIndex].countdownStartTime = Date()
         }
+        
+        autoStartFirstIncompleteSubtask(at: todoIndex)
         
         if todos[todoIndex].startedAt == nil {
             todos[todoIndex].startedAt = Date().timeIntervalSince1970

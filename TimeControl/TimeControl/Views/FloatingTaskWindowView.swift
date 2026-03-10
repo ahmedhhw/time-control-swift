@@ -400,7 +400,7 @@ struct FloatingTaskWindowView: View {
                             
                             // Existing subtasks
                             if !localTask.subtasks.isEmpty {
-                                ForEach(localTask.subtasks) { subtask in
+                                ForEach($localTask.subtasks) { $subtask in
                                     HStack(spacing: 8) {
                                         Button(action: {
                                             toggleSubtask(subtask)
@@ -412,11 +412,18 @@ struct FloatingTaskWindowView: View {
                                         .buttonStyle(.plain)
                                         .disabled(taskMarkedComplete)
                                         
-                                        Text(subtask.title)
+                                        TextField("", text: $subtask.title)
                                             .font(.title3)
-                                            .strikethrough(subtask.isCompleted)
                                             .foregroundColor(subtask.isCompleted ? .secondary : .primary)
-                                            .lineLimit(2)
+                                            .strikethrough(subtask.isCompleted)
+                                            .textFieldStyle(.plain)
+                                            .disabled(taskMarkedComplete)
+                                            .onSubmit {
+                                                let trimmed = subtask.title.trimmingCharacters(in: .whitespaces)
+                                                if !trimmed.isEmpty {
+                                                    viewModel.renameSubtaskFromFloatingWindow(subtask.id, in: localTask.id, newTitle: trimmed)
+                                                }
+                                            }
                                         
                                         Spacer()
                                         

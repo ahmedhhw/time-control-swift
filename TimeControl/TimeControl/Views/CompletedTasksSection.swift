@@ -26,6 +26,7 @@ struct CompletedTasksSection: View {
     let onDeleteSubtask: (Subtask, TodoItem) -> Void
     let onToggleSubtaskTimer: (Subtask, TodoItem) -> Void
     let onEditSubtask: (Subtask, TodoItem) -> Void
+    let onRenameSubtask: (Subtask, TodoItem, String) -> Void
     let onAddSubtask: (TodoItem) -> Void
     let onMoveTodo: (Int, Int) -> Void
     let allTodos: [TodoItem]
@@ -138,7 +139,8 @@ struct CompletedTasksSection: View {
                                                                 timerUpdateTrigger: timerUpdateTrigger,
                                                                 onToggle: { onToggleSubtask(subtask, todo) },
                                                                 onDelete: { onDeleteSubtask(subtask, todo) },
-                                                                onToggleTimer: { onToggleSubtaskTimer(subtask, todo) }
+                                                                onToggleTimer: { onToggleSubtaskTimer(subtask, todo) },
+                                                                onRename: { newTitle in onRenameSubtask(subtask, todo, newTitle) }
                                                             )
                                                             .padding(.horizontal, 12)
                                                         }

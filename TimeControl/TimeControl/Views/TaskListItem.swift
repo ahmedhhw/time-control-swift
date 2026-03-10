@@ -24,6 +24,7 @@ struct TaskListItem: View {
     let onDeleteSubtask: (Subtask) -> Void
     let onToggleSubtaskTimer: (Subtask) -> Void
     let onEditSubtask: (Subtask) -> Void
+    let onRenameSubtask: (Subtask, String) -> Void
     let onAddSubtask: () -> Void
     
     var body: some View {
@@ -78,7 +79,8 @@ struct TaskListItem: View {
                                 timerUpdateTrigger: timerUpdateTrigger,
                                 onToggle: { onToggleSubtask(subtask) },
                                 onDelete: { onDeleteSubtask(subtask) },
-                                onToggleTimer: { onToggleSubtaskTimer(subtask) }
+                                onToggleTimer: { onToggleSubtaskTimer(subtask) },
+                                onRename: { newTitle in onRenameSubtask(subtask, newTitle) }
                             )
                             .padding(.horizontal, 12)
                         }
