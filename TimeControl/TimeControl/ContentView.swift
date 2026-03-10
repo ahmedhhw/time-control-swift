@@ -297,8 +297,8 @@ struct ContentView: View {
         }
         historyWindow?.close()
 
-        let windowWidth: CGFloat = 900
-        let windowHeight: CGFloat = 560
+        let windowWidth: CGFloat = 1300
+        let windowHeight: CGFloat = 700
 
         let xPos: CGFloat
         let yPos: CGFloat

@@ -83,7 +83,7 @@ struct HistoryView: View {
     let todos: [TodoItem]
 
     @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
-    @State private var selectedDay: Date? = nil
+    @State private var selectedDay: Date? = Calendar.current.startOfDay(for: Date())
 
     @State private var hourHeight: CGFloat = 64
     @State private var pinchBaseHourHeight: CGFloat = 64
