@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import AppKit
 
 class TodoViewModel: ObservableObject {
     @Published var todos: [TodoItem] = []
@@ -41,6 +42,25 @@ class TodoViewModel: ObservableObject {
     init() {
         self.todos = TodoStorage.load()
         startTimer()
+
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("PauseTaskFromFloatingWindow"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let taskId = notification.userInfo?["taskId"] as? UUID else { return }
+            let keepWindowOpen = notification.userInfo?["keepWindowOpen"] as? Bool ?? false
+            self.pauseTask(taskId, keepWindowOpen: keepWindowOpen)
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.pauseRunningTaskForTermination()
+        }
     }
     
     private func startTimer() {
@@ -407,15 +427,22 @@ class TodoViewModel: ObservableObject {
     func addSubtask(to todo: TodoItem) {
         let trimmedTitle = (newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
-        
+
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
+            let hadNoIncompleteSubtasks = todos[index].subtasks.filter { !$0.isCompleted }.isEmpty
             let newSubtask = Subtask(title: trimmedTitle, description: "")
             todos[index].subtasks.append(newSubtask)
-            
+
             newSubtaskTexts[todo.id] = ""
-            
+
+            if hadNoIncompleteSubtasks && todos[index].isRunning,
+               let newSubtaskIndex = todos[index].subtasks.firstIndex(where: { $0.id == newSubtask.id }) {
+                startSubtaskSession(todoIndex: index, subtaskIndex: newSubtaskIndex)
+                todos[index].subtasks[newSubtaskIndex].lastStartTime = Date()
+            }
+
             saveTodos()
-            
+
             if todo.id == runningTaskId {
                 FloatingWindowManager.shared.updateTask(todos[index])
             }
@@ -733,6 +760,36 @@ class TodoViewModel: ObservableObject {
         }
     }
     
+    private func pauseRunningTaskForTermination() {
+        guard let taskId = runningTaskId,
+              let index = todos.firstIndex(where: { $0.id == taskId }) else { return }
+
+        stopSession(todoIndex: index)
+        if let startTime = todos[index].lastStartTime {
+            todos[index].totalTimeSpent += Date().timeIntervalSince(startTime)
+        }
+        todos[index].lastStartTime = nil
+
+        if todos[index].countdownTime > 0, let countdownStart = todos[index].countdownStartTime {
+            let sessionElapsed = Date().timeIntervalSince(countdownStart)
+            todos[index].countdownElapsedAtPause += sessionElapsed
+            todos[index].countdownStartTime = nil
+        }
+
+        for i in 0..<todos[index].subtasks.count {
+            if todos[index].subtasks[i].isRunning {
+                stopSubtaskSession(todoIndex: index, subtaskIndex: i)
+                if let startTime = todos[index].subtasks[i].lastStartTime {
+                    todos[index].subtasks[i].totalTimeSpent += Date().timeIntervalSince(startTime)
+                }
+                todos[index].subtasks[i].lastStartTime = nil
+            }
+        }
+
+        runningTaskId = nil
+        TodoStorage.save(todos: todos)
+    }
+
     func resumeTask(_ taskId: UUID) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
@@ -917,9 +974,17 @@ class TodoViewModel: ObservableObject {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
         }
-        
+
+        let hadNoIncompleteSubtasks = todos[todoIndex].subtasks.filter { !$0.isCompleted }.isEmpty
         let newSubtask = Subtask(title: title, description: "")
         todos[todoIndex].subtasks.append(newSubtask)
+
+        if hadNoIncompleteSubtasks && todos[todoIndex].isRunning,
+           let newSubtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == newSubtask.id }) {
+            startSubtaskSession(todoIndex: todoIndex, subtaskIndex: newSubtaskIndex)
+            todos[todoIndex].subtasks[newSubtaskIndex].lastStartTime = Date()
+        }
+
         saveTodos()
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
