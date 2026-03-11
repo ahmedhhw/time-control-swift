@@ -19,7 +19,7 @@ struct FloatingTaskWindowView: View {
     @FocusState private var subtaskInputFocused: Bool
     @State private var showingTimerPicker: Bool = false
     @State private var timerHours: Int = 0
-    @State private var timerMinutes: Int = 25
+    @State private var timerMinutes: Int = 15
     @State private var timerJustCompleted: Bool = false
     @State private var showTimerCompletedMessage: Bool = false
     @State private var showingNewTaskPopup: Bool = false
@@ -371,7 +371,7 @@ struct FloatingTaskWindowView: View {
                                         .monospacedDigit()
                                     
                                     Spacer()
-                                    
+
                                     if localTask.countdownElapsed >= localTask.countdownTime {
                                         HStack(spacing: 4) {
                                             Image(systemName: "bell.fill")
@@ -382,6 +382,18 @@ struct FloatingTaskWindowView: View {
                                                 .foregroundColor(.red)
                                         }
                                     }
+
+                                    Button {
+                                        localTask.countdownTime = 0
+                                        localTask.countdownStartTime = nil
+                                        localTask.countdownElapsedAtPause = 0
+                                        viewModel.clearCountdown(taskId: localTask.id)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Cancel timer")
                                 }
                                 .opacity(taskMarkedComplete ? 0.5 : 1.0)
                                 
@@ -763,6 +775,12 @@ struct FloatingTaskWindowView: View {
         .onChange(of: showingTimerPicker) { newValue in
             if newValue {
                 openTimerPickerWindow()
+            }
+        }
+        .onChange(of: viewModel.shouldAutoShowTimerPicker) { newValue in
+            if newValue {
+                viewModel.shouldAutoShowTimerPicker = false
+                showingTimerPicker = true
             }
         }
         .onChange(of: showingNewTaskPopup) { newValue in

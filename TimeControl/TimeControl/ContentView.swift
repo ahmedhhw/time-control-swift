@@ -22,6 +22,8 @@ struct ContentView: View {
     @AppStorage("showTimeWhenCollapsed") private var showTimeWhenCollapsed: Bool = false
     @AppStorage("autoPlayAfterSwitching") private var autoPlayAfterSwitching: Bool = false
     @AppStorage("autoPauseAfterMinutes") private var autoPauseAfterMinutes: Int = 0
+    @AppStorage("timerOnTaskSwitch") private var timerOnTaskSwitch: Bool = false
+    @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
     
     var body: some View {
         VStack(spacing: 0) {
@@ -200,6 +202,8 @@ struct ContentView: View {
             viewModel.showTimeWhenCollapsed = showTimeWhenCollapsed
             viewModel.autoPlayAfterSwitching = autoPlayAfterSwitching
             viewModel.autoPauseAfterMinutes = autoPauseAfterMinutes
+            viewModel.timerOnTaskSwitch = timerOnTaskSwitch
+            viewModel.defaultTimerMinutes = defaultTimerMinutes
         }
         .onChange(of: activateReminders) { viewModel.activateReminders = $0 }
         .onChange(of: confirmTaskDeletion) { viewModel.confirmTaskDeletion = $0 }
@@ -207,6 +211,8 @@ struct ContentView: View {
         .onChange(of: showTimeWhenCollapsed) { viewModel.showTimeWhenCollapsed = $0 }
         .onChange(of: autoPlayAfterSwitching) { viewModel.autoPlayAfterSwitching = $0 }
         .onChange(of: autoPauseAfterMinutes) { viewModel.autoPauseAfterMinutes = $0 }
+        .onChange(of: timerOnTaskSwitch) { viewModel.timerOnTaskSwitch = $0 }
+        .onChange(of: defaultTimerMinutes) { viewModel.defaultTimerMinutes = $0 }
         .sheet(item: $viewModel.editingTodo) { todoToEdit in
             if let index = viewModel.todos.firstIndex(where: { $0.id == todoToEdit.id }) {
                 EditTodoSheet(todo: $viewModel.todos[index], onSave: {
@@ -221,7 +227,7 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $viewModel.showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes)
         }
         .confirmationDialog(
             "Delete Task",

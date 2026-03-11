@@ -58,6 +58,32 @@ enum AutoPauseDuration: Int, CaseIterable, Identifiable {
     }
 }
 
+enum DefaultTimerDuration: Int, CaseIterable, Identifiable {
+    case off = 0
+    case fiveMinutes = 5
+    case tenMinutes = 10
+    case fifteenMinutes = 15
+    case twentyMinutes = 20
+    case twentyFiveMinutes = 25
+    case thirtyMinutes = 30
+    case fortyFiveMinutes = 45
+    case oneHour = 60
+    case ninetyMinutes = 90
+    case twoHours = 120
+
+    var id: Int { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .off: return "Off"
+        case .oneHour: return "1 hour"
+        case .ninetyMinutes: return "1.5 hours"
+        case .twoHours: return "2 hours"
+        default: return "\(rawValue) minutes"
+        }
+    }
+}
+
 enum ReminderResponse {
     case yes
     case pause

@@ -15,6 +15,8 @@ struct SettingsSheet: View {
     @Binding var showTimeWhenCollapsed: Bool
     @Binding var autoPlayAfterSwitching: Bool
     @Binding var autoPauseAfterMinutes: Int
+    @Binding var timerOnTaskSwitch: Bool
+    @Binding var defaultTimerMinutes: Int
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -99,10 +101,35 @@ struct SettingsSheet: View {
                     Text("When enabled, tasks will automatically start playing when you switch to them from the dropdown in the current task window.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
+
                     Divider()
                         .padding(.vertical, 8)
-                    
+
+                    Toggle("Timer on task switch", isOn: $timerOnTaskSwitch)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+
+                    if timerOnTaskSwitch {
+                        HStack {
+                            Text("Default timer duration")
+                                .font(.subheadline)
+                            Picker("", selection: $defaultTimerMinutes) {
+                                ForEach(DefaultTimerDuration.allCases) { duration in
+                                    Text(duration.displayName).tag(duration.rawValue)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                        }
+                    }
+
+                    Text("When enabled, tasks will automatically start with the selected countdown timer.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+                        .padding(.vertical, 8)
+
                     HStack {
                         Text("Auto-pause after")
                             .font(.title3)
