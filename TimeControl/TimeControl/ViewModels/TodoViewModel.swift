@@ -33,6 +33,7 @@ class TodoViewModel: ObservableObject {
     @Published var autoPlayAfterSwitching: Bool = false
     @Published var autoPauseAfterMinutes: Int = 0
     @Published var timerOnTaskSwitch: Bool = false
+    @Published var defaultTimerMinutes: Int = 0
     @Published var shouldAutoShowTimerPicker: Bool = false
     
     private var timer: AnyCancellable?
@@ -241,10 +242,10 @@ class TodoViewModel: ObservableObject {
             
             todos[index].lastPlayedAt = Date().timeIntervalSince1970
 
-            if timerOnTaskSwitch && todos[index].countdownTime == 0 {
-                DispatchQueue.main.async {
-                    self.shouldAutoShowTimerPicker = true
-                }
+            if timerOnTaskSwitch && defaultTimerMinutes > 0 {
+                todos[index].countdownTime = TimeInterval(defaultTimerMinutes * 60)
+                todos[index].countdownStartTime = Date()
+                todos[index].countdownElapsedAtPause = 0
             }
 
             saveTodos()
@@ -331,10 +332,10 @@ class TodoViewModel: ObservableObject {
 
                 todos[index].lastPlayedAt = Date().timeIntervalSince1970
 
-                if timerOnTaskSwitch && todos[index].countdownTime == 0 {
-                    DispatchQueue.main.async {
-                        self.shouldAutoShowTimerPicker = true
-                    }
+                if timerOnTaskSwitch && defaultTimerMinutes > 0 {
+                    todos[index].countdownTime = TimeInterval(defaultTimerMinutes * 60)
+                    todos[index].countdownStartTime = Date()
+                    todos[index].countdownElapsedAtPause = 0
                 }
             }
 

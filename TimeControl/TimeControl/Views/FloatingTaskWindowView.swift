@@ -371,7 +371,7 @@ struct FloatingTaskWindowView: View {
                                         .monospacedDigit()
                                     
                                     Spacer()
-                                    
+
                                     if localTask.countdownElapsed >= localTask.countdownTime {
                                         HStack(spacing: 4) {
                                             Image(systemName: "bell.fill")
@@ -382,6 +382,18 @@ struct FloatingTaskWindowView: View {
                                                 .foregroundColor(.red)
                                         }
                                     }
+
+                                    Button {
+                                        localTask.countdownTime = 0
+                                        localTask.countdownStartTime = nil
+                                        localTask.countdownElapsedAtPause = 0
+                                        viewModel.clearCountdown(taskId: localTask.id)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Cancel timer")
                                 }
                                 .opacity(taskMarkedComplete ? 0.5 : 1.0)
                                 
