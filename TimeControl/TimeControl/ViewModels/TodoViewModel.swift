@@ -342,9 +342,6 @@ class TodoViewModel: ObservableObject {
                 }
                 
                 autoStartFirstIncompleteSubtask(at: index)
-                
-                runningTaskId = todo.id
-                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
 
                 if todos[index].startedAt == nil {
                     todos[index].startedAt = Date().timeIntervalSince1970
@@ -357,6 +354,9 @@ class TodoViewModel: ObservableObject {
                     todos[index].countdownStartTime = Date()
                     todos[index].countdownElapsedAtPause = 0
                 }
+
+                runningTaskId = todo.id
+                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
             }
 
             saveTodos()
