@@ -462,7 +462,7 @@ struct HistoryView: View {
     private func sessionBlock(event: TimelineEvent, startHour: Int, xOffset: CGFloat, width: CGFloat) -> some View {
         let yOffset  = CGFloat(event.bar.startSeconds / 3600 - Double(startHour)) * hourHeight
         let trueH    = CGFloat(event.bar.duration / 3600) * hourHeight
-        let blockH   = max(3, trueH)  // 3pt minimum so very short sessions are still visible
+        let blockH   = max(8, trueH)  // 8pt minimum so very short sessions are still visible
         let color    = ganttPalette[event.colorIndex % ganttPalette.count]
         let showLabel = trueH >= 20
         let showTime  = trueH >= 38
@@ -472,6 +472,14 @@ struct HistoryView: View {
         let endH   = Int(event.bar.endSeconds) / 3600
         let endM   = Int(event.bar.endSeconds) / 60 % 60
         let timeStr = String(format: "%d:%02d – %d:%02d", startH, startM, endH, endM)
+
+        let tooltip: String = {
+            let d = Int(event.bar.duration)
+            let durationStr = d >= 3600
+                ? String(format: "%d:%02d:%02d", d / 3600, d / 60 % 60, d % 60)
+                : String(format: "%d:%02d", d / 60 % 60, d % 60)
+            return "\(event.label)\n\(timeStr)  (\(durationStr))"
+        }()
 
         return Group {
             if showLabel {
@@ -490,10 +498,12 @@ struct HistoryView: View {
                 .padding(.vertical, 5)
                 .frame(width: width, height: blockH, alignment: .topLeading)
                 .background(RoundedRectangle(cornerRadius: 6).fill(color.opacity(event.isSubtask ? 0.75 : 1.0)))
+                .floatingTooltip(tooltip)
             } else {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(color.opacity(event.isSubtask ? 0.75 : 1.0))
                     .frame(width: width, height: blockH)
+                    .floatingTooltip(tooltip)
             }
         }
         .offset(x: timeLabelWidth + 8 + xOffset, y: yOffset)
