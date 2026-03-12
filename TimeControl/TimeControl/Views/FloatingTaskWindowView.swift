@@ -820,11 +820,13 @@ struct FloatingTaskWindowView: View {
         })
         let hostingView = NSHostingView(rootView: contentView)
 
-        // If window already exists, update content in-place without moving it
-        if let existingWindow = notesWindow {
+        // If window already exists and is visible, update content in-place without moving it
+        if let existingWindow = notesWindow, existingWindow.isVisible {
             existingWindow.contentView = hostingView
+            existingWindow.orderFrontRegardless()
             return
         }
+        notesWindow = nil
 
         // Calculate position (next to the floating task window)
         guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
