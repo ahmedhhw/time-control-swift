@@ -886,6 +886,11 @@ class TodoViewModel: ObservableObject {
         saveTodos()
     }
     
+    func switchToTask(byId taskId: UUID) {
+        guard let todo = todos.first(where: { $0.id == taskId }) else { return }
+        switchToTask(todo)
+    }
+
     func setReminder(_ date: Date?, for taskId: UUID) {
         guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
         todos[idx].reminderDate = date

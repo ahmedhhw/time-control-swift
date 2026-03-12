@@ -11,7 +11,7 @@ import AVFoundation
 import Quartz
 
 struct ContentView: View {
-    @StateObject private var viewModel = TodoViewModel()
+    @EnvironmentObject var viewModel: TodoViewModel
     @FocusState private var subtaskInputFocused: UUID?
     @State private var notesViewerWindow: NSWindow?
     @State private var historyWindow: NSWindow?
