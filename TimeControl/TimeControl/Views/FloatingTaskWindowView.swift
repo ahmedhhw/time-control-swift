@@ -239,8 +239,6 @@ struct FloatingTaskWindowView: View {
                         }
                         .buttonStyle(.plain)
                         .floatingTooltip("Create new task")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
                     }
                     
                     // Task description
@@ -1210,9 +1208,13 @@ struct FloatingTaskWindowView: View {
     private func createNewTask(switchToIt: Bool) {
         let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
-        
+
         viewModel.createTask(title: trimmedTitle, switchToIt: switchToIt)
-        
+
+        if switchToIt {
+            taskMarkedComplete = false
+        }
+
         newTaskTitle = ""
     }
     
