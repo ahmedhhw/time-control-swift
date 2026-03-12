@@ -717,7 +717,7 @@ struct FloatingTaskWindowView: View {
         .onChange(of: windowManager.currentTask) { newTask in
             if let newTask = newTask {
                 // If task switched and notes window is open, refresh it for the new task
-                if newTask.id != localTask.id, notesWindow != nil {
+                if newTask.id != localTask.id, notesWindow?.isVisible == true {
                     openNotesWindow(for: newTask)
                 }
 

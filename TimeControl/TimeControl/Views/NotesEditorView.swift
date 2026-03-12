@@ -34,6 +34,9 @@ struct NotesEditorView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .border(Color.gray.opacity(0.2), width: 1)
                 .onChange(of: localNotes) { newValue in
+                    // Skip save if this change was triggered by an external binding update
+                    // (in that case, `notes` is already equal to `newValue`)
+                    guard newValue != notes else { return }
                     notes = newValue
                     viewModel.updateNotesFromFloatingWindow(newValue, for: taskId)
                 }
