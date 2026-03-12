@@ -35,25 +35,26 @@ struct SubtaskRow: View {
     }
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             Button(action: onToggle) {
                 Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundColor(subtask.isCompleted ? .green : .secondary)
                     .font(.body)
             }
             .buttonStyle(.plain)
-            
+
             VStack(alignment: .leading, spacing: 2) {
-                TextField("", text: $editingTitle)
+                TextField("", text: $editingTitle, axis: .vertical)
                     .font(.title3)
                     .foregroundColor(subtask.isCompleted ? .secondary : .primary)
                     .strikethrough(subtask.isCompleted)
                     .textFieldStyle(.plain)
+                    .lineLimit(1...10)
                     .onSubmit { commitRename() }
                     .onExitCommand { editingTitle = subtask.title }
                     .disabled(parentTodoCompleted)
                     .onChange(of: subtask.title) { newTitle in editingTitle = newTitle }
-                
+
                 if !subtask.description.isEmpty {
                     Text(subtask.description)
                         .font(.body)
@@ -61,8 +62,6 @@ struct SubtaskRow: View {
                         .lineLimit(2)
                 }
             }
-            
-            Spacer()
             
             Text(TimeFormatter.formatTime(subtask.currentTimeSpent))
                 .font(.body)

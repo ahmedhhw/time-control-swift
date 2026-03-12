@@ -436,7 +436,7 @@ struct FloatingTaskWindowView: View {
                             // Existing subtasks
                             if !localTask.subtasks.isEmpty {
                                 ForEach($localTask.subtasks) { $subtask in
-                                    HStack(spacing: 8) {
+                                    HStack(alignment: .top, spacing: 8) {
                                         Button(action: {
                                             toggleSubtask(subtask)
                                         }) {
@@ -446,12 +446,13 @@ struct FloatingTaskWindowView: View {
                                         }
                                         .buttonStyle(.plain)
                                         .disabled(taskMarkedComplete)
-                                        
-                                        TextField("", text: $subtask.title)
+
+                                        TextField("", text: $subtask.title, axis: .vertical)
                                             .font(.title3)
                                             .foregroundColor(subtask.isCompleted ? .secondary : .primary)
                                             .strikethrough(subtask.isCompleted)
                                             .textFieldStyle(.plain)
+                                            .lineLimit(1...10)
                                             .disabled(taskMarkedComplete)
                                             .onSubmit {
                                                 let trimmed = subtask.title.trimmingCharacters(in: .whitespaces)
@@ -459,9 +460,7 @@ struct FloatingTaskWindowView: View {
                                                     viewModel.renameSubtaskFromFloatingWindow(subtask.id, in: localTask.id, newTitle: trimmed)
                                                 }
                                             }
-                                        
-                                        Spacer()
-                                        
+
                                         // Time display
                                         Text(TimeFormatter.formatTime(subtask.currentTimeSpent))
                                             .font(.body)
