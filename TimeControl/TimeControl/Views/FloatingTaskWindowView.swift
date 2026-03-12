@@ -716,6 +716,11 @@ struct FloatingTaskWindowView: View {
         }
         .onChange(of: windowManager.currentTask) { newTask in
             if let newTask = newTask {
+                // If task switched and notes window is open, refresh it for the new task
+                if newTask.id != localTask.id, notesWindow != nil {
+                    openNotesWindow(for: newTask)
+                }
+
                 // Check if task running state changed
                 let wasRunning = localTask.isRunning
                 let isNowRunning = newTask.isRunning
@@ -805,26 +810,33 @@ struct FloatingTaskWindowView: View {
         }
     }
     
-    private func openNotesWindow() {
-        notesWindow?.close()
-        
-        let contentView = NotesEditorView(notes: $notesText, taskId: localTask.id, viewModel: viewModel, onClose: {
+    private func openNotesWindow(for task: TodoItem? = nil) {
+        let targetTask = task ?? localTask
+        notesText = targetTask.notes
+
+        let contentView = NotesEditorView(notes: $notesText, taskId: targetTask.id, viewModel: viewModel, onClose: {
             self.notesWindow?.close()
             self.notesWindow = nil
         })
         let hostingView = NSHostingView(rootView: contentView)
-        
+
+        // If window already exists, update content in-place without moving it
+        if let existingWindow = notesWindow {
+            existingWindow.contentView = hostingView
+            return
+        }
+
         // Calculate position (next to the floating task window)
         guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
         let taskFrame = taskWindow.frame
-        
+
         let windowWidth: CGFloat = 500
         let windowHeight: CGFloat = 400
-        
+
         // Position to the left of the task window
         let xPos = taskFrame.minX - windowWidth - 20
         let yPos = taskFrame.minY
-        
+
         // Create a floating window for notes
         let window = NSPanel(
             contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
@@ -832,7 +844,7 @@ struct FloatingTaskWindowView: View {
             backing: .buffered,
             defer: false
         )
-        
+
         window.title = "Task Notes"
         window.contentView = hostingView
         window.level = .floating
@@ -841,7 +853,7 @@ struct FloatingTaskWindowView: View {
         window.becomesKeyOnlyIfNeeded = true
         window.hidesOnDeactivate = false
         window.minSize = NSSize(width: 300, height: 200)
-        
+
         notesWindow = window
         window.orderFrontRegardless()
     }

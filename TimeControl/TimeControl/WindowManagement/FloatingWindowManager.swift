@@ -103,6 +103,8 @@ class FloatingWindowManager: ObservableObject {
         viewModel = nil
     }
     
+    var isWindowOpen: Bool { floatingWindow != nil }
+
     func updateTask(_ task: TodoItem) {
         currentTask = task
     }

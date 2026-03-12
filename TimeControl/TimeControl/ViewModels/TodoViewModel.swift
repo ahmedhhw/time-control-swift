@@ -356,7 +356,11 @@ class TodoViewModel: ObservableObject {
                 }
 
                 runningTaskId = todo.id
-                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
+                if FloatingWindowManager.shared.isWindowOpen {
+                    FloatingWindowManager.shared.updateTask(todos[index])
+                } else {
+                    FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
+                }
             }
 
             saveTodos()
