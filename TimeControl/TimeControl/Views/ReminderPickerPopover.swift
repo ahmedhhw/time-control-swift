@@ -96,6 +96,7 @@ struct ReminderPickerPopover: View {
                         onSelect(customDate)
                     }
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.return, modifiers: [])
                     .padding(.horizontal, 12)
                     .padding(.bottom, 8)
                 }

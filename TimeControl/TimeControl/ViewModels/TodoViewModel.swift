@@ -911,7 +911,6 @@ class TodoViewModel: ObservableObject {
         FloatingWindowManager.shared.updateTask(todos[idx])
 
         if date != nil {
-            ReminderService.shared.requestPermission()
             ReminderService.shared.schedule(todos[idx])
         } else {
             ReminderService.shared.cancel(for: taskId)

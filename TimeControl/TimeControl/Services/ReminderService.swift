@@ -34,10 +34,15 @@ final class ReminderService {
     }
 
     func requestPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error {
                 print("ReminderService: permission request failed: \(error)")
+            } else {
+                print("ReminderService: permission granted = \(granted)")
             }
+        }
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            print("ReminderService: authorizationStatus = \(settings.authorizationStatus.rawValue), alertSetting = \(settings.alertSetting.rawValue)")
         }
     }
 
@@ -53,11 +58,8 @@ final class ReminderService {
         content.sound = .default
         content.categoryIdentifier = "TASK_REMINDER"
 
-        let components = Calendar.current.dateComponents(
-            [.year, .month, .day, .hour, .minute, .second],
-            from: reminderDate
-        )
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let interval = reminderDate.timeIntervalSinceNow
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
         let request = UNNotificationRequest(
             identifier: task.id.uuidString,
             content: content,
@@ -67,7 +69,13 @@ final class ReminderService {
         UNUserNotificationCenter.current().add(request) { error in
             if let error {
                 print("ReminderService: schedule failed for \(task.text): \(error)")
+            } else {
+                let local = DateFormatter.localizedString(from: reminderDate, dateStyle: .short, timeStyle: .short)
+                print("ReminderService: scheduled '\(task.text)' at \(local) (local)")
             }
+        }
+        UNUserNotificationCenter.current().getPendingNotificationRequests { reqs in
+            print("ReminderService: pending count = \(reqs.count), ids = \(reqs.map { $0.identifier })")
         }
     }
 
