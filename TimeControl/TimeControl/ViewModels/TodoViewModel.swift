@@ -886,6 +886,20 @@ class TodoViewModel: ObservableObject {
         saveTodos()
     }
     
+    func setReminder(_ date: Date?, for taskId: UUID) {
+        guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
+        todos[idx].reminderDate = date
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[idx])
+
+        if date != nil {
+            ReminderService.shared.requestPermission()
+            ReminderService.shared.schedule(todos[idx])
+        } else {
+            ReminderService.shared.cancel(for: taskId)
+        }
+    }
+
     func createTask(title: String, switchToIt: Bool) {
         let newIndex = todos.count
         let newTodo = TodoItem(text: title, index: newIndex)

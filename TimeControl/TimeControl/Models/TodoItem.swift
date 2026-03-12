@@ -71,8 +71,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var countdownElapsedAtPause: TimeInterval = 0
     var lastPlayedAt: TimeInterval? = nil
     var sessions: [TaskSession] = []
+    var reminderDate: Date? = nil
     
-    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "", countdownTime: TimeInterval = 0, countdownStartTime: Date? = nil, countdownElapsedAtPause: TimeInterval = 0, lastPlayedAt: TimeInterval? = nil, sessions: [TaskSession] = []) {
+    init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "", countdownTime: TimeInterval = 0, countdownStartTime: Date? = nil, countdownElapsedAtPause: TimeInterval = 0, lastPlayedAt: TimeInterval? = nil, sessions: [TaskSession] = [], reminderDate: Date? = nil) {
         self.id = id
         self.text = text
         self.isCompleted = isCompleted
@@ -94,6 +95,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.countdownElapsedAtPause = countdownElapsedAtPause
         self.lastPlayedAt = lastPlayedAt
         self.sessions = sessions
+        self.reminderDate = reminderDate
     }
     
     var isRunning: Bool {
