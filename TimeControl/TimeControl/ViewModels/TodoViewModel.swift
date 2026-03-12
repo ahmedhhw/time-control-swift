@@ -539,7 +539,12 @@ class TodoViewModel: ObservableObject {
     private func stopSession(todoIndex: Int) {
         guard let last = todos[todoIndex].sessions.indices.last,
               todos[todoIndex].sessions[last].stoppedAt == nil else { return }
-        todos[todoIndex].sessions[last].stoppedAt = Date().timeIntervalSince1970
+        let now = Date().timeIntervalSince1970
+        if now - todos[todoIndex].sessions[last].startedAt < 30 {
+            todos[todoIndex].sessions.removeLast()
+        } else {
+            todos[todoIndex].sessions[last].stoppedAt = now
+        }
     }
 
     private func startSubtaskSession(todoIndex: Int, subtaskIndex: Int) {
@@ -550,7 +555,12 @@ class TodoViewModel: ObservableObject {
     private func stopSubtaskSession(todoIndex: Int, subtaskIndex: Int) {
         guard let last = todos[todoIndex].subtasks[subtaskIndex].sessions.indices.last,
               todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt == nil else { return }
-        todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt = Date().timeIntervalSince1970
+        let now = Date().timeIntervalSince1970
+        if now - todos[todoIndex].subtasks[subtaskIndex].sessions[last].startedAt < 30 {
+            todos[todoIndex].subtasks[subtaskIndex].sessions.removeLast()
+        } else {
+            todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt = now
+        }
     }
 
     /// Starts the timer for the first non-completed subtask of the given task index.
