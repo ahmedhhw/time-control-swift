@@ -26,7 +26,8 @@ struct TaskListItem: View {
     let onEditSubtask: (Subtask) -> Void
     let onRenameSubtask: (Subtask, String) -> Void
     let onAddSubtask: () -> Void
-    
+    var onSetReminder: ((Date?) -> Void)? = nil
+
     var body: some View {
         VStack(spacing: 0) {
             TodoRow(
@@ -41,7 +42,8 @@ struct TaskListItem: View {
                 onToggleExpanded: onToggleExpanded,
                 onToggleSubtask: onToggleSubtask,
                 onDeleteSubtask: onDeleteSubtask,
-                onEditSubtask: onEditSubtask
+                onEditSubtask: onEditSubtask,
+                onSetReminder: onSetReminder
             )
             
             // Expanded area with inline subtask input and existing subtasks

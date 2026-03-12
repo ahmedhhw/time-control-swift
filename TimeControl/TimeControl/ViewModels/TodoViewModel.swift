@@ -176,15 +176,21 @@ class TodoViewModel: ObservableObject {
                     FloatingWindowManager.shared.closeFloatingWindow()
                 }
                 
+                // Clear reminder when task completes
+                if todos[index].reminderDate != nil {
+                    todos[index].reminderDate = nil
+                    ReminderService.shared.cancel(for: todos[index].id)
+                }
+
                 todos[index].completedAt = Date().timeIntervalSince1970
             } else {
                 todos[index].completedAt = nil
             }
-            
+
             saveTodos()
         }
     }
-    
+
     func deleteTodo(_ todo: TodoItem) {
         if confirmTaskDeletion {
             todoToDelete = todo
@@ -198,7 +204,8 @@ class TodoViewModel: ObservableObject {
             runningTaskId = nil
             FloatingWindowManager.shared.closeFloatingWindow()
         }
-        
+
+        ReminderService.shared.cancel(for: todo.id)
         todos.removeAll { $0.id == todo.id }
         
         for (index, _) in todos.enumerated() {
@@ -353,6 +360,12 @@ class TodoViewModel: ObservableObject {
                     todos[index].countdownTime = TimeInterval(defaultTimerMinutes * 60)
                     todos[index].countdownStartTime = Date()
                     todos[index].countdownElapsedAtPause = 0
+                }
+
+                // Clear reminder when task starts
+                if todos[index].reminderDate != nil {
+                    todos[index].reminderDate = nil
+                    ReminderService.shared.cancel(for: todos[index].id)
                 }
 
                 runningTaskId = todo.id
@@ -1089,7 +1102,7 @@ class TodoViewModel: ObservableObject {
         
         if todos[todoIndex].isCompleted {
             todos[todoIndex].completedAt = Date().timeIntervalSince1970
-            
+
             if todos[todoIndex].isRunning {
                 stopSession(todoIndex: todoIndex)
                 if let startTime = todos[todoIndex].lastStartTime {
@@ -1098,7 +1111,7 @@ class TodoViewModel: ObservableObject {
                 todos[todoIndex].lastStartTime = nil
                 runningTaskId = nil
             }
-            
+
             for i in 0..<todos[todoIndex].subtasks.count {
                 if todos[todoIndex].subtasks[i].isRunning {
                     stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
@@ -1108,10 +1121,16 @@ class TodoViewModel: ObservableObject {
                     todos[todoIndex].subtasks[i].lastStartTime = nil
                 }
             }
+
+            // Clear reminder when task completes
+            if todos[todoIndex].reminderDate != nil {
+                todos[todoIndex].reminderDate = nil
+                ReminderService.shared.cancel(for: taskId)
+            }
         } else {
             todos[todoIndex].completedAt = nil
         }
-        
+
         saveTodos()
     }
 }
