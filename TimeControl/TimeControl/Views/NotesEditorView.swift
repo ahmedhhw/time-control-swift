@@ -37,6 +37,11 @@ struct NotesEditorView: View {
                     notes = newValue
                     viewModel.updateNotesFromFloatingWindow(newValue, for: taskId)
                 }
+                .onChange(of: notes) { newValue in
+                    if newValue != localNotes {
+                        localNotes = newValue
+                    }
+                }
         }
         .padding()
         .frame(minWidth: 500, minHeight: 400)

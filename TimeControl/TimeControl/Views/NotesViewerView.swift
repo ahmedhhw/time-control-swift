@@ -7,9 +7,7 @@ import SwiftUI
 import AppKit
 
 struct NotesViewerView: View {
-    let todos: [TodoItem]
-    var onSaveNotes: ((UUID, String) -> Void)? = nil
-    @State private var localTodos: [TodoItem] = []
+    @ObservedObject var viewModel: TodoViewModel
     @State private var selectedTaskId: UUID? = nil
     @State private var searchText: String = ""
     @State private var sortOption: TaskSortOption = .creationDateNewest
@@ -17,10 +15,10 @@ struct NotesViewerView: View {
     private var filteredTodos: [TodoItem] {
         let searched: [TodoItem]
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            searched = localTodos
+            searched = viewModel.todos
         } else {
             let query = searchText.lowercased()
-            searched = localTodos.filter {
+            searched = viewModel.todos.filter {
                 $0.text.lowercased().contains(query) || $0.notes.lowercased().contains(query)
             }
         }
@@ -121,11 +119,7 @@ struct NotesViewerView: View {
             Group {
                 if let todo = selectedTodo {
                     NotesDetailView(todo: todo, searchQuery: searchText, onSaveNotes: { id, notes in
-                        // Patch local copy so switching tasks shows up-to-date notes
-                        if let idx = localTodos.firstIndex(where: { $0.id == id }) {
-                            localTodos[idx].notes = notes
-                        }
-                        onSaveNotes?(id, notes)
+                        viewModel.updateNotesFromFloatingWindow(notes, for: id)
                     })
                     .id(todo.id)
                 } else {
@@ -155,7 +149,6 @@ struct NotesViewerView: View {
             }
         }
         .onAppear {
-            localTodos = todos
             if selectedTaskId == nil {
                 selectedTaskId = filteredTodos.first?.id
             }
@@ -271,6 +264,11 @@ private struct NotesDetailView: View {
                 .padding(8)
                 .onChange(of: editedNotes) { newValue in
                     onSaveNotes?(todo.id, newValue)
+                }
+                .onChange(of: todo.notes) { newValue in
+                    if newValue != editedNotes {
+                        editedNotes = newValue
+                    }
                 }
         }
     }

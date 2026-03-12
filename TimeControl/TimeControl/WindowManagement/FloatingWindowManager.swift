@@ -116,5 +116,8 @@ class FloatingWindowManager: ObservableObject {
     
     func updateAllTodos(_ todos: [TodoItem]) {
         allTodos = todos
+        if let current = currentTask, let updated = todos.first(where: { $0.id == current.id }) {
+            currentTask = updated
+        }
     }
 }
