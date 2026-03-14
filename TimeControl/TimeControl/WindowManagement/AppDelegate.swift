@@ -19,8 +19,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Rebuild pending reminders from persisted todos (skips past ones, fires recent missed ones)
         NotificationScheduler.shared.rescheduleAll(viewModel.todos)
 
-        // Restore bell state for any notifications that fired before the last quit
-        viewModel.restoreActiveNotifications()
 
         setupStatusBarItem()
         setupPopover()

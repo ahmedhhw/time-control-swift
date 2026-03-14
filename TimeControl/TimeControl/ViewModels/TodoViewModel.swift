@@ -40,7 +40,10 @@ class TodoViewModel: ObservableObject {
     private var timer: AnyCancellable?
     
     init() {
-        self.todos = TodoStorage.load()
+        let loaded = TodoStorage.load()
+        self.todos = loaded.todos
+        NotificationStore.shared.setInitialRecords(loaded.notificationRecords)
+        NotificationStore.shared.onNeedsSave = { [weak self] in self?.saveTodos() }
         startTimer()
 
         NotificationCenter.default.addObserver(
@@ -222,7 +225,7 @@ class TodoViewModel: ObservableObject {
     }
     
     func saveTodos() {
-        TodoStorage.save(todos: todos)
+        TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records)
         FloatingWindowManager.shared.updateAllTodos(todos)
     }
     
@@ -820,7 +823,7 @@ class TodoViewModel: ObservableObject {
         }
 
         runningTaskId = nil
-        TodoStorage.save(todos: todos)
+        saveTodos()
     }
 
     func resumeTask(_ taskId: UUID) {
@@ -928,16 +931,9 @@ class TodoViewModel: ObservableObject {
         guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
         todos[idx].hasActiveNotification = active
         FloatingWindowManager.shared.updateTask(todos[idx])
+        saveTodos()
     }
 
-    func restoreActiveNotifications() {
-        let activeTaskIds = Set(NotificationStore.shared.records
-            .filter { !$0.isDismissed }
-            .map { $0.taskId })
-        for idx in todos.indices where activeTaskIds.contains(todos[idx].id) {
-            todos[idx].hasActiveNotification = true
-        }
-    }
 
     // Called when the user clicks the lit bell icon to acknowledge the notification
     func dismissBell(for taskId: UUID) {

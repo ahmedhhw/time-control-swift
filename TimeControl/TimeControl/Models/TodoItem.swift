@@ -101,12 +101,11 @@ struct TodoItem: Identifiable, Codable, Equatable {
     }
 
     // MARK: - CodingKeys
-    // hasActiveNotification is excluded — it is runtime-only state, never persisted.
     enum CodingKeys: String, CodingKey {
         case id, text, isCompleted, index, totalTimeSpent, lastStartTime, description
         case dueDate, isAdhoc, fromWho, estimatedTime, subtasks, createdAt, startedAt
         case completedAt, notes, countdownTime, countdownStartTime, countdownElapsedAtPause
-        case lastPlayedAt, sessions, reminderDate
+        case lastPlayedAt, sessions, reminderDate, hasActiveNotification
     }
 
     var isRunning: Bool {
