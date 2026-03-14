@@ -75,19 +75,16 @@ struct NotificationOverlayView: View {
     // MARK: - Actions
 
     private func startTask() {
-        // Open main window and switch to the task
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        NSApplication.shared.windows
-            .first(where: { $0.isVisible && !($0 is NSPanel) })?
-            .makeKeyAndOrderFront(nil)
-
         windowManager.viewModel?.switchToTask(byId: payload.taskId)
 
-        // Open the floating task window if it isn't already open
+        // Open the floating task window without activating the app or switching workspace
         if let viewModel = windowManager.viewModel,
-           let task = viewModel.todos.first(where: { $0.id == payload.taskId }),
-           !FloatingWindowManager.shared.isWindowOpen {
-            FloatingWindowManager.shared.showFloatingWindow(for: task, viewModel: viewModel)
+           let task = viewModel.todos.first(where: { $0.id == payload.taskId }) {
+            if FloatingWindowManager.shared.isWindowOpen {
+                FloatingWindowManager.shared.updateTask(task)
+            } else {
+                FloatingWindowManager.shared.showFloatingWindow(for: task, viewModel: viewModel)
+            }
         }
 
         // Dismiss overlay — bell stays lit until user explicitly clicks it
