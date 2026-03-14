@@ -9,7 +9,8 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     var viewModel = TodoViewModel()
     private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
+    private var historyPanel: NSPanel?
+    private var outsideClickMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Wire the scheduler and overlay to the view model
@@ -19,9 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Rebuild pending reminders from persisted todos (skips past ones, fires recent missed ones)
         NotificationScheduler.shared.rescheduleAll(viewModel.todos)
 
-
         setupStatusBarItem()
-        setupPopover()
     }
 
     private func setupStatusBarItem() {
@@ -33,25 +32,58 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func setupPopover() {
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 340)
-        popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
+    @objc private func statusBarButtonClicked() {
+        if let panel = historyPanel, panel.isVisible {
+            closeHistoryPanel()
+        } else {
+            showHistoryPanel()
+        }
+    }
+
+    private func showHistoryPanel() {
+        guard let button = statusItem?.button,
+              let buttonWindow = button.window else { return }
+
+        let panelWidth: CGFloat = 300
+        let panelHeight: CGFloat = 340
+
+        let buttonFrameOnScreen = buttonWindow.convertToScreen(button.frame)
+        let xPos = buttonFrameOnScreen.midX - panelWidth / 2
+        let yPos = buttonFrameOnScreen.minY - panelHeight
+
+        let panel = NSPanel(
+            contentRect: NSRect(x: xPos, y: yPos, width: panelWidth, height: panelHeight),
+            styleMask: [.nonactivatingPanel, .titled, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.contentViewController = NSHostingController(
             rootView: NotificationHistoryView(viewModel: viewModel, onOpenApp: { [weak self] in
-                self?.popover?.close()
+                self?.closeHistoryPanel()
                 self?.openMainWindow()
             })
         )
-        self.popover = popover
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
+
+        historyPanel = panel
+        panel.orderFrontRegardless()
+
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.closeHistoryPanel()
+        }
     }
 
-    @objc private func statusBarButtonClicked() {
-        guard let button = statusItem?.button, let popover else { return }
-        if popover.isShown {
-            popover.close()
-        } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    private func closeHistoryPanel() {
+        historyPanel?.close()
+        historyPanel = nil
+        if let monitor = outsideClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideClickMonitor = nil
         }
     }
 
