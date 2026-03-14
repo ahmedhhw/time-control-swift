@@ -149,30 +149,46 @@ struct FloatingTaskWindowView: View {
                     .disabled(taskMarkedComplete)
                     .opacity(taskMarkedComplete ? 0.3 : 1.0)
 
-                    Button(action: {
-                        showingReminderPopover = true
-                    }) {
-                        let hasReminder = localTask.reminderDate.map { $0 > Date() } ?? false
-                        Image(systemName: hasReminder ? "bell.fill" : "bell")
-                            .font(.subheadline)
-                            .foregroundColor(hasReminder ? .orange : .blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip(localTask.reminderDate.map { $0 > Date() } ?? false ? "Reminder set" : "Set a reminder")
-                    .disabled(taskMarkedComplete)
-                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                    .popover(isPresented: $showingReminderPopover) {
-                        ReminderPickerPopover(
-                            currentReminder: localTask.reminderDate,
-                            onSelect: { date in
-                                viewModel.setReminder(date, for: localTask.id)
-                                showingReminderPopover = false
-                            },
-                            onClear: {
-                                viewModel.setReminder(nil, for: localTask.id)
-                                showingReminderPopover = false
-                            }
-                        )
+                    // Bell icon: lit (active notification) → tap dismisses bell;
+                    // dim (pending reminder) or unset → tap opens picker
+                    if localTask.hasActiveNotification {
+                        Button(action: {
+                            viewModel.dismissBell(for: localTask.id)
+                        }) {
+                            Image(systemName: "bell.fill")
+                                .font(.subheadline)
+                                .foregroundColor(.orange)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Notification active — tap to dismiss")
+                        .disabled(taskMarkedComplete)
+                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
+                    } else {
+                        Button(action: {
+                            showingReminderPopover = true
+                        }) {
+                            let hasReminder = localTask.reminderDate.map { $0 > Date() } ?? false
+                            Image(systemName: hasReminder ? "bell.fill" : "bell")
+                                .font(.subheadline)
+                                .foregroundColor(hasReminder ? .orange.opacity(0.5) : .blue)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip(localTask.reminderDate.map { $0 > Date() } ?? false ? "Reminder set" : "Set a reminder")
+                        .disabled(taskMarkedComplete)
+                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
+                        .popover(isPresented: $showingReminderPopover) {
+                            ReminderPickerPopover(
+                                currentReminder: localTask.reminderDate,
+                                onSelect: { date in
+                                    viewModel.setReminder(date, for: localTask.id)
+                                    showingReminderPopover = false
+                                },
+                                onClear: {
+                                    viewModel.setReminder(nil, for: localTask.id)
+                                    showingReminderPopover = false
+                                }
+                            )
+                        }
                     }
 
                     if isCollapsed {

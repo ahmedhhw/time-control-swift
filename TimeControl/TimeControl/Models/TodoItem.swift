@@ -72,7 +72,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var lastPlayedAt: TimeInterval? = nil
     var sessions: [TaskSession] = []
     var reminderDate: Date? = nil
-    
+    // Runtime-only state — not persisted. Set to true when NotificationScheduler fires for this task.
+    var hasActiveNotification: Bool = false
+
     init(id: UUID = UUID(), text: String, isCompleted: Bool = false, index: Int = 0, totalTimeSpent: TimeInterval = 0, lastStartTime: Date? = nil, description: String = "", dueDate: Date? = nil, isAdhoc: Bool = false, fromWho: String = "", estimatedTime: TimeInterval = 0, subtasks: [Subtask] = [], createdAt: TimeInterval? = nil, startedAt: TimeInterval? = nil, completedAt: TimeInterval? = nil, notes: String = "", countdownTime: TimeInterval = 0, countdownStartTime: Date? = nil, countdownElapsedAtPause: TimeInterval = 0, lastPlayedAt: TimeInterval? = nil, sessions: [TaskSession] = [], reminderDate: Date? = nil) {
         self.id = id
         self.text = text
@@ -97,11 +99,20 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.sessions = sessions
         self.reminderDate = reminderDate
     }
-    
+
+    // MARK: - CodingKeys
+    // hasActiveNotification is excluded — it is runtime-only state, never persisted.
+    enum CodingKeys: String, CodingKey {
+        case id, text, isCompleted, index, totalTimeSpent, lastStartTime, description
+        case dueDate, isAdhoc, fromWho, estimatedTime, subtasks, createdAt, startedAt
+        case completedAt, notes, countdownTime, countdownStartTime, countdownElapsedAtPause
+        case lastPlayedAt, sessions, reminderDate
+    }
+
     var isRunning: Bool {
         lastStartTime != nil
     }
-    
+
     var currentTimeSpent: TimeInterval {
         var time = totalTimeSpent
         if let startTime = lastStartTime {

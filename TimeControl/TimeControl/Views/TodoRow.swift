@@ -15,6 +15,7 @@ struct TodoRow: View {
     let onDeleteSubtask: (Subtask) -> Void
     let onEditSubtask: (Subtask) -> Void
     var onSetReminder: ((Date?) -> Void)? = nil
+    var onDismissBell: (() -> Void)? = nil
 
     @State private var showExportText: Bool = false
     @State private var showSessions: Bool = false
@@ -286,25 +287,39 @@ struct TodoRow: View {
 
                 if let onSetReminder {
                     let hasReminder = todo.reminderDate.map { $0 > Date() } ?? false
-                    Button(action: { showingReminderPopover = true }) {
-                        Image(systemName: hasReminder ? "bell.fill" : "bell")
-                            .foregroundColor(hasReminder ? .orange : .blue)
-                            .font(.title3)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(todo.isCompleted)
-                    .popover(isPresented: $showingReminderPopover) {
-                        ReminderPickerPopover(
-                            currentReminder: todo.reminderDate,
-                            onSelect: { date in
-                                onSetReminder(date)
-                                showingReminderPopover = false
-                            },
-                            onClear: {
-                                onSetReminder(nil)
-                                showingReminderPopover = false
-                            }
-                        )
+                    let isActive = todo.hasActiveNotification
+
+                    if isActive {
+                        // Lit bell — clicking dismisses the active notification
+                        Button(action: { onDismissBell?() }) {
+                            Image(systemName: "bell.fill")
+                                .foregroundColor(.orange)
+                                .font(.title3)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(todo.isCompleted)
+                    } else {
+                        // Dim bell (pending) or unset bell — clicking opens the picker
+                        Button(action: { showingReminderPopover = true }) {
+                            Image(systemName: hasReminder ? "bell.fill" : "bell")
+                                .foregroundColor(hasReminder ? .orange.opacity(0.5) : .blue)
+                                .font(.title3)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(todo.isCompleted)
+                        .popover(isPresented: $showingReminderPopover) {
+                            ReminderPickerPopover(
+                                currentReminder: todo.reminderDate,
+                                onSelect: { date in
+                                    onSetReminder(date)
+                                    showingReminderPopover = false
+                                },
+                                onClear: {
+                                    onSetReminder(nil)
+                                    showingReminderPopover = false
+                                }
+                            )
+                        }
                     }
                 }
 

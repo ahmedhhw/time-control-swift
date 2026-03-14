@@ -179,7 +179,13 @@ class TodoViewModel: ObservableObject {
                 // Clear reminder when task completes
                 if todos[index].reminderDate != nil {
                     todos[index].reminderDate = nil
-                    ReminderService.shared.cancel(for: todos[index].id)
+                    NotificationScheduler.shared.cancel(for: todos[index].id)
+                }
+
+                // Clear active notification bell when task completes
+                if todos[index].hasActiveNotification {
+                    todos[index].hasActiveNotification = false
+                    NotificationStore.shared.dismiss(taskId: todos[index].id)
                 }
 
                 todos[index].completedAt = Date().timeIntervalSince1970
@@ -205,7 +211,7 @@ class TodoViewModel: ObservableObject {
             FloatingWindowManager.shared.closeFloatingWindow()
         }
 
-        ReminderService.shared.cancel(for: todo.id)
+        NotificationScheduler.shared.cancel(for: todo.id)
         todos.removeAll { $0.id == todo.id }
         
         for (index, _) in todos.enumerated() {
@@ -365,7 +371,7 @@ class TodoViewModel: ObservableObject {
                 // Clear reminder when task starts
                 if todos[index].reminderDate != nil {
                     todos[index].reminderDate = nil
-                    ReminderService.shared.cancel(for: todos[index].id)
+                    NotificationScheduler.shared.cancel(for: todos[index].id)
                 }
 
                 runningTaskId = todo.id
@@ -911,10 +917,25 @@ class TodoViewModel: ObservableObject {
         FloatingWindowManager.shared.updateTask(todos[idx])
 
         if date != nil {
-            ReminderService.shared.schedule(todos[idx])
+            NotificationScheduler.shared.schedule(todos[idx])
         } else {
-            ReminderService.shared.cancel(for: taskId)
+            NotificationScheduler.shared.cancel(for: taskId)
         }
+    }
+
+    // Called by NotificationScheduler when a reminder fires or is dismissed
+    func setActiveNotification(_ active: Bool, for taskId: UUID) {
+        guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
+        todos[idx].hasActiveNotification = active
+        FloatingWindowManager.shared.updateTask(todos[idx])
+    }
+
+    // Called when the user clicks the lit bell icon to acknowledge the notification
+    func dismissBell(for taskId: UUID) {
+        guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
+        todos[idx].hasActiveNotification = false
+        NotificationStore.shared.dismiss(taskId: taskId)
+        FloatingWindowManager.shared.updateTask(todos[idx])
     }
 
     func createTask(title: String, switchToIt: Bool) {
@@ -1124,7 +1145,13 @@ class TodoViewModel: ObservableObject {
             // Clear reminder when task completes
             if todos[todoIndex].reminderDate != nil {
                 todos[todoIndex].reminderDate = nil
-                ReminderService.shared.cancel(for: taskId)
+                NotificationScheduler.shared.cancel(for: taskId)
+            }
+
+            // Clear active notification bell when task completes
+            if todos[todoIndex].hasActiveNotification {
+                todos[todoIndex].hasActiveNotification = false
+                NotificationStore.shared.dismiss(taskId: taskId)
             }
         } else {
             todos[todoIndex].completedAt = nil

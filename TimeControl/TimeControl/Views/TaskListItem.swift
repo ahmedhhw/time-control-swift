@@ -27,6 +27,7 @@ struct TaskListItem: View {
     let onRenameSubtask: (Subtask, String) -> Void
     let onAddSubtask: () -> Void
     var onSetReminder: ((Date?) -> Void)? = nil
+    var onDismissBell: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,7 +44,8 @@ struct TaskListItem: View {
                 onToggleSubtask: onToggleSubtask,
                 onDeleteSubtask: onDeleteSubtask,
                 onEditSubtask: onEditSubtask,
-                onSetReminder: onSetReminder
+                onSetReminder: onSetReminder,
+                onDismissBell: onDismissBell
             )
             
             // Expanded area with inline subtask input and existing subtasks

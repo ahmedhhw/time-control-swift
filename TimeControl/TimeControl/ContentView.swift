@@ -101,6 +101,9 @@ struct ContentView: View {
                                     onAddSubtask: { addSubtask(to: todo) },
                                     onSetReminder: { date in
                                         viewModel.setReminder(date, for: todo.id)
+                                    },
+                                    onDismissBell: {
+                                        viewModel.dismissBell(for: todo.id)
                                     }
                                 )
                                 .draggable(todo.id.uuidString) {
