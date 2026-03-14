@@ -60,10 +60,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.contentViewController = NSHostingController(
-            rootView: NotificationHistoryView(viewModel: viewModel, onOpenApp: { [weak self] in
-                self?.closeHistoryPanel()
-                self?.openMainWindow()
-            })
+            rootView: NotificationHistoryView(
+                viewModel: viewModel,
+                onOpenApp: { [weak self] in
+                    self?.closeHistoryPanel()
+                    self?.openMainWindow()
+                },
+                onDismiss: { [weak self] in
+                    self?.closeHistoryPanel()
+                }
+            )
         )
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]

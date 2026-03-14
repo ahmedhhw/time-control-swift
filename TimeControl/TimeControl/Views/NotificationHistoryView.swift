@@ -10,6 +10,7 @@ struct NotificationHistoryView: View {
     @ObservedObject private var scheduler = NotificationScheduler.shared
     var viewModel: TodoViewModel
     var onOpenApp: (() -> Void)? = nil
+    var onDismiss: (() -> Void)? = nil
 
     private let relativeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
@@ -67,7 +68,12 @@ struct NotificationHistoryView: View {
                     if !upcoming.isEmpty {
                         SectionHeader(title: "UPCOMING")
                         ForEach(upcoming, id: \.taskId) { item in
-                            UpcomingReminderRow(title: item.title, timeString: formatFireTime(item.fireAt))
+                            UpcomingReminderRow(title: item.title, timeString: formatFireTime(item.fireAt)) {
+                                if let todo = viewModel.todos.first(where: { $0.id == item.taskId }), !todo.isRunning {
+                                    viewModel.toggleTimer(todo)
+                                }
+                                onDismiss?()
+                            }
                             Divider().padding(.horizontal, 12)
                         }
                     }
@@ -124,23 +130,28 @@ private struct SectionHeader: View {
 private struct UpcomingReminderRow: View {
     let title: String
     let timeString: String
+    let onTap: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "bell")
-                .foregroundColor(.secondary)
-                .font(.title3)
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.primary)
-                .lineLimit(1)
-            Spacer()
-            Text(timeString)
-                .font(.caption)
-                .foregroundColor(.secondary)
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                Image(systemName: "bell")
+                    .foregroundColor(.secondary)
+                    .font(.title3)
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                Spacer()
+                Text(timeString)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .buttonStyle(.plain)
     }
 }
 
