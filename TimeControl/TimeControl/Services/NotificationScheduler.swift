@@ -5,11 +5,11 @@
 
 import Foundation
 
-final class NotificationScheduler {
+final class NotificationScheduler: ObservableObject {
     static let shared = NotificationScheduler()
 
     // task id → snapped fire time (seconds zeroed out)
-    private var pending: [UUID: Date] = [:]
+    @Published private(set) var pending: [UUID: Date] = [:]
     private var pollTimer: Timer?
 
     // Injected by AppDelegate after view model is set up

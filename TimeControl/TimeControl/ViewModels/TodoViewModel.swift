@@ -930,6 +930,15 @@ class TodoViewModel: ObservableObject {
         FloatingWindowManager.shared.updateTask(todos[idx])
     }
 
+    func restoreActiveNotifications() {
+        let activeTaskIds = Set(NotificationStore.shared.records
+            .filter { !$0.isDismissed }
+            .map { $0.taskId })
+        for idx in todos.indices where activeTaskIds.contains(todos[idx].id) {
+            todos[idx].hasActiveNotification = true
+        }
+    }
+
     // Called when the user clicks the lit bell icon to acknowledge the notification
     func dismissBell(for taskId: UUID) {
         guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
