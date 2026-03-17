@@ -1254,7 +1254,6 @@ struct FloatingTaskWindowView: View {
     }
     
     private func calculateDynamicHeight() -> CGFloat {
-        print("In calculateDynamicHeight")
         // Base height for header, task title, description, time tracking, and buttons
         var height: CGFloat = 0
         
@@ -1285,17 +1284,15 @@ struct FloatingTaskWindowView: View {
         // Estimate & Due Date progress bars (chevron header + bars)
         let hasBars = localTask.estimatedTime > 0 || localTask.dueDate != nil
         if hasBars {
-            print("In hasBars section")
             height += 30  // chevron header row
             if showProgressBars {
-                print("In showProgressBars section")
                 let barCount = (localTask.estimatedTime > 0 ? 1 : 0) + (localTask.dueDate != nil ? 1 : 0)
-                height += CGFloat(barCount) * 80  // ~80pt per bar (labels + bar + status line)
+                height += CGFloat(barCount) * 40  // ~80pt per bar (labels + bar + status line)
             }
         }
 
         // Subtasks section header + input field
-        height += 20  // "SUBTASKS" label + input field with button
+        height += 80  // "SUBTASKS" label + input field with button
 
         // Subtasks list - calculate based on number of subtasks
         let subtaskCount = localTask.subtasks.count
@@ -1308,9 +1305,8 @@ struct FloatingTaskWindowView: View {
         // Bottom buttons (Pause/Resume and Complete)
         height += 60
 
-
         // Clamp between min and max heights
-        return min(max(height, 550), 900)
+        return min(max(height, 380), 900)
     }
     
     private func resizeWindow() {
