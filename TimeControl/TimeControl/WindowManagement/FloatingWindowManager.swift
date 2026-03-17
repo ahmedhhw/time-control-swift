@@ -59,7 +59,22 @@ class FloatingWindowManager: ObservableObject {
         let delegate = FloatingWindowDelegate(taskId: task.id)
         window.delegate = delegate
         windowDelegate = delegate
-        
+
+        // Gear button in title bar
+        let accessoryVC = NSTitlebarAccessoryViewController()
+        accessoryVC.layoutAttribute = .right
+        let gearButton = NSButton(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
+        gearButton.image = NSImage(systemSymbolName: "gear", accessibilityDescription: "Settings")
+        gearButton.bezelStyle = .texturedRounded
+        gearButton.isBordered = false
+        gearButton.target = self
+        gearButton.action = #selector(openSettings)
+        gearButton.toolTip = "Settings"
+        let accessoryContainer = NSView(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
+        accessoryContainer.addSubview(gearButton)
+        accessoryVC.view = accessoryContainer
+        window.addTitlebarAccessoryViewController(accessoryVC)
+
         floatingWindow = window
         window.orderFrontRegardless()
     }
@@ -93,6 +108,14 @@ class FloatingWindowManager: ObservableObject {
         return min(max(height, 300), 550)
     }
     
+    @objc private func openSettings() {
+        if let mainWindow = NSApp.windows.first(where: { $0.title == "TimeControl" || $0.isMainWindow }) {
+            mainWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        viewModel?.showingSettings = true
+    }
+
     func closeFloatingWindow() {
         floatingWindow?.close()
         floatingWindow = nil
