@@ -103,7 +103,10 @@ struct FloatingTaskWindowView: View {
             }
             .frame(height: 0)
             .onPreferenceChange(WidthPreferenceKey.self) { windowWidth = $0 }
-            .onAppear { resizeWindow() }
+            .onAppear {
+                resizeWindow()
+                updateWindowTitle()
+            }
             
             // Main content
             VStack(alignment: .leading, spacing: 0) {
@@ -1075,8 +1078,17 @@ struct FloatingTaskWindowView: View {
                 resizeWindow()
             }
         }
+        .onChange(of: viewModel.dropdownSortOption) { _ in
+            updateWindowTitle()
+        }
     }
     
+    private func updateWindowTitle() {
+        if let window = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) {
+            window.title = "Current Task: \(viewModel.dropdownSortOption.rawValue)"
+        }
+    }
+
     private func openMainWindow() {
         // Find and activate the main window
         if let mainWindow = NSApp.windows.first(where: { $0.title == "TimeControl" || $0.isMainWindow }) {
@@ -1104,7 +1116,7 @@ struct FloatingTaskWindowView: View {
         notesWindow = nil
 
         // Calculate position (next to the floating task window)
-        guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
+        guard let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) else { return }
         let taskFrame = taskWindow.frame
 
         let windowWidth: CGFloat = 500
@@ -1159,7 +1171,7 @@ struct FloatingTaskWindowView: View {
         var xPos: CGFloat
         var yPos: CGFloat
         
-        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
+        if let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) {
             let taskFrame = taskWindow.frame
             // Position centered on top of the task window
             xPos = taskFrame.midX - windowWidth / 2
@@ -1226,7 +1238,7 @@ struct FloatingTaskWindowView: View {
         var xPos: CGFloat
         var yPos: CGFloat
         
-        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
+        if let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) {
             let taskFrame = taskWindow.frame
             // Position centered on top of the task window
             xPos = taskFrame.midX - windowWidth / 2
@@ -1298,7 +1310,7 @@ struct FloatingTaskWindowView: View {
         var xPos: CGFloat
         var yPos: CGFloat
         
-        if let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) {
+        if let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) {
             let taskFrame = taskWindow.frame
             // Position centered on top of the task window
             xPos = taskFrame.midX - windowWidth / 2
@@ -1404,7 +1416,7 @@ struct FloatingTaskWindowView: View {
     private func resizeWindow() {
         // Get the window from the view hierarchy
         DispatchQueue.main.async {
-            guard let window = NSApp.windows.first(where: { $0.title == "Current Task" }),
+            guard let window = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }),
                   let screen = window.screen else { return }
             
             let currentFrame = window.frame
@@ -1593,7 +1605,7 @@ struct FloatingTaskWindowView: View {
         let hostingView = NSHostingView(rootView: contentView)
         
         // Calculate position (next to the floating task window)
-        guard let taskWindow = NSApp.windows.first(where: { $0.title == "Current Task" }) else { return }
+        guard let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) else { return }
         let taskFrame = taskWindow.frame
         
         let windowWidth: CGFloat = 500

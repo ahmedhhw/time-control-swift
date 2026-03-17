@@ -51,7 +51,29 @@ struct SettingsSheet: View {
                     Text("Preferences")
                         .font(.title2)
                         .fontWeight(.semibold)
-                    
+
+                    HStack {
+                        Text("Order current task dropdown by")
+                            .font(.title3)
+                        Picker("", selection: Binding(
+                            get: { DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed },
+                            set: { dropdownSortOptionRaw = $0.rawValue }
+                        )) {
+                            ForEach(DropdownSortOption.allCases) { option in
+                                Text(option.rawValue).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
+
+                    Text("Determines the sort order of tasks in the dropdown used for switching tasks in the floating task window.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+                        .padding(.vertical, 8)
+
                     Toggle("Activate reminders to stay on task", isOn: $activateReminders)
                         .toggleStyle(.checkbox)
                         .font(.title3)
@@ -149,27 +171,6 @@ struct SettingsSheet: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
-                    Divider()
-                        .padding(.vertical, 8)
-
-                    HStack {
-                        Text("Order current task dropdown by")
-                            .font(.title3)
-                        Picker("", selection: Binding(
-                            get: { DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed },
-                            set: { dropdownSortOptionRaw = $0.rawValue }
-                        )) {
-                            ForEach(DropdownSortOption.allCases) { option in
-                                Text(option.rawValue).tag(option)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                    }
-
-                    Text("Determines the sort order of tasks in the dropdown used for switching tasks in the floating task window.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
