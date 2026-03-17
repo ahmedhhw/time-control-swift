@@ -24,11 +24,7 @@ enum TimeFormatter {
         let hours = Int(timeInterval) / 3600
         let minutes = Int(timeInterval) / 60 % 60
 
-        if hours > 0 {
-            return String(format: "%d:%02d", hours, minutes)
-        } else {
-            return String(format: "%d:%02d", minutes, 0)
-        }
+        return String(format: "%d:%02d", hours, minutes)
     }
     
     static func formatTimeRemaining(_ timeInterval: TimeInterval) -> String {
