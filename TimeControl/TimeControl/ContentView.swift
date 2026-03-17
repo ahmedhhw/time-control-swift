@@ -11,7 +11,7 @@ import AVFoundation
 import Quartz
 
 struct ContentView: View {
-    @StateObject private var viewModel = TodoViewModel()
+    @EnvironmentObject var viewModel: TodoViewModel
     @FocusState private var subtaskInputFocused: UUID?
     @State private var notesViewerWindow: NSWindow?
     @State private var historyWindow: NSWindow?
@@ -98,7 +98,13 @@ struct ContentView: View {
                                     onRenameSubtask: { subtask, newTitle in
                                         viewModel.renameSubtask(subtask, in: todo, newTitle: newTitle)
                                     },
-                                    onAddSubtask: { addSubtask(to: todo) }
+                                    onAddSubtask: { addSubtask(to: todo) },
+                                    onSetReminder: { date in
+                                        viewModel.setReminder(date, for: todo.id)
+                                    },
+                                    onDismissBell: {
+                                        viewModel.dismissBell(for: todo.id)
+                                    }
                                 )
                                 .draggable(todo.id.uuidString) {
                                     // Preview shown while dragging
@@ -215,10 +221,16 @@ struct ContentView: View {
         .onChange(of: defaultTimerMinutes) { viewModel.defaultTimerMinutes = $0 }
         .sheet(item: $viewModel.editingTodo) { todoToEdit in
             if let index = viewModel.todos.firstIndex(where: { $0.id == todoToEdit.id }) {
-                EditTodoSheet(todo: $viewModel.todos[index], onSave: {
-                    viewModel.saveTodos()
-                    viewModel.editingTodo = nil
-                })
+                EditTodoSheet(
+                    todo: $viewModel.todos[index],
+                    onSave: {
+                        viewModel.saveTodos()
+                        viewModel.editingTodo = nil
+                    },
+                    onSetReminder: { date in
+                        viewModel.setReminder(date, for: todoToEdit.id)
+                    }
+                )
             }
         }
         .sheet(isPresented: $viewModel.showingMassOperations) {

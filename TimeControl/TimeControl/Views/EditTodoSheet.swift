@@ -3,8 +3,9 @@ import SwiftUI
 struct EditTodoSheet: View {
     @Binding var todo: TodoItem
     let onSave: () -> Void
+    let onSetReminder: (Date?) -> Void
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var title: String
     @State private var description: String
     @State private var dueDate: Date
@@ -14,11 +15,14 @@ struct EditTodoSheet: View {
     @State private var estimateHours: Int
     @State private var estimateMinutes: Int
     @State private var notes: String
-    
-    init(todo: Binding<TodoItem>, onSave: @escaping () -> Void) {
+    @State private var hasReminder: Bool
+    @State private var reminderDate: Date
+
+    init(todo: Binding<TodoItem>, onSave: @escaping () -> Void, onSetReminder: @escaping (Date?) -> Void) {
         self._todo = todo
         self.onSave = onSave
-        
+        self.onSetReminder = onSetReminder
+
         // Initialize state from todo
         _title = State(initialValue: todo.wrappedValue.text)
         _description = State(initialValue: todo.wrappedValue.description)
@@ -27,7 +31,9 @@ struct EditTodoSheet: View {
         _isAdhoc = State(initialValue: todo.wrappedValue.isAdhoc)
         _fromWho = State(initialValue: todo.wrappedValue.fromWho)
         _notes = State(initialValue: todo.wrappedValue.notes)
-        
+        _hasReminder = State(initialValue: todo.wrappedValue.reminderDate != nil)
+        _reminderDate = State(initialValue: todo.wrappedValue.reminderDate ?? Date().addingTimeInterval(3600))
+
         // Convert estimated time from seconds to hours and minutes
         let totalMinutes = Int(todo.wrappedValue.estimatedTime / 60)
         _estimateHours = State(initialValue: totalMinutes / 60)
@@ -154,6 +160,15 @@ struct EditTodoSheet: View {
                     }
                 }
                 
+                Section(header: Text("Reminder")) {
+                    Toggle("Set Reminder", isOn: $hasReminder)
+
+                    if hasReminder {
+                        DatePicker("Remind me at", selection: $reminderDate,
+                                   displayedComponents: [.date, .hourAndMinute])
+                    }
+                }
+
                 Section(header: Text("Additional Information")) {
                     Toggle("Adhoc Task", isOn: $isAdhoc)
                     
@@ -172,12 +187,13 @@ struct EditTodoSheet: View {
         todo.isAdhoc = isAdhoc
         todo.fromWho = fromWho
         todo.notes = notes
-        
+
         // Convert hours and minutes to seconds
         let clampedHours = max(0, estimateHours)
         let clampedMinutes = max(0, min(59, estimateMinutes))
         todo.estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
-        
+
+        onSetReminder(hasReminder ? reminderDate : nil)
         onSave()
         dismiss()
     }

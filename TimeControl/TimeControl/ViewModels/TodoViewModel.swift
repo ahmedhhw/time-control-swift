@@ -40,7 +40,10 @@ class TodoViewModel: ObservableObject {
     private var timer: AnyCancellable?
     
     init() {
-        self.todos = TodoStorage.load()
+        let loaded = TodoStorage.load()
+        self.todos = loaded.todos
+        NotificationStore.shared.setInitialRecords(loaded.notificationRecords)
+        NotificationStore.shared.onNeedsSave = { [weak self] in self?.saveTodos() }
         startTimer()
 
         NotificationCenter.default.addObserver(
@@ -176,15 +179,27 @@ class TodoViewModel: ObservableObject {
                     FloatingWindowManager.shared.closeFloatingWindow()
                 }
                 
+                // Clear reminder when task completes
+                if todos[index].reminderDate != nil {
+                    todos[index].reminderDate = nil
+                    NotificationScheduler.shared.cancel(for: todos[index].id)
+                }
+
+                // Clear active notification bell when task completes
+                if todos[index].hasActiveNotification {
+                    todos[index].hasActiveNotification = false
+                    NotificationStore.shared.dismiss(taskId: todos[index].id)
+                }
+
                 todos[index].completedAt = Date().timeIntervalSince1970
             } else {
                 todos[index].completedAt = nil
             }
-            
+
             saveTodos()
         }
     }
-    
+
     func deleteTodo(_ todo: TodoItem) {
         if confirmTaskDeletion {
             todoToDelete = todo
@@ -198,7 +213,8 @@ class TodoViewModel: ObservableObject {
             runningTaskId = nil
             FloatingWindowManager.shared.closeFloatingWindow()
         }
-        
+
+        NotificationScheduler.shared.cancel(for: todo.id)
         todos.removeAll { $0.id == todo.id }
         
         for (index, _) in todos.enumerated() {
@@ -209,7 +225,7 @@ class TodoViewModel: ObservableObject {
     }
     
     func saveTodos() {
-        TodoStorage.save(todos: todos)
+        TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records)
         FloatingWindowManager.shared.updateAllTodos(todos)
     }
     
@@ -353,6 +369,12 @@ class TodoViewModel: ObservableObject {
                     todos[index].countdownTime = TimeInterval(defaultTimerMinutes * 60)
                     todos[index].countdownStartTime = Date()
                     todos[index].countdownElapsedAtPause = 0
+                }
+
+                // Clear reminder when task starts
+                if todos[index].reminderDate != nil {
+                    todos[index].reminderDate = nil
+                    NotificationScheduler.shared.cancel(for: todos[index].id)
                 }
 
                 runningTaskId = todo.id
@@ -801,7 +823,7 @@ class TodoViewModel: ObservableObject {
         }
 
         runningTaskId = nil
-        TodoStorage.save(todos: todos)
+        saveTodos()
     }
 
     func resumeTask(_ taskId: UUID) {
@@ -886,6 +908,41 @@ class TodoViewModel: ObservableObject {
         saveTodos()
     }
     
+    func switchToTask(byId taskId: UUID) {
+        guard let todo = todos.first(where: { $0.id == taskId }) else { return }
+        switchToTask(todo)
+    }
+
+    func setReminder(_ date: Date?, for taskId: UUID) {
+        guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
+        todos[idx].reminderDate = date
+        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[idx])
+
+        if date != nil {
+            NotificationScheduler.shared.schedule(todos[idx])
+        } else {
+            NotificationScheduler.shared.cancel(for: taskId)
+        }
+    }
+
+    // Called by NotificationScheduler when a reminder fires or is dismissed
+    func setActiveNotification(_ active: Bool, for taskId: UUID) {
+        guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
+        todos[idx].hasActiveNotification = active
+        FloatingWindowManager.shared.updateTask(todos[idx])
+        saveTodos()
+    }
+
+
+    // Called when the user clicks the lit bell icon to acknowledge the notification
+    func dismissBell(for taskId: UUID) {
+        guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
+        todos[idx].hasActiveNotification = false
+        NotificationStore.shared.dismiss(taskId: taskId)
+        FloatingWindowManager.shared.updateTask(todos[idx])
+    }
+
     func createTask(title: String, switchToIt: Bool) {
         let newIndex = todos.count
         let newTodo = TodoItem(text: title, index: newIndex)
@@ -1070,7 +1127,7 @@ class TodoViewModel: ObservableObject {
         
         if todos[todoIndex].isCompleted {
             todos[todoIndex].completedAt = Date().timeIntervalSince1970
-            
+
             if todos[todoIndex].isRunning {
                 stopSession(todoIndex: todoIndex)
                 if let startTime = todos[todoIndex].lastStartTime {
@@ -1079,7 +1136,7 @@ class TodoViewModel: ObservableObject {
                 todos[todoIndex].lastStartTime = nil
                 runningTaskId = nil
             }
-            
+
             for i in 0..<todos[todoIndex].subtasks.count {
                 if todos[todoIndex].subtasks[i].isRunning {
                     stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
@@ -1089,10 +1146,22 @@ class TodoViewModel: ObservableObject {
                     todos[todoIndex].subtasks[i].lastStartTime = nil
                 }
             }
+
+            // Clear reminder when task completes
+            if todos[todoIndex].reminderDate != nil {
+                todos[todoIndex].reminderDate = nil
+                NotificationScheduler.shared.cancel(for: taskId)
+            }
+
+            // Clear active notification bell when task completes
+            if todos[todoIndex].hasActiveNotification {
+                todos[todoIndex].hasActiveNotification = false
+                NotificationStore.shared.dismiss(taskId: taskId)
+            }
         } else {
             todos[todoIndex].completedAt = nil
         }
-        
+
         saveTodos()
     }
 }

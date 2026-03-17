@@ -14,9 +14,12 @@ struct TodoRow: View {
     let onToggleSubtask: (Subtask) -> Void
     let onDeleteSubtask: (Subtask) -> Void
     let onEditSubtask: (Subtask) -> Void
-    
+    var onSetReminder: ((Date?) -> Void)? = nil
+    var onDismissBell: (() -> Void)? = nil
+
     @State private var showExportText: Bool = false
     @State private var showSessions: Bool = false
+    @State private var showingReminderPopover: Bool = false
 
     private static let sessionTimeFmt: DateFormatter = {
         let f = DateFormatter()
@@ -217,6 +220,13 @@ struct TodoRow: View {
                         }
                     }
                     
+                    // Show reminder when advanced mode is on and not expanded
+                    if isAdvancedMode && !isExpanded, let reminder = todo.reminderDate, reminder > Date() {
+                        Label(TimeFormatter.formatDueDate(reminder), systemImage: "bell.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.orange)
+                    }
+
                     // Show due date information when advanced mode is on and not expanded
                     if isAdvancedMode && !isExpanded, let dueDate = todo.dueDate {
                         let progress = dueDateProgress()
@@ -274,7 +284,45 @@ struct TodoRow: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(todo.isCompleted)
-                
+
+                if let onSetReminder {
+                    let hasReminder = todo.reminderDate.map { $0 > Date() } ?? false
+                    let isActive = todo.hasActiveNotification
+
+                    if isActive {
+                        // Lit bell — clicking dismisses the active notification
+                        Button(action: { onDismissBell?() }) {
+                            Image(systemName: "bell.fill")
+                                .foregroundColor(.orange)
+                                .font(.title3)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(todo.isCompleted)
+                    } else {
+                        // Dim bell (pending) or unset bell — clicking opens the picker
+                        Button(action: { showingReminderPopover = true }) {
+                            Image(systemName: hasReminder ? "bell.fill" : "bell")
+                                .foregroundColor(hasReminder ? .orange.opacity(0.5) : .blue)
+                                .font(.title3)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(todo.isCompleted)
+                        .popover(isPresented: $showingReminderPopover) {
+                            ReminderPickerPopover(
+                                currentReminder: todo.reminderDate,
+                                onSelect: { date in
+                                    onSetReminder(date)
+                                    showingReminderPopover = false
+                                },
+                                onClear: {
+                                    onSetReminder(nil)
+                                    showingReminderPopover = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .foregroundColor(todo.isCompleted ? .gray : .red)
