@@ -33,7 +33,9 @@ struct FloatingTaskWindowView: View {
     @State private var taskMarkedComplete: Bool = false
     @State private var windowWidth: CGFloat = 350
     @State private var shouldScrollToBottom = false
-    @State private var showProgressBars: Bool = true
+    @State private var showTimerBar: Bool = true
+    @State private var showEstimateBar: Bool = true
+    @State private var showDueDateBar: Bool = true
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -353,12 +355,23 @@ struct FloatingTaskWindowView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Divider()
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Timer")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
+                            Button(action: {
+                                withAnimation { showTimerBar.toggle() }
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: showTimerBar ? "chevron.down" : "chevron.right")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    Text("Timer")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .textCase(.uppercase)
+                                }
+                            }
+                            .buttonStyle(.plain)
 
+                            if showTimerBar {
+                            VStack(alignment: .leading, spacing: 2) {
                                 HStack {
                                     // Show elapsed time
                                     Text(TimeFormatter.formatTime(localTask.countdownElapsed))
@@ -420,11 +433,21 @@ struct FloatingTaskWindowView: View {
                                             .frame(width: geometry.size.width * progress, height: 12)
                                             .cornerRadius(6)
                                             .id(timerUpdateTrigger)
+
+                                        // Chevron marker
+                                        if progress > 0 && progress < 1.0 {
+                                            Image(systemName: "chevron.down")
+                                                .font(.system(size: 8, weight: .bold))
+                                                .foregroundColor(Color.primary.opacity(0.7))
+                                                .frame(width: geometry.size.width * progress, alignment: .trailing)
+                                                .offset(y: -10)
+                                        }
                                     }
                                 }
                                 .frame(height: 12)
                                 .opacity(taskMarkedComplete ? 0.5 : 1.0)
                             }
+                            } // if showTimerBar
                         }
                     }
 
@@ -464,19 +487,19 @@ struct FloatingTaskWindowView: View {
                         }
                     }
 
-                    // Estimate & Due Date progress bars
-                    if localTask.estimatedTime > 0 || localTask.dueDate != nil {
+                    // Estimate progress bar
+                    if localTask.estimatedTime > 0 {
                         VStack(alignment: .leading, spacing: 6) {
                             Divider()
 
                             Button(action: {
-                                withAnimation { showProgressBars.toggle() }
+                                withAnimation { showEstimateBar.toggle() }
                             }) {
                                 HStack(spacing: 4) {
-                                    Image(systemName: showProgressBars ? "chevron.down" : "chevron.right")
+                                    Image(systemName: showEstimateBar ? "chevron.down" : "chevron.right")
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
-                                    Text("Progress")
+                                    Text("Estimate")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                         .textCase(.uppercase)
@@ -484,126 +507,162 @@ struct FloatingTaskWindowView: View {
                             }
                             .buttonStyle(.plain)
 
-                            if showProgressBars {
-                                if localTask.estimatedTime > 0 {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 1) {
-                                                Text("ELAPSED")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.secondary)
-                                                Text(TimeFormatter.formatTimeNoSeconds(localTask.currentTimeSpent))
-                                                    .font(.headline)
-                                                    .fontWeight(.semibold)
-                                                    .monospacedDigit()
-                                                    .id(timerUpdateTrigger)
-                                            }
-                                            Spacer()
-                                            VStack(alignment: .trailing, spacing: 1) {
-                                                Text("ESTIMATED")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.secondary)
-                                                Text(TimeFormatter.formatTimeNoSeconds(localTask.estimatedTime))
-                                                    .font(.headline)
-                                                    .monospacedDigit()
-                                            }
+                            if showEstimateBar {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text("ELAPSED")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                            Text(TimeFormatter.formatTimeNoSeconds(localTask.currentTimeSpent))
+                                                .font(.headline)
+                                                .fontWeight(.semibold)
+                                                .monospacedDigit()
+                                                .id(timerUpdateTrigger)
                                         }
-
-                                        let estProgress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
-                                        GeometryReader { geo in
-                                            ZStack(alignment: .leading) {
-                                                RoundedRectangle(cornerRadius: 3)
-                                                    .fill(Color.gray.opacity(0.2))
-                                                    .frame(height: 8)
-                                                RoundedRectangle(cornerRadius: 3)
-                                                    .fill(estProgress >= 1.0 ? Color.red : Color.blue)
-                                                    .frame(width: geo.size.width * estProgress, height: 8)
-                                            }
+                                        Spacer()
+                                        VStack(alignment: .trailing, spacing: 1) {
+                                            Text("ESTIMATED")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                            Text(TimeFormatter.formatTimeNoSeconds(localTask.estimatedTime))
+                                                .font(.headline)
+                                                .monospacedDigit()
                                         }
-                                        .frame(height: 8)
+                                    }
 
-                                        let estRemaining = localTask.estimatedTime - localTask.currentTimeSpent
-                                        HStack(spacing: 4) {
-                                            if estRemaining >= 0 {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.green)
-                                                Text("Remaining \(TimeFormatter.formatTimeNoSeconds(estRemaining))")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                                    .id(timerUpdateTrigger)
-                                            } else {
-                                                Image(systemName: "exclamationmark.triangle.fill")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.orange)
-                                                Text("Over by \(TimeFormatter.formatTimeNoSeconds(-estRemaining))")
-                                                    .font(.caption)
-                                                    .foregroundColor(.orange)
-                                                    .id(timerUpdateTrigger)
+                                    let estProgress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .fill(Color.gray.opacity(0.2))
+                                                .frame(height: 8)
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .fill(estProgress >= 1.0 ? Color.red : Color.green)
+                                                .frame(width: geo.size.width * estProgress, height: 8)
+
+                                            if estProgress > 0 && estProgress < 1.0 {
+                                                Image(systemName: "chevron.down")
+                                                    .font(.system(size: 8, weight: .bold))
+                                                    .foregroundColor(Color.primary.opacity(0.7))
+                                                    .frame(width: geo.size.width * estProgress, alignment: .trailing)
+                                                    .offset(y: -8)
                                             }
                                         }
                                     }
+                                    .frame(height: 8)
+
+                                    let estRemaining = localTask.estimatedTime - localTask.currentTimeSpent
+                                    HStack(spacing: 4) {
+                                        if estRemaining >= 0 {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(.green)
+                                            Text("Remaining \(TimeFormatter.formatTimeNoSeconds(estRemaining))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                                .id(timerUpdateTrigger)
+                                        } else {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(.orange)
+                                            Text("Over by \(TimeFormatter.formatTimeNoSeconds(-estRemaining))")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                                .id(timerUpdateTrigger)
+                                        }
+                                    }
                                 }
+                            }
+                        }
+                    }
 
-                                if let dueDate = localTask.dueDate {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        let now = Date()
-                                        let created = Date(timeIntervalSince1970: localTask.createdAt)
-                                        let totalDuration = dueDate.timeIntervalSince(created)
-                                        let elapsedSinceCreated = now.timeIntervalSince(created)
-                                        let dueProgress = totalDuration > 0 ? min(max(elapsedSinceCreated / totalDuration, 0), 1.0) : 1.0
-                                        let isOverdue = now > dueDate
+                    // Due date progress bar
+                    if let dueDate = localTask.dueDate {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Divider()
 
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 1) {
-                                                Text("CREATED")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.secondary)
-                                                Text(formatShortDate(created))
-                                                    .font(.headline)
-                                                    .fontWeight(.semibold)
-                                            }
-                                            Spacer()
-                                            VStack(alignment: .trailing, spacing: 1) {
-                                                Text("DUE")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.secondary)
-                                                Text(formatShortDate(dueDate))
-                                                    .font(.headline)
-                                                    .foregroundColor(isOverdue ? .red : .primary)
+                            Button(action: {
+                                withAnimation { showDueDateBar.toggle() }
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: showDueDateBar ? "chevron.down" : "chevron.right")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    Text("Due Date")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .textCase(.uppercase)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if showDueDateBar {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    let now = Date()
+                                    let created = Date(timeIntervalSince1970: localTask.createdAt)
+                                    let totalDuration = dueDate.timeIntervalSince(created)
+                                    let elapsedSinceCreated = now.timeIntervalSince(created)
+                                    let dueProgress = totalDuration > 0 ? min(max(elapsedSinceCreated / totalDuration, 0), 1.0) : 1.0
+                                    let isOverdue = now > dueDate
+
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text("CREATED")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                            Text(formatShortDate(created))
+                                                .font(.headline)
+                                                .fontWeight(.semibold)
+                                        }
+                                        Spacer()
+                                        VStack(alignment: .trailing, spacing: 1) {
+                                            Text("DUE")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                            Text(formatShortDate(dueDate))
+                                                .font(.headline)
+                                                .foregroundColor(isOverdue ? .red : .primary)
+                                        }
+                                    }
+
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .fill(Color.gray.opacity(0.2))
+                                                .frame(height: 8)
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .fill(isOverdue ? Color.red : Color.blue)
+                                                .frame(width: geo.size.width * dueProgress, height: 8)
+
+                                            if dueProgress > 0 && dueProgress < 1.0 {
+                                                Image(systemName: "chevron.down")
+                                                    .font(.system(size: 8, weight: .bold))
+                                                    .foregroundColor(Color.primary.opacity(0.7))
+                                                    .frame(width: geo.size.width * dueProgress, alignment: .trailing)
+                                                    .offset(y: -8)
                                             }
                                         }
+                                    }
+                                    .frame(height: 8)
 
-                                        GeometryReader { geo in
-                                            ZStack(alignment: .leading) {
-                                                RoundedRectangle(cornerRadius: 3)
-                                                    .fill(Color.gray.opacity(0.2))
-                                                    .frame(height: 8)
-                                                RoundedRectangle(cornerRadius: 3)
-                                                    .fill(isOverdue ? Color.red : Color.blue)
-                                                    .frame(width: geo.size.width * dueProgress, height: 8)
-                                            }
-                                        }
-                                        .frame(height: 8)
-
-                                        HStack(spacing: 4) {
-                                            if isOverdue {
-                                                Image(systemName: "exclamationmark.triangle.fill")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.red)
-                                                Text("Overdue by \(formatDuration(now.timeIntervalSince(dueDate)))")
-                                                    .font(.caption)
-                                                    .foregroundColor(.red)
-                                                    .id(timerUpdateTrigger)
-                                            } else {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.green)
-                                                Text("Due in \(formatDuration(dueDate.timeIntervalSince(now)))")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                                    .id(timerUpdateTrigger)
-                                            }
+                                    HStack(spacing: 4) {
+                                        if isOverdue {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(.red)
+                                            Text("Overdue by \(formatDuration(now.timeIntervalSince(dueDate)))")
+                                                .font(.caption)
+                                                .foregroundColor(.red)
+                                                .id(timerUpdateTrigger)
+                                        } else {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(.green)
+                                            Text("Due in \(formatDuration(dueDate.timeIntervalSince(now)))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                                .id(timerUpdateTrigger)
                                         }
                                     }
                                 }
@@ -1273,7 +1332,10 @@ struct FloatingTaskWindowView: View {
         
         // Countdown timer section (if active)
         if localTask.countdownTime > 0 {
-            height += 80  // Timer display + progress bar
+            height += 30  // chevron header row
+            if showTimerBar {
+                height += 60  // timer display + progress bar
+            }
         }
 
         // Timer completed message (if shown)
@@ -1281,13 +1343,19 @@ struct FloatingTaskWindowView: View {
             height += 120
         }
 
-        // Estimate & Due Date progress bars (chevron header + bars)
-        let hasBars = localTask.estimatedTime > 0 || localTask.dueDate != nil
-        if hasBars {
+        // Estimate progress bar
+        if localTask.estimatedTime > 0 {
             height += 30  // chevron header row
-            if showProgressBars {
-                let barCount = (localTask.estimatedTime > 0 ? 1 : 0) + (localTask.dueDate != nil ? 1 : 0)
-                height += CGFloat(barCount) * 40  // ~80pt per bar (labels + bar + status line)
+            if showEstimateBar {
+                height += 70  // labels + bar + status line
+            }
+        }
+
+        // Due date progress bar
+        if localTask.dueDate != nil {
+            height += 30  // chevron header row
+            if showDueDateBar {
+                height += 70  // labels + bar + status line
             }
         }
 
