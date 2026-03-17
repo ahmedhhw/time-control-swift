@@ -11,6 +11,7 @@ import AppKit
 class FloatingWindowManager: ObservableObject {
     static let shared = FloatingWindowManager()
     private var floatingWindow: NSWindow?
+    private var settingsWindow: NSWindow?
     @Published var currentTask: TodoItem?
     @Published var allTodos: [TodoItem] = []
     private var windowDelegate: FloatingWindowDelegate?
@@ -109,11 +110,35 @@ class FloatingWindowManager: ObservableObject {
     }
     
     @objc private func openSettings() {
-        if let mainWindow = NSApp.windows.first(where: { $0.title == "TimeControl" || $0.isMainWindow }) {
-            mainWindow.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+        // If already open, just bring it forward
+        if let existing = settingsWindow, existing.isVisible {
+            existing.orderFrontRegardless()
+            return
         }
-        viewModel?.showingSettings = true
+
+        let contentView = FloatingSettingsHostView(onClose: { [weak self] in
+            self?.settingsWindow?.close()
+            self?.settingsWindow = nil
+        })
+        let hostingView = NSHostingView(rootView: contentView)
+
+        let window = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
+            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Settings"
+        window.contentView = hostingView
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.hidesOnDeactivate = false
+        window.center()
+
+        settingsWindow = window
+        window.orderFrontRegardless()
     }
 
     func closeFloatingWindow() {

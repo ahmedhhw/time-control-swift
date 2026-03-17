@@ -18,13 +18,14 @@ struct SettingsSheet: View {
     @Binding var timerOnTaskSwitch: Bool
     @Binding var defaultTimerMinutes: Int
     @Binding var dropdownSortOptionRaw: String
+    var onClose: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Button("Cancel") {
-                    dismiss()
+                    if let onClose { onClose() } else { dismiss() }
                 }
                 .keyboardShortcut(.cancelAction)
                 
@@ -36,7 +37,7 @@ struct SettingsSheet: View {
                 Spacer()
                 
                 Button("Done") {
-                    dismiss()
+                    if let onClose { onClose() } else { dismiss() }
                 }
                 .keyboardShortcut(.defaultAction)
             }
@@ -175,5 +176,35 @@ struct SettingsSheet: View {
             }
         }
         .frame(minWidth: 500, minHeight: 300)
+    }
+}
+
+/// Standalone host for SettingsSheet when opened as a floating panel (owns its own @AppStorage).
+struct FloatingSettingsHostView: View {
+    @AppStorage("activateReminders") private var activateReminders: Bool = false
+    @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
+    @AppStorage("confirmSubtaskDeletion") private var confirmSubtaskDeletion: Bool = true
+    @AppStorage("showTimeWhenCollapsed") private var showTimeWhenCollapsed: Bool = false
+    @AppStorage("autoPlayAfterSwitching") private var autoPlayAfterSwitching: Bool = false
+    @AppStorage("autoPauseAfterMinutes") private var autoPauseAfterMinutes: Int = 0
+    @AppStorage("timerOnTaskSwitch") private var timerOnTaskSwitch: Bool = false
+    @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
+    @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
+
+    var onClose: () -> Void
+
+    var body: some View {
+        SettingsSheet(
+            activateReminders: $activateReminders,
+            confirmTaskDeletion: $confirmTaskDeletion,
+            confirmSubtaskDeletion: $confirmSubtaskDeletion,
+            showTimeWhenCollapsed: $showTimeWhenCollapsed,
+            autoPlayAfterSwitching: $autoPlayAfterSwitching,
+            autoPauseAfterMinutes: $autoPauseAfterMinutes,
+            timerOnTaskSwitch: $timerOnTaskSwitch,
+            defaultTimerMinutes: $defaultTimerMinutes,
+            dropdownSortOptionRaw: $dropdownSortOptionRaw,
+            onClose: onClose
+        )
     }
 }
