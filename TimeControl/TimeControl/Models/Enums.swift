@@ -89,3 +89,13 @@ enum ReminderResponse {
     case pause
     case openTaskList
 }
+
+enum DropdownSortOption: String, CaseIterable, Identifiable {
+    case recentlyPlayed = "Recently played"
+    case newest = "Newest created"
+    case oldest = "Oldest created"
+    case estimateSize = "Smallest estimate"
+    case dueDate = "Nearest due date"
+
+    var id: String { self.rawValue }
+}

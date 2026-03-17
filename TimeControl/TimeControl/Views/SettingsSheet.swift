@@ -17,6 +17,7 @@ struct SettingsSheet: View {
     @Binding var autoPauseAfterMinutes: Int
     @Binding var timerOnTaskSwitch: Bool
     @Binding var defaultTimerMinutes: Int
+    @Binding var dropdownSortOptionRaw: String
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -144,6 +145,28 @@ struct SettingsSheet: View {
                     }
                     
                     Text("When enabled, tasks will automatically pause if you are inactive for the selected duration.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+                        .padding(.vertical, 8)
+
+                    HStack {
+                        Text("Order current task dropdown by")
+                            .font(.title3)
+                        Picker("", selection: Binding(
+                            get: { DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed },
+                            set: { dropdownSortOptionRaw = $0.rawValue }
+                        )) {
+                            ForEach(DropdownSortOption.allCases) { option in
+                                Text(option.rawValue).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
+
+                    Text("Determines the sort order of tasks in the dropdown used for switching tasks in the floating task window.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }

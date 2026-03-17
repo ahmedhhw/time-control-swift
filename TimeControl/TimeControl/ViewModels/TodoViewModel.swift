@@ -36,6 +36,7 @@ class TodoViewModel: ObservableObject {
     @Published var timerOnTaskSwitch: Bool = false
     @Published var defaultTimerMinutes: Int = 0
     @Published var shouldAutoShowTimerPicker: Bool = false
+    @Published var dropdownSortOption: DropdownSortOption = .recentlyPlayed
     
     private var timer: AnyCancellable?
     

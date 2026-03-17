@@ -54,13 +54,37 @@ struct FloatingTaskWindowView: View {
     }
     
     private var availableTasks: [TodoItem] {
-        windowManager.allTodos
-            .filter { !$0.isCompleted }
-            .sorted { task1, task2 in
-                let time1 = task1.lastPlayedAt ?? task1.startedAt ?? task1.createdAt
-                let time2 = task2.lastPlayedAt ?? task2.startedAt ?? task2.createdAt
-                return time1 > time2
+        let incomplete = windowManager.allTodos.filter { !$0.isCompleted }
+        switch viewModel.dropdownSortOption {
+        case .recentlyPlayed:
+            return incomplete.sorted {
+                let t1 = $0.lastPlayedAt ?? $0.startedAt ?? $0.createdAt
+                let t2 = $1.lastPlayedAt ?? $1.startedAt ?? $1.createdAt
+                return t1 > t2
             }
+        case .newest:
+            return incomplete.sorted { $0.createdAt > $1.createdAt }
+        case .oldest:
+            return incomplete.sorted { $0.createdAt < $1.createdAt }
+        case .estimateSize:
+            return incomplete.sorted {
+                switch ($0.estimatedTime > 0, $1.estimatedTime > 0) {
+                case (true, true): return $0.estimatedTime < $1.estimatedTime
+                case (true, false): return true
+                case (false, true): return false
+                default: return false
+                }
+            }
+        case .dueDate:
+            return incomplete.sorted {
+                switch ($0.dueDate, $1.dueDate) {
+                case let (d1?, d2?): return d1 < d2
+                case (_?, nil): return true
+                case (nil, _?): return false
+                default: return false
+                }
+            }
+        }
     }
     
     // The base window width is 350pt. For every extra 50pt the user has resized,

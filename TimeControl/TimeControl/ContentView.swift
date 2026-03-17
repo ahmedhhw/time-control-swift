@@ -24,6 +24,7 @@ struct ContentView: View {
     @AppStorage("autoPauseAfterMinutes") private var autoPauseAfterMinutes: Int = 0
     @AppStorage("timerOnTaskSwitch") private var timerOnTaskSwitch: Bool = false
     @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
+    @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
     
     var body: some View {
         VStack(spacing: 0) {
@@ -210,6 +211,7 @@ struct ContentView: View {
             viewModel.autoPauseAfterMinutes = autoPauseAfterMinutes
             viewModel.timerOnTaskSwitch = timerOnTaskSwitch
             viewModel.defaultTimerMinutes = defaultTimerMinutes
+            viewModel.dropdownSortOption = DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed
         }
         .onChange(of: activateReminders) { viewModel.activateReminders = $0 }
         .onChange(of: confirmTaskDeletion) { viewModel.confirmTaskDeletion = $0 }
@@ -219,6 +221,7 @@ struct ContentView: View {
         .onChange(of: autoPauseAfterMinutes) { viewModel.autoPauseAfterMinutes = $0 }
         .onChange(of: timerOnTaskSwitch) { viewModel.timerOnTaskSwitch = $0 }
         .onChange(of: defaultTimerMinutes) { viewModel.defaultTimerMinutes = $0 }
+        .onChange(of: dropdownSortOptionRaw) { viewModel.dropdownSortOption = DropdownSortOption(rawValue: $0) ?? .recentlyPlayed }
         .sheet(item: $viewModel.editingTodo) { todoToEdit in
             if let index = viewModel.todos.firstIndex(where: { $0.id == todoToEdit.id }) {
                 EditTodoSheet(
@@ -239,7 +242,7 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $viewModel.showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes, dropdownSortOptionRaw: $dropdownSortOptionRaw)
         }
         .confirmationDialog(
             "Delete Task",
