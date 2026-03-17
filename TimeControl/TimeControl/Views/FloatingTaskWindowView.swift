@@ -534,23 +534,23 @@ struct FloatingTaskWindowView: View {
                                     let estProgress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
-                                            RoundedRectangle(cornerRadius: 3)
+                                            RoundedRectangle(cornerRadius: 6)
                                                 .fill(Color.gray.opacity(0.2))
-                                                .frame(height: 8)
-                                            RoundedRectangle(cornerRadius: 3)
+                                                .frame(height: 12)
+                                            RoundedRectangle(cornerRadius: 6)
                                                 .fill(estProgress >= 1.0 ? Color.red : Color.green)
-                                                .frame(width: geo.size.width * estProgress, height: 8)
+                                                .frame(width: geo.size.width * estProgress, height: 12)
 
                                             if estProgress > 0 && estProgress < 1.0 {
                                                 Image(systemName: "chevron.down")
                                                     .font(.system(size: 8, weight: .bold))
                                                     .foregroundColor(Color.primary.opacity(0.7))
                                                     .frame(width: geo.size.width * estProgress, alignment: .trailing)
-                                                    .offset(y: -8)
+                                                    .offset(y: -10)
                                             }
                                         }
                                     }
-                                    .frame(height: 8)
+                                    .frame(height: 12)
 
                                     let estRemaining = localTask.estimatedTime - localTask.currentTimeSpent
                                     HStack(spacing: 4) {
@@ -628,23 +628,23 @@ struct FloatingTaskWindowView: View {
 
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
-                                            RoundedRectangle(cornerRadius: 3)
+                                            RoundedRectangle(cornerRadius: 6)
                                                 .fill(Color.gray.opacity(0.2))
-                                                .frame(height: 8)
-                                            RoundedRectangle(cornerRadius: 3)
+                                                .frame(height: 12)
+                                            RoundedRectangle(cornerRadius: 6)
                                                 .fill(isOverdue ? Color.red : Color.blue)
-                                                .frame(width: geo.size.width * dueProgress, height: 8)
+                                                .frame(width: geo.size.width * dueProgress, height: 12)
 
                                             if dueProgress > 0 && dueProgress < 1.0 {
                                                 Image(systemName: "chevron.down")
                                                     .font(.system(size: 8, weight: .bold))
                                                     .foregroundColor(Color.primary.opacity(0.7))
                                                     .frame(width: geo.size.width * dueProgress, alignment: .trailing)
-                                                    .offset(y: -8)
+                                                    .offset(y: -10)
                                             }
                                         }
                                     }
-                                    .frame(height: 8)
+                                    .frame(height: 12)
 
                                     HStack(spacing: 4) {
                                         if isOverdue {
