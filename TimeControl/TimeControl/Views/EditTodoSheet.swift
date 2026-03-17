@@ -69,9 +69,51 @@ struct EditTodoSheet: View {
             
             // Form content
             Form {
+                Section(header: Text("Due Date")) {
+                    Toggle("Set Due Date", isOn: $hasDueDate)
+
+                    if hasDueDate {
+                        DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                    }
+                }
+
+                Section(header: Text("Estimate")) {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Hours")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Picker("", selection: $estimateHours) {
+                                ForEach(0..<24, id: \.self) { hour in
+                                    Text("\(hour)").tag(hour)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 80)
+                        }
+
+                        Text(":")
+                            .font(.title)
+                            .padding(.top, 16)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Minutes")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Picker("", selection: $estimateMinutes) {
+                                ForEach(0..<60, id: \.self) { minute in
+                                    Text("\(minute)").tag(minute)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 80)
+                        }
+                    }
+                }
+
                 Section(header: Text("Task Details")) {
                     TextField("Title", text: $title)
-                    
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Description")
                             .font(.subheadline)
@@ -80,7 +122,7 @@ struct EditTodoSheet: View {
                             .frame(minHeight: 100, maxHeight: 200)
                             .border(Color.gray.opacity(0.2), width: 1)
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Notes")
                             .font(.subheadline)
@@ -90,7 +132,7 @@ struct EditTodoSheet: View {
                             .border(Color.gray.opacity(0.2), width: 1)
                     }
                 }
-                
+
                 Section(header: Text("Timestamps")) {
                     HStack {
                         Text("Created:")
@@ -115,48 +157,6 @@ struct EditTodoSheet: View {
                             Spacer()
                             Text(formatTimestamp(completedAt))
                         }
-                    }
-                }
-                
-                Section(header: Text("Estimate")) {
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Hours")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Picker("", selection: $estimateHours) {
-                                ForEach(0..<24, id: \.self) { hour in
-                                    Text("\(hour)").tag(hour)
-                                }
-                            }
-                            .labelsHidden()
-                            .frame(width: 80)
-                        }
-                        
-                        Text(":")
-                            .font(.title)
-                            .padding(.top, 16)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Minutes")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Picker("", selection: $estimateMinutes) {
-                                ForEach(0..<60, id: \.self) { minute in
-                                    Text("\(minute)").tag(minute)
-                                }
-                            }
-                            .labelsHidden()
-                            .frame(width: 80)
-                        }
-                    }
-                }
-                
-                Section(header: Text("Due Date")) {
-                    Toggle("Set Due Date", isOn: $hasDueDate)
-                    
-                    if hasDueDate {
-                        DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                     }
                 }
                 

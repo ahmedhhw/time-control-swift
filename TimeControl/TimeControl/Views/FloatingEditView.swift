@@ -66,15 +66,73 @@ struct FloatingEditView: View {
             // Form content
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Due Date Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Due Date")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+
+                        Toggle("Set Due Date", isOn: $hasDueDate)
+
+                        if hasDueDate {
+                            DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                        }
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+
+                    // Estimate Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Estimate")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+
+                        HStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Hours")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Picker("", selection: $estimateHours) {
+                                    ForEach(0..<24, id: \.self) { hour in
+                                        Text("\(hour)").tag(hour)
+                                    }
+                                }
+                                .labelsHidden()
+                                .frame(width: 80)
+                            }
+
+                            Text(":")
+                                .font(.title)
+                                .padding(.top, 16)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Minutes")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Picker("", selection: $estimateMinutes) {
+                                    ForEach(0..<60, id: \.self) { minute in
+                                        Text("\(minute)").tag(minute)
+                                    }
+                                }
+                                .labelsHidden()
+                                .frame(width: 80)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+
                     // Task Details Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Task Details")
                             .font(.headline)
                             .foregroundColor(.secondary)
-                        
+
                         TextField("Title", text: $title)
                             .textFieldStyle(.roundedBorder)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Description")
                                 .font(.subheadline)
@@ -83,7 +141,7 @@ struct FloatingEditView: View {
                                 .frame(minHeight: 80, maxHeight: 150)
                                 .border(Color.gray.opacity(0.2), width: 1)
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Notes")
                                 .font(.subheadline)
@@ -96,7 +154,7 @@ struct FloatingEditView: View {
                     .padding()
                     .background(Color(NSColor.controlBackgroundColor))
                     .cornerRadius(8)
-                    
+
                     // Timestamps Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Timestamps")
@@ -126,64 +184,6 @@ struct FloatingEditView: View {
                                 Spacer()
                                 Text(formatTimestamp(completedAt))
                             }
-                        }
-                    }
-                    .padding()
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(8)
-                    
-                    // Estimate Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Estimate")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Hours")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Picker("", selection: $estimateHours) {
-                                    ForEach(0..<24, id: \.self) { hour in
-                                        Text("\(hour)").tag(hour)
-                                    }
-                                }
-                                .labelsHidden()
-                                .frame(width: 80)
-                            }
-                            
-                            Text(":")
-                                .font(.title)
-                                .padding(.top, 16)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Minutes")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Picker("", selection: $estimateMinutes) {
-                                    ForEach(0..<60, id: \.self) { minute in
-                                        Text("\(minute)").tag(minute)
-                                    }
-                                }
-                                .labelsHidden()
-                                .frame(width: 80)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(8)
-                    
-                    // Due Date Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Due Date")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        Toggle("Set Due Date", isOn: $hasDueDate)
-                        
-                        if hasDueDate {
-                            DatePicker("Date & Time", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                         }
                     }
                     .padding()
