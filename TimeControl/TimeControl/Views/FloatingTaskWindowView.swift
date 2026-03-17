@@ -33,7 +33,8 @@ struct FloatingTaskWindowView: View {
     @State private var taskMarkedComplete: Bool = false
     @State private var windowWidth: CGFloat = 350
     @State private var shouldScrollToBottom = false
-    
+    @State private var showProgressBars: Bool = true
+
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     init(task: TodoItem, windowManager: FloatingWindowManager, viewModel: TodoViewModel) {
@@ -76,6 +77,7 @@ struct FloatingTaskWindowView: View {
             }
             .frame(height: 0)
             .onPreferenceChange(WidthPreferenceKey.self) { windowWidth = $0 }
+            .onAppear { resizeWindow() }
             
             // Main content
             VStack(alignment: .leading, spacing: 0) {
@@ -346,53 +348,17 @@ struct FloatingTaskWindowView: View {
                         }
                     }
                     
-                    // Timer's up! message (shown after timer completes and is cleared)
-                    if showTimerCompletedMessage && !taskMarkedComplete {
-                        VStack(spacing: 8) {
-                            Divider()
-                            
-                            HStack {
-                                Spacer()
-                                VStack(spacing: 8) {
-                                    Image(systemName: "bell.badge.fill")
-                                        .font(.system(size: 80))
-                                        .foregroundColor(.red)
-                                    
-                                    Text("Timer's up!")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.red)
-                                    
-                                    Button(action: {
-                                        withAnimation {
-                                            showTimerCompletedMessage = false
-                                        }
-                                    }) {
-                                        Text("Dismiss")
-                                            .font(.subheadline)
-                                            .foregroundColor(.blue)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                    }
-                    
                     // Countdown Timer section (if set)
                     if localTask.countdownTime > 0 {
                         VStack(alignment: .leading, spacing: 4) {
                             Divider()
-                            
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Timer")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
-                                
+
                                 HStack {
                                     // Show elapsed time
                                     Text(TimeFormatter.formatTime(localTask.countdownElapsed))
@@ -401,16 +367,16 @@ struct FloatingTaskWindowView: View {
                                         .foregroundColor(localTask.countdownElapsed >= localTask.countdownTime ? .red : .orange)
                                         .monospacedDigit()
                                         .id(timerUpdateTrigger)
-                                    
+
                                     Text("/")
                                         .font(.title2)
                                         .foregroundColor(.secondary)
-                                    
+
                                     Text(TimeFormatter.formatTime(localTask.countdownTime))
                                         .font(.title2)
                                         .foregroundColor(.secondary)
                                         .monospacedDigit()
-                                    
+
                                     Spacer()
 
                                     if localTask.countdownElapsed >= localTask.countdownTime {
@@ -437,7 +403,7 @@ struct FloatingTaskWindowView: View {
                                     .help("Cancel timer")
                                 }
                                 .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                                
+
                                 // Progress bar for countdown (fills up as time progresses)
                                 GeometryReader { geometry in
                                     ZStack(alignment: .leading) {
@@ -446,7 +412,7 @@ struct FloatingTaskWindowView: View {
                                             .fill(Color.gray.opacity(0.2))
                                             .frame(height: 12)
                                             .cornerRadius(6)
-                                        
+
                                         // Progress (fills up as time elapses)
                                         let progress = localTask.countdownTime > 0 ? min(localTask.countdownElapsed / localTask.countdownTime, 1.0) : 0
                                         Rectangle()
@@ -458,6 +424,189 @@ struct FloatingTaskWindowView: View {
                                 }
                                 .frame(height: 12)
                                 .opacity(taskMarkedComplete ? 0.5 : 1.0)
+                            }
+                        }
+                    }
+
+                    // Timer's up! message (shown after timer completes and is cleared)
+                    if showTimerCompletedMessage && !taskMarkedComplete {
+                        VStack(spacing: 8) {
+                            Divider()
+
+                            HStack {
+                                Spacer()
+                                VStack(spacing: 8) {
+                                    Image(systemName: "bell.badge.fill")
+                                        .font(.system(size: 80))
+                                        .foregroundColor(.red)
+
+                                    Text("Timer's up!")
+                                        .font(.title)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.red)
+
+                                    Button(action: {
+                                        withAnimation {
+                                            showTimerCompletedMessage = false
+                                        }
+                                    }) {
+                                        Text("Dismiss")
+                                            .font(.subheadline)
+                                            .foregroundColor(.blue)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+
+                    // Estimate & Due Date progress bars
+                    if localTask.estimatedTime > 0 || localTask.dueDate != nil {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Divider()
+
+                            Button(action: {
+                                withAnimation { showProgressBars.toggle() }
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: showProgressBars ? "chevron.down" : "chevron.right")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    Text("Progress")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .textCase(.uppercase)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if showProgressBars {
+                                if localTask.estimatedTime > 0 {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 1) {
+                                                Text("ELAPSED")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                                    .font(.headline)
+                                                    .fontWeight(.semibold)
+                                                    .monospacedDigit()
+                                                    .id(timerUpdateTrigger)
+                                            }
+                                            Spacer()
+                                            VStack(alignment: .trailing, spacing: 1) {
+                                                Text("ESTIMATED")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                                Text(TimeFormatter.formatTime(localTask.estimatedTime))
+                                                    .font(.headline)
+                                                    .monospacedDigit()
+                                            }
+                                        }
+
+                                        let estProgress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(Color.gray.opacity(0.2))
+                                                    .frame(height: 8)
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(estProgress >= 1.0 ? Color.red : Color.blue)
+                                                    .frame(width: geo.size.width * estProgress, height: 8)
+                                            }
+                                        }
+                                        .frame(height: 8)
+
+                                        let estRemaining = localTask.estimatedTime - localTask.currentTimeSpent
+                                        HStack(spacing: 4) {
+                                            if estRemaining >= 0 {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.green)
+                                                Text("Remaining \(TimeFormatter.formatTime(estRemaining))")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                    .id(timerUpdateTrigger)
+                                            } else {
+                                                Image(systemName: "exclamationmark.triangle.fill")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.orange)
+                                                Text("Over by \(TimeFormatter.formatTime(-estRemaining))")
+                                                    .font(.caption)
+                                                    .foregroundColor(.orange)
+                                                    .id(timerUpdateTrigger)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if let dueDate = localTask.dueDate {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        let now = Date()
+                                        let created = Date(timeIntervalSince1970: localTask.createdAt)
+                                        let totalDuration = dueDate.timeIntervalSince(created)
+                                        let elapsedSinceCreated = now.timeIntervalSince(created)
+                                        let dueProgress = totalDuration > 0 ? min(max(elapsedSinceCreated / totalDuration, 0), 1.0) : 1.0
+                                        let isOverdue = now > dueDate
+
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 1) {
+                                                Text("CREATED")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                                Text(formatShortDate(created))
+                                                    .font(.headline)
+                                                    .fontWeight(.semibold)
+                                            }
+                                            Spacer()
+                                            VStack(alignment: .trailing, spacing: 1) {
+                                                Text("DUE")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                                Text(formatShortDate(dueDate))
+                                                    .font(.headline)
+                                                    .foregroundColor(isOverdue ? .red : .primary)
+                                            }
+                                        }
+
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(Color.gray.opacity(0.2))
+                                                    .frame(height: 8)
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(isOverdue ? Color.red : Color.blue)
+                                                    .frame(width: geo.size.width * dueProgress, height: 8)
+                                            }
+                                        }
+                                        .frame(height: 8)
+
+                                        HStack(spacing: 4) {
+                                            if isOverdue {
+                                                Image(systemName: "exclamationmark.triangle.fill")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.red)
+                                                Text("Overdue by \(formatDuration(now.timeIntervalSince(dueDate)))")
+                                                    .font(.caption)
+                                                    .foregroundColor(.red)
+                                                    .id(timerUpdateTrigger)
+                                            } else {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.green)
+                                                Text("Due in \(formatDuration(dueDate.timeIntervalSince(now)))")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                    .id(timerUpdateTrigger)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -1105,6 +1254,7 @@ struct FloatingTaskWindowView: View {
     }
     
     private func calculateDynamicHeight() -> CGFloat {
+        print("In calculateDynamicHeight")
         // Base height for header, task title, description, time tracking, and buttons
         var height: CGFloat = 0
         
@@ -1126,15 +1276,27 @@ struct FloatingTaskWindowView: View {
         if localTask.countdownTime > 0 {
             height += 80  // Timer display + progress bar
         }
-        
+
         // Timer completed message (if shown)
         if showTimerCompletedMessage {
             height += 120
         }
-        
+
+        // Estimate & Due Date progress bars (chevron header + bars)
+        let hasBars = localTask.estimatedTime > 0 || localTask.dueDate != nil
+        if hasBars {
+            print("In hasBars section")
+            height += 30  // chevron header row
+            if showProgressBars {
+                print("In showProgressBars section")
+                let barCount = (localTask.estimatedTime > 0 ? 1 : 0) + (localTask.dueDate != nil ? 1 : 0)
+                height += CGFloat(barCount) * 80  // ~80pt per bar (labels + bar + status line)
+            }
+        }
+
         // Subtasks section header + input field
-        height += 80  // "SUBTASKS" label + input field with button
-        
+        height += 20  // "SUBTASKS" label + input field with button
+
         // Subtasks list - calculate based on number of subtasks
         let subtaskCount = localTask.subtasks.count
         if subtaskCount > 0 {
@@ -1142,15 +1304,13 @@ struct FloatingTaskWindowView: View {
             let subtasksHeight = min(CGFloat(subtaskCount) * 40, 200)  // Cap at 200px for scrolling
             height += subtasksHeight
         }
-        
+
         // Bottom buttons (Pause/Resume and Complete)
         height += 60
-        
-        // Add some padding
-        height += 20
-        
+
+
         // Clamp between min and max heights
-        return min(max(height, 400), 550)
+        return min(max(height, 550), 900)
     }
     
     private func resizeWindow() {
@@ -1387,6 +1547,27 @@ struct FloatingTaskWindowView: View {
         showingTimerPicker = false
     }
     
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        let total = Int(interval)
+        let days = total / 86400
+        let hours = (total % 86400) / 3600
+        let minutes = (total % 3600) / 60
+        if days > 0 {
+            return hours > 0 ? "\(days)d \(hours)h" : "\(days)d"
+        } else if hours > 0 {
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        } else {
+            return "\(max(minutes, 1))m"
+        }
+    }
+
     private func handleReminderResponse(_ response: ReminderResponse, isAutoPause: Bool = false) {
         // Close the reminder window
         reminderWindow?.close()
