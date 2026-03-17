@@ -492,7 +492,7 @@ struct FloatingTaskWindowView: View {
                                                 Text("ELAPSED")
                                                     .font(.caption2)
                                                     .foregroundColor(.secondary)
-                                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                                Text(TimeFormatter.formatTimeNoSeconds(localTask.currentTimeSpent))
                                                     .font(.headline)
                                                     .fontWeight(.semibold)
                                                     .monospacedDigit()
@@ -503,7 +503,7 @@ struct FloatingTaskWindowView: View {
                                                 Text("ESTIMATED")
                                                     .font(.caption2)
                                                     .foregroundColor(.secondary)
-                                                Text(TimeFormatter.formatTime(localTask.estimatedTime))
+                                                Text(TimeFormatter.formatTimeNoSeconds(localTask.estimatedTime))
                                                     .font(.headline)
                                                     .monospacedDigit()
                                             }
@@ -528,7 +528,7 @@ struct FloatingTaskWindowView: View {
                                                 Image(systemName: "checkmark.circle.fill")
                                                     .font(.caption2)
                                                     .foregroundColor(.green)
-                                                Text("Remaining \(TimeFormatter.formatTime(estRemaining))")
+                                                Text("Remaining \(TimeFormatter.formatTimeNoSeconds(estRemaining))")
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                                     .id(timerUpdateTrigger)
@@ -536,7 +536,7 @@ struct FloatingTaskWindowView: View {
                                                 Image(systemName: "exclamationmark.triangle.fill")
                                                     .font(.caption2)
                                                     .foregroundColor(.orange)
-                                                Text("Over by \(TimeFormatter.formatTime(-estRemaining))")
+                                                Text("Over by \(TimeFormatter.formatTimeNoSeconds(-estRemaining))")
                                                     .font(.caption)
                                                     .foregroundColor(.orange)
                                                     .id(timerUpdateTrigger)
@@ -1545,8 +1545,7 @@ struct FloatingTaskWindowView: View {
     
     private func formatShortDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
+        formatter.dateFormat = "M/d/yy h:mm a"
         return formatter.string(from: date)
     }
 
