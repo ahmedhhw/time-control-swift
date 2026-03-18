@@ -634,6 +634,18 @@ class TodoViewModel: ObservableObject {
         saveTodos()
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
+
+    /// Saves subtask title without updating the floating window, to avoid feedback loops during live editing
+    func renameSubtaskQuietly(_ subtaskId: UUID, in taskId: UUID, newTitle: String) {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty,
+              let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
+              let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) else {
+            return
+        }
+        todos[todoIndex].subtasks[subtaskIndex].title = trimmed
+        saveTodos()
+    }
     
     func deleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
         if confirmSubtaskDeletion {

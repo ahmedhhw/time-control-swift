@@ -413,10 +413,10 @@ struct FloatingTaskWindowView: View {
                                             .textFieldStyle(.plain)
                                             .lineLimit(1...10)
                                             .disabled(taskMarkedComplete)
-                                            .onSubmit {
-                                                let trimmed = subtask.title.trimmingCharacters(in: .whitespaces)
+                                            .onChange(of: subtask.title) { newTitle in
+                                                let trimmed = newTitle.trimmingCharacters(in: .whitespaces)
                                                 if !trimmed.isEmpty {
-                                                    viewModel.renameSubtaskFromFloatingWindow(subtask.id, in: localTask.id, newTitle: trimmed)
+                                                    viewModel.renameSubtaskQuietly(subtask.id, in: localTask.id, newTitle: trimmed)
                                                 }
                                             }
 
@@ -789,6 +789,8 @@ struct FloatingTaskWindowView: View {
                             }
                         }
                     }
+
+                    Spacer()
 
                     // Pause/Resume and Complete buttons at the bottom
                     HStack(spacing: 12) {
@@ -1555,7 +1557,7 @@ struct FloatingTaskWindowView: View {
                 localTask.subtasks[i].lastStartTime = nil
             }
         }
-        
+
         viewModel.pauseTask(localTask.id, keepWindowOpen: true)
     }
     
