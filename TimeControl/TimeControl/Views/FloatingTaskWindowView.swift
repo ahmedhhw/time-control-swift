@@ -36,6 +36,7 @@ struct FloatingTaskWindowView: View {
     @State private var showTimerBar: Bool = true
     @State private var showEstimateBar: Bool = true
     @State private var showDueDateBar: Bool = true
+    @State private var isViewActive: Bool = true
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -232,7 +233,8 @@ struct FloatingTaskWindowView: View {
                                     windowManager.switchToTask(selectedTask)
                                     taskMarkedComplete = false
                                     if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+                                            guard isViewActive else { return }
                                             resumeTask()
                                         }
                                     }
@@ -287,7 +289,8 @@ struct FloatingTaskWindowView: View {
                                     // If switching from a complete task to a non-complete task and auto-play is enabled
                                     if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
                                         // Resume the new task
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+                                            guard isViewActive else { return }
                                             resumeTask()
                                         }
                                     }
@@ -930,7 +933,8 @@ struct FloatingTaskWindowView: View {
                     }
                     
                     // Hide the alert after 3 seconds with fade
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [self] in
+                        guard isViewActive else { return }
                         withAnimation(.easeOut(duration: 0.5)) {
                             showTaskPausedAlert = false
                         }
@@ -961,14 +965,12 @@ struct FloatingTaskWindowView: View {
                         showTimerCompletedMessage = true
                     }
                     
-                    // Clear all timer fields locally after a brief delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        localTask.countdownTime = 0
-                        localTask.countdownStartTime = nil
-                        localTask.countdownElapsedAtPause = 0
-                        
-                        viewModel.clearCountdown(taskId: localTask.id)
-                    }
+                    // Clear all timer fields locally and in view model
+                    localTask.countdownTime = 0
+                    localTask.countdownStartTime = nil
+                    localTask.countdownElapsedAtPause = 0
+
+                    viewModel.clearCountdown(taskId: localTask.id)
                 }
             }
         }
@@ -1060,6 +1062,9 @@ struct FloatingTaskWindowView: View {
         }
         .onChange(of: viewModel.dropdownSortOption) { _ in
             updateWindowTitle()
+        }
+        .onDisappear {
+            isViewActive = false
         }
     }
     
