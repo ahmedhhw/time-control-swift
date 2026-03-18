@@ -26,6 +26,8 @@
 		9D1052D62F46DA0000B7B24D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052AD2F46DA0000B7B24D /* Enums.swift */; };
 		9D1052D92F46DB1800B7B24D /* TodoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */; };
 		A1000000000000000000125 /* TestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000124 /* TestHelpers.swift */; };
+		A1000000000000000000127 /* TodoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000126 /* TodoViewModelTests.swift */; };
+		A1000000000000000000129 /* FilterSortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000128 /* FilterSortTests.swift */; };
 		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
 		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
 		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
@@ -85,6 +87,8 @@
 		9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
 		A1000000000000000000101 /* TimeControlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeControlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000000000000000000124 /* TestHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestHelpers.swift; sourceTree = "<group>"; };
+		A1000000000000000000126 /* TodoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModelTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000128 /* FilterSortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterSortTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
@@ -222,6 +226,8 @@
 			isa = PBXGroup;
 			children = (
 				A1000000000000000000124 /* TestHelpers.swift */,
+				A1000000000000000000126 /* TodoViewModelTests.swift */,
+				A1000000000000000000128 /* FilterSortTests.swift */,
 				A1000000000000000000114 /* TodoItemTests.swift */,
 				A1000000000000000000116 /* SubtaskTests.swift */,
 				A1000000000000000000118 /* TodoStorageTests.swift */,
@@ -367,6 +373,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000000000000000000125 /* TestHelpers.swift in Sources */,
+				A1000000000000000000127 /* TodoViewModelTests.swift in Sources */,
+				A1000000000000000000129 /* FilterSortTests.swift in Sources */,
 				A1000000000000000000115 /* TodoItemTests.swift in Sources */,
 				A1000000000000000000117 /* SubtaskTests.swift in Sources */,
 				A1000000000000000000119 /* TodoStorageTests.swift in Sources */,
