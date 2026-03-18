@@ -94,9 +94,9 @@ final class SubtaskTests: XCTestCase {
         let id = UUID()
         let subtask1 = Subtask(id: id, title: "Test", isCompleted: false)
         let subtask2 = Subtask(id: id, title: "Different", isCompleted: true)
-        
-        // Should be equal if IDs match
-        XCTAssertEqual(subtask1, subtask2)
+
+        // Different content means not equal, even with the same ID
+        XCTAssertNotEqual(subtask1, subtask2)
     }
     
     // MARK: - Identifiable Tests

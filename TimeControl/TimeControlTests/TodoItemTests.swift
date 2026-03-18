@@ -225,9 +225,10 @@ final class TodoItemTests: XCTestCase {
     
     func testTodoItemEquality() {
         let id = UUID()
-        let todo1 = TodoItem(id: id, text: "Test Todo")
-        let todo2 = TodoItem(id: id, text: "Test Todo")
-        
+        let createdAt = Date().timeIntervalSince1970
+        let todo1 = TodoItem(id: id, text: "Test Todo", createdAt: createdAt)
+        let todo2 = TodoItem(id: id, text: "Test Todo", createdAt: createdAt)
+
         XCTAssertEqual(todo1, todo2)
     }
     
