@@ -24,7 +24,7 @@ final class CompilationTest: XCTestCase {
     func testStorageExists() {
         // Just verify the class exists
         let todos: [TodoItem] = []
-        TodoStorage.save(todos: todos)
+        TodoStorage.save(todos: todos, notificationRecords: [])
         XCTAssertTrue(true, "Storage methods are accessible")
     }
 }
