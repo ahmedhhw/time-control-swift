@@ -1135,6 +1135,7 @@ struct FloatingTaskWindowView: View {
         )
 
         window.title = "Task Notes"
+        window.isReleasedWhenClosed = false
         window.contentView = hostingView
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -1197,6 +1198,7 @@ struct FloatingTaskWindowView: View {
         )
         
         window.title = "Attention Check"
+        window.isReleasedWhenClosed = false
         window.contentView = hostingView
         window.level = .statusBar  // Higher than floating to ensure visibility
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -1264,6 +1266,7 @@ struct FloatingTaskWindowView: View {
         )
         
         window.title = "Set Countdown Timer"
+        window.isReleasedWhenClosed = false
         window.contentView = hostingView
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -1336,6 +1339,7 @@ struct FloatingTaskWindowView: View {
         )
         
         window.title = "New Task"
+        window.isReleasedWhenClosed = false
         window.contentView = hostingView
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -1624,6 +1628,7 @@ struct FloatingTaskWindowView: View {
         )
         
         window.title = "Edit Task"
+        window.isReleasedWhenClosed = false
         window.contentView = hostingView
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
