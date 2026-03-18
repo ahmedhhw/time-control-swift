@@ -286,4 +286,142 @@ final class TodoStorageTests: XCTestCase {
         XCTAssertEqual(loaded.count, 1)
         XCTAssertEqual(loaded.first?.text, "Updated")
     }
+
+    // MARK: - Phase 4: Missing Field Round-Trip Tests
+
+    func testReminderDate_roundTrip() {
+        let reminderDate = Date(timeIntervalSince1970: 9_000_000)
+        var todo = TodoItem(text: "Reminder Task", index: 0)
+        todo.reminderDate = reminderDate
+
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertNotNil(loaded.first?.reminderDate)
+        if let loadedDate = loaded.first?.reminderDate {
+            XCTAssertEqual(loadedDate.timeIntervalSince1970, reminderDate.timeIntervalSince1970, accuracy: 0.001)
+        }
+    }
+
+    func testHasActiveNotification_true_roundTrip() {
+        var todo = TodoItem(text: "Notif Task", index: 0)
+        todo.hasActiveNotification = true
+
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertTrue(loaded.first?.hasActiveNotification ?? false)
+    }
+
+    func testHasActiveNotification_false_roundTrip() {
+        var todo = TodoItem(text: "Notif Task", index: 0)
+        todo.hasActiveNotification = false
+
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertFalse(loaded.first?.hasActiveNotification ?? true)
+    }
+
+    // These four fields are not currently written by TodoStorage.save().
+    // These tests document that behaviour so any future storage change that
+    // starts persisting them is immediately visible.
+
+    func testCountdownTime_notPersistedByStorage() {
+        var todo = TodoItem(text: "Countdown Task", index: 0)
+        todo.countdownTime = 3_600
+
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertEqual(loaded.first?.countdownTime, 0, "countdownTime is not currently saved by TodoStorage")
+    }
+
+    func testCountdownStartTime_notPersistedByStorage() {
+        var todo = TodoItem(text: "Countdown Task", index: 0)
+        todo.countdownStartTime = Date(timeIntervalSince1970: 1_000_000)
+
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertNil(loaded.first?.countdownStartTime, "countdownStartTime is not currently saved by TodoStorage")
+    }
+
+    func testCountdownElapsedAtPause_notPersistedByStorage() {
+        var todo = TodoItem(text: "Countdown Task", index: 0)
+        todo.countdownElapsedAtPause = 1_800
+
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertEqual(loaded.first?.countdownElapsedAtPause, 0, "countdownElapsedAtPause is not currently saved by TodoStorage")
+    }
+
+    func testLastPlayedAt_notPersistedByStorage() {
+        var todo = TodoItem(text: "Task", index: 0)
+        todo.lastPlayedAt = 5_000_000
+
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertNil(loaded.first?.lastPlayedAt, "lastPlayedAt is not currently saved by TodoStorage")
+    }
+
+    func testLoad_missingOptionalFields_usesDefaults() {
+        let minimalJSON = """
+        {
+            "tasks": {
+                "00000000-0000-0000-0000-000000000001": {
+                    "title": "Minimal Task",
+                    "index": 0,
+                    "isCompleted": false
+                }
+            },
+            "notificationRecords": []
+        }
+        """
+        try! minimalJSON.write(to: testStorageURL, atomically: true, encoding: .utf8)
+
+        let loaded = TodoStorage.load(from: testStorageURL).todos
+
+        XCTAssertEqual(loaded.count, 1)
+        let task = loaded.first!
+        XCTAssertEqual(task.text, "Minimal Task")
+        XCTAssertEqual(task.totalTimeSpent, 0)
+        XCTAssertEqual(task.description, "")
+        XCTAssertFalse(task.isAdhoc)
+        XCTAssertEqual(task.fromWho, "")
+        XCTAssertEqual(task.estimatedTime, 0)
+        XCTAssertEqual(task.notes, "")
+        XCTAssertNil(task.dueDate)
+        XCTAssertNil(task.lastStartTime)
+        XCTAssertNil(task.startedAt)
+        XCTAssertNil(task.completedAt)
+        XCTAssertFalse(task.hasActiveNotification)
+        XCTAssertNil(task.reminderDate)
+    }
+
+    func testLoad_oldNotificationRecordsArePruned() {
+        let taskId = UUID()
+        let oldDate = Date().addingTimeInterval(-31 * 24 * 60 * 60)
+        let recentDate = Date().addingTimeInterval(-1 * 24 * 60 * 60)
+
+        let oldRecord = NotificationRecord(taskId: taskId, taskTitle: "Old", firedAt: oldDate)
+        let recentRecord = NotificationRecord(taskId: taskId, taskTitle: "Recent", firedAt: recentDate)
+
+        TodoStorage.save(todos: [], notificationRecords: [oldRecord, recentRecord], to: testStorageURL)
+        let result = TodoStorage.load(from: testStorageURL)
+
+        XCTAssertEqual(result.notificationRecords.count, 1)
+        XCTAssertEqual(result.notificationRecords.first?.taskTitle, "Recent")
+    }
+
+    func testLoad_corruptedJSON_returnsEmptyState() {
+        try! "this is not valid json {{{]]}".write(to: testStorageURL, atomically: true, encoding: .utf8)
+
+        let result = TodoStorage.load(from: testStorageURL)
+
+        XCTAssertTrue(result.todos.isEmpty)
+        XCTAssertTrue(result.notificationRecords.isEmpty)
+    }
 }
