@@ -39,9 +39,11 @@ class TodoViewModel: ObservableObject {
     @Published var dropdownSortOption: DropdownSortOption = .recentlyPlayed
     
     private var timer: AnyCancellable?
-    
-    init() {
-        let loaded = TodoStorage.load()
+    var storageURL: URL = TodoStorage.storageURL
+
+    init(storageURL: URL = TodoStorage.storageURL) {
+        self.storageURL = storageURL
+        let loaded = TodoStorage.load(from: storageURL)
         self.todos = loaded.todos
         NotificationStore.shared.setInitialRecords(loaded.notificationRecords)
         NotificationStore.shared.onNeedsSave = { [weak self] in self?.saveTodos() }
@@ -226,7 +228,7 @@ class TodoViewModel: ObservableObject {
     }
     
     func saveTodos() {
-        TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records)
+        TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records, to: storageURL)
         FloatingWindowManager.shared.updateAllTodos(todos)
     }
     

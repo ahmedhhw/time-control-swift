@@ -109,7 +109,7 @@ final class NotificationScheduler: ObservableObject {
 
     // MARK: - Helpers
 
-    private func snap(_ date: Date) -> Date {
+    func snap(_ date: Date) -> Date {
         var comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         comps.second = 0
         return Calendar.current.date(from: comps) ?? date

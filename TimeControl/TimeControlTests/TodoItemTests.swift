@@ -234,7 +234,28 @@ final class TodoItemTests: XCTestCase {
     func testTodoItemInequality() {
         let todo1 = TodoItem(text: "Test Todo 1")
         let todo2 = TodoItem(text: "Test Todo 2")
-        
+
         XCTAssertNotEqual(todo1, todo2)
+    }
+
+    // MARK: - Computed property tests
+
+    func testCurrentTimeSpent_accumulates_acrossSessions() {
+        var item = makeTodo()
+        item.totalTimeSpent = 120
+        item.lastStartTime = Date().addingTimeInterval(-30)
+        XCTAssertGreaterThanOrEqual(item.currentTimeSpent, 150)
+    }
+
+    func testCountdownElapsed_clampedToCountdownTime() {
+        var item = makeTodo()
+        item.countdownTime = 300
+        item.countdownElapsedAtPause = 350 // exceeds countdown
+        XCTAssertEqual(item.countdownElapsed, 300) // clamped
+    }
+
+    func testCountdownElapsed_zero_whenNoCountdownSet() {
+        let item = makeTodo()
+        XCTAssertEqual(item.countdownElapsed, 0)
     }
 }
