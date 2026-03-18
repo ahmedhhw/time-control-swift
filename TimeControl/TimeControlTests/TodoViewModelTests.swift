@@ -563,4 +563,119 @@ final class TodoViewModelTests: XCTestCase {
         XCTAssertTrue(vm.todos.isEmpty)
         XCTAssertNil(vm.runningTaskId)
     }
+
+    // MARK: - Phase 7: Notification ViewModel integration
+
+    func testSetReminder_setsReminderDateOnTask() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+        let date = Date().addingTimeInterval(3600)
+
+        vm.setReminder(date, for: taskId)
+
+        XCTAssertNotNil(vm.todos[0].reminderDate)
+        XCTAssertEqual(vm.todos[0].reminderDate?.timeIntervalSince1970 ?? 0,
+                       date.timeIntervalSince1970, accuracy: 1)
+        NotificationScheduler.shared.cancel(for: taskId)
+    }
+
+    func testSetReminder_addsToSchedulerPending() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+        let date = Date().addingTimeInterval(3600)
+
+        vm.setReminder(date, for: taskId)
+
+        XCTAssertNotNil(NotificationScheduler.shared.pending[taskId])
+        NotificationScheduler.shared.cancel(for: taskId)
+    }
+
+    func testSetReminder_nil_clearsReminderDate() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+        vm.setReminder(Date().addingTimeInterval(3600), for: taskId)
+
+        vm.setReminder(nil, for: taskId)
+
+        XCTAssertNil(vm.todos[0].reminderDate)
+    }
+
+    func testSetReminder_nil_removesFromSchedulerPending() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+        vm.setReminder(Date().addingTimeInterval(3600), for: taskId)
+        XCTAssertNotNil(NotificationScheduler.shared.pending[taskId])
+
+        vm.setReminder(nil, for: taskId)
+
+        XCTAssertNil(NotificationScheduler.shared.pending[taskId])
+    }
+
+    func testSetActiveNotification_true_setsFlag() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+
+        vm.setActiveNotification(true, for: taskId)
+
+        XCTAssertTrue(vm.todos[0].hasActiveNotification)
+    }
+
+    func testSetActiveNotification_false_clearsFlag() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+        vm.setActiveNotification(true, for: taskId)
+
+        vm.setActiveNotification(false, for: taskId)
+
+        XCTAssertFalse(vm.todos[0].hasActiveNotification)
+    }
+
+    func testSetActiveNotification_unknownId_doesNotCrash() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        vm.setActiveNotification(true, for: UUID()) // unknown id
+        XCTAssertFalse(vm.todos[0].hasActiveNotification)
+    }
+
+    func testDismissBell_clearsHasActiveNotification() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+        vm.setActiveNotification(true, for: taskId)
+        XCTAssertTrue(vm.todos[0].hasActiveNotification)
+
+        vm.dismissBell(for: taskId)
+
+        XCTAssertFalse(vm.todos[0].hasActiveNotification)
+    }
+
+    func testDismissBell_dismissesNotificationStoreRecord() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+
+        // Plant a record in the store for this task
+        NotificationStore.shared.setInitialRecords([
+            NotificationRecord(taskId: taskId, taskTitle: "Task")
+        ])
+
+        vm.dismissBell(for: taskId)
+
+        XCTAssertTrue(NotificationStore.shared.records.first?.isDismissed ?? false)
+        NotificationStore.shared.setInitialRecords([])
+    }
+
+    func testDismissBell_unknownId_doesNotCrash() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        NotificationStore.shared.setInitialRecords([])
+        vm.dismissBell(for: UUID()) // unknown id — should not crash
+        XCTAssertFalse(vm.todos[0].hasActiveNotification)
+    }
 }

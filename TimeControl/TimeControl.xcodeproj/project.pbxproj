@@ -33,6 +33,7 @@
 		A100000000000000000012F /* ModelEnumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000012E /* ModelEnumTests.swift */; };
 		A1000000000000000000131 /* FloatingWindowOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000130 /* FloatingWindowOperationsTests.swift */; };
 		A1000000000000000000133 /* NotificationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000132 /* NotificationStoreTests.swift */; };
+		A1000000000000000000135 /* ExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000134 /* ExportTests.swift */; };
 		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
 		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
 		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
@@ -99,6 +100,7 @@
 		A100000000000000000012E /* ModelEnumTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelEnumTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000130 /* FloatingWindowOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowOperationsTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000132 /* NotificationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationStoreTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000134 /* ExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
@@ -248,6 +250,7 @@
 				A100000000000000000012E /* ModelEnumTests.swift */,
 				A1000000000000000000130 /* FloatingWindowOperationsTests.swift */,
 				A1000000000000000000132 /* NotificationStoreTests.swift */,
+				A1000000000000000000134 /* ExportTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -400,6 +403,7 @@
 				A100000000000000000012F /* ModelEnumTests.swift in Sources */,
 				A1000000000000000000131 /* FloatingWindowOperationsTests.swift in Sources */,
 				A1000000000000000000133 /* NotificationStoreTests.swift in Sources */,
+				A1000000000000000000135 /* ExportTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
