@@ -28,6 +28,8 @@
 		A1000000000000000000125 /* TestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000124 /* TestHelpers.swift */; };
 		A1000000000000000000127 /* TodoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000126 /* TodoViewModelTests.swift */; };
 		A1000000000000000000129 /* FilterSortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000128 /* FilterSortTests.swift */; };
+		A100000000000000000012B /* TaskSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000012A /* TaskSessionTests.swift */; };
+		A100000000000000000012D /* NotificationSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000012C /* NotificationSchedulerTests.swift */; };
 		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
 		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
 		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
@@ -89,6 +91,8 @@
 		A1000000000000000000124 /* TestHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestHelpers.swift; sourceTree = "<group>"; };
 		A1000000000000000000126 /* TodoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModelTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000128 /* FilterSortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterSortTests.swift; sourceTree = "<group>"; };
+		A100000000000000000012A /* TaskSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSessionTests.swift; sourceTree = "<group>"; };
+		A100000000000000000012C /* NotificationSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSchedulerTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
@@ -229,10 +233,12 @@
 				A1000000000000000000126 /* TodoViewModelTests.swift */,
 				A1000000000000000000128 /* FilterSortTests.swift */,
 				A1000000000000000000114 /* TodoItemTests.swift */,
+				A100000000000000000012A /* TaskSessionTests.swift */,
 				A1000000000000000000116 /* SubtaskTests.swift */,
 				A1000000000000000000118 /* TodoStorageTests.swift */,
 				A1000000000000000000120 /* TodoOperationsTests.swift */,
 				A1000000000000000000122 /* TimeFormattingTests.swift */,
+				A100000000000000000012C /* NotificationSchedulerTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -376,10 +382,12 @@
 				A1000000000000000000127 /* TodoViewModelTests.swift in Sources */,
 				A1000000000000000000129 /* FilterSortTests.swift in Sources */,
 				A1000000000000000000115 /* TodoItemTests.swift in Sources */,
+				A100000000000000000012B /* TaskSessionTests.swift in Sources */,
 				A1000000000000000000117 /* SubtaskTests.swift in Sources */,
 				A1000000000000000000119 /* TodoStorageTests.swift in Sources */,
 				A1000000000000000000121 /* TodoOperationsTests.swift in Sources */,
 				A1000000000000000000123 /* TimeFormattingTests.swift in Sources */,
+				A100000000000000000012D /* NotificationSchedulerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
