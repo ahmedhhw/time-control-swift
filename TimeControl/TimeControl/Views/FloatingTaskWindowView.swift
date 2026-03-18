@@ -376,6 +376,118 @@ struct FloatingTaskWindowView: View {
                             }
                         }
                     }
+
+                    // Subtasks section
+                    Divider()
+
+                    ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Subtasks")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
+
+                            // Existing subtasks
+                            if !localTask.subtasks.isEmpty {
+                                ForEach($localTask.subtasks) { $subtask in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Button(action: {
+                                            toggleSubtask(subtask)
+                                        }) {
+                                            Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                                .foregroundColor(subtask.isCompleted ? .green : .secondary)
+                                                .font(.body)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(taskMarkedComplete)
+
+                                        TextField("", text: $subtask.title, axis: .vertical)
+                                            .font(.title3)
+                                            .foregroundColor(subtask.isCompleted ? .secondary : .primary)
+                                            .strikethrough(subtask.isCompleted)
+                                            .textFieldStyle(.plain)
+                                            .lineLimit(1...10)
+                                            .disabled(taskMarkedComplete)
+                                            .onSubmit {
+                                                let trimmed = subtask.title.trimmingCharacters(in: .whitespaces)
+                                                if !trimmed.isEmpty {
+                                                    viewModel.renameSubtaskFromFloatingWindow(subtask.id, in: localTask.id, newTitle: trimmed)
+                                                }
+                                            }
+
+                                        // Time display
+                                        Text(TimeFormatter.formatTime(subtask.currentTimeSpent))
+                                            .font(.body)
+                                            .foregroundColor(.secondary)
+                                            .monospacedDigit()
+                                            .id(timerUpdateTrigger) // Force update when trigger changes
+
+                                        // Play/Pause button
+                                        Button(action: {
+                                            toggleSubtaskTimer(subtask)
+                                        }) {
+                                            Image(systemName: subtask.isRunning ? "pause.circle.fill" : "play.circle.fill")
+                                                .foregroundColor(subtask.isRunning ? .orange : .blue)
+                                                .font(.body)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(!localTask.isRunning || taskMarkedComplete || subtask.isCompleted)
+                                        .opacity((localTask.isRunning && !taskMarkedComplete && !subtask.isCompleted) ? 1.0 : 0.3)
+
+                                        Button(action: {
+                                            deleteSubtask(subtask)
+                                        }) {
+                                            Image(systemName: "trash")
+                                                .font(.subheadline)
+                                                .foregroundColor(.red)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(taskMarkedComplete)
+                                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .opacity(taskMarkedComplete ? 0.5 : 1.0)
+                                }
+                            }
+
+                            // Textfield and button for adding new subtasks
+                            HStack(spacing: 8) {
+                                TextField("Subtask title...", text: $newSubtaskText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .focused($subtaskInputFocused)
+                                    .onSubmit {
+                                        addSubtask()
+                                    }
+                                    .disabled(taskMarkedComplete)
+
+                                Button(action: {
+                                    addSubtask()
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.blue)
+                                        .font(.title3)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete)
+                                .opacity((newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete) ? 0.3 : 1.0)
+                            }
+                            .padding(.top, 4)
+                            .id("subtaskInput")
+                        }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxHeight: 300)
+                    .onChange(of: shouldScrollToBottom) { _ in
+                        if shouldScrollToBottom {
+                            withAnimation {
+                                scrollProxy.scrollTo("subtaskInput", anchor: .bottom)
+                            }
+                            shouldScrollToBottom = false
+                        }
+                    }
+                    } // ScrollViewReader
                     
                     // Countdown Timer section (if set)
                     if localTask.countdownTime > 0 {
@@ -674,116 +786,6 @@ struct FloatingTaskWindowView: View {
                             }
                         }
                     }
-                    
-                    // Subtasks section
-                    Divider()
-                    
-                    ScrollViewReader { scrollProxy in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Subtasks")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            
-                            // Existing subtasks
-                            if !localTask.subtasks.isEmpty {
-                                ForEach($localTask.subtasks) { $subtask in
-                                    HStack(alignment: .top, spacing: 8) {
-                                        Button(action: {
-                                            toggleSubtask(subtask)
-                                        }) {
-                                            Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
-                                                .foregroundColor(subtask.isCompleted ? .green : .secondary)
-                                                .font(.body)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(taskMarkedComplete)
-
-                                        TextField("", text: $subtask.title, axis: .vertical)
-                                            .font(.title3)
-                                            .foregroundColor(subtask.isCompleted ? .secondary : .primary)
-                                            .strikethrough(subtask.isCompleted)
-                                            .textFieldStyle(.plain)
-                                            .lineLimit(1...10)
-                                            .disabled(taskMarkedComplete)
-                                            .onSubmit {
-                                                let trimmed = subtask.title.trimmingCharacters(in: .whitespaces)
-                                                if !trimmed.isEmpty {
-                                                    viewModel.renameSubtaskFromFloatingWindow(subtask.id, in: localTask.id, newTitle: trimmed)
-                                                }
-                                            }
-
-                                        // Time display
-                                        Text(TimeFormatter.formatTime(subtask.currentTimeSpent))
-                                            .font(.body)
-                                            .foregroundColor(.secondary)
-                                            .monospacedDigit()
-                                            .id(timerUpdateTrigger) // Force update when trigger changes
-                                        
-                                        // Play/Pause button
-                                        Button(action: {
-                                            toggleSubtaskTimer(subtask)
-                                        }) {
-                                            Image(systemName: subtask.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                                                .foregroundColor(subtask.isRunning ? .orange : .blue)
-                                                .font(.body)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(!localTask.isRunning || taskMarkedComplete || subtask.isCompleted)
-                                        .opacity((localTask.isRunning && !taskMarkedComplete && !subtask.isCompleted) ? 1.0 : 0.3)
-                                        
-                                        Button(action: {
-                                            deleteSubtask(subtask)
-                                        }) {
-                                            Image(systemName: "trash")
-                                                .font(.subheadline)
-                                                .foregroundColor(.red)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(taskMarkedComplete)
-                                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                                    }
-                                    .padding(.horizontal, 8)
-                                    .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                                }
-                            }
-
-                            // Textfield and button for adding new subtasks
-                            HStack(spacing: 8) {
-                                TextField("Subtask title...", text: $newSubtaskText)
-                                    .textFieldStyle(.roundedBorder)
-                                    .focused($subtaskInputFocused)
-                                    .onSubmit {
-                                        addSubtask()
-                                    }
-                                    .disabled(taskMarkedComplete)
-
-                                Button(action: {
-                                    addSubtask()
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .font(.title3)
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete)
-                                .opacity((newSubtaskText.trimmingCharacters(in: .whitespaces).isEmpty || taskMarkedComplete) ? 0.3 : 1.0)
-                            }
-                            .padding(.top, 4)
-                            .id("subtaskInput")
-                        }
-                    }
-                    .onChange(of: shouldScrollToBottom) { _ in
-                        if shouldScrollToBottom {
-                            withAnimation {
-                                scrollProxy.scrollTo("subtaskInput", anchor: .bottom)
-                            }
-                            shouldScrollToBottom = false
-                        }
-                    }
-                    } // ScrollViewReader
 
                     // Pause/Resume and Complete buttons at the bottom
                     HStack(spacing: 12) {
@@ -1383,8 +1385,8 @@ struct FloatingTaskWindowView: View {
         // Subtasks list - calculate based on number of subtasks
         let subtaskCount = localTask.subtasks.count
         if subtaskCount > 0 {
-            // Each subtask is approximately 40 pixels tall
-            let subtasksHeight = min(CGFloat(subtaskCount) * 40, 200)  // Cap at 200px for scrolling
+            // Each subtask is approximately 60 pixels tall to account for potential multiline content
+            let subtasksHeight = min(CGFloat(subtaskCount) * 60, 260)  // Cap at 260px for scrolling
             height += subtasksHeight
         }
 
