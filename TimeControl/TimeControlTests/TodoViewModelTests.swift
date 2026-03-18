@@ -262,4 +262,305 @@ final class TodoViewModelTests: XCTestCase {
         XCTAssertEqual(vm.todos[1].index, 1)
         XCTAssertEqual(vm.todos[2].index, 2)
     }
+
+    // MARK: - pauseTask / resumeTask
+
+    func testPauseTask_stopsTimer_andClearsRunningTaskId() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        vm.toggleTimer(vm.todos[0])
+        XCTAssertTrue(vm.todos[0].isRunning)
+        XCTAssertNotNil(vm.runningTaskId)
+
+        vm.pauseTask(vm.todos[0].id, keepWindowOpen: false)
+
+        XCTAssertFalse(vm.todos[0].isRunning)
+        XCTAssertNil(vm.todos[0].lastStartTime)
+        XCTAssertNil(vm.runningTaskId)
+    }
+
+    func testPauseTask_keepWindowOpen_doesNotClearRunningTaskId() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        vm.toggleTimer(vm.todos[0])
+        let taskId = vm.todos[0].id
+
+        vm.pauseTask(taskId, keepWindowOpen: true)
+
+        XCTAssertFalse(vm.todos[0].isRunning)
+        // runningTaskId is NOT cleared when keepWindowOpen == true
+        XCTAssertEqual(vm.runningTaskId, taskId)
+    }
+
+    func testPauseTask_alsoStopsRunningSubtask() {
+        let (vm, _) = makeViewModel()
+        let sub = makeSubtask(title: "Sub")
+        vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
+        vm.toggleTimer(vm.todos[0]) // starts parent + auto-starts sub
+
+        XCTAssertTrue(vm.todos[0].subtasks.first(where: { $0.id == sub.id })!.isRunning)
+
+        vm.pauseTask(vm.todos[0].id, keepWindowOpen: false)
+
+        XCTAssertFalse(vm.todos[0].subtasks.first(where: { $0.id == sub.id })!.isRunning)
+    }
+
+    func testResumeTask_startsTimer_andSetsRunningTaskId() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let taskId = vm.todos[0].id
+
+        vm.resumeTask(taskId)
+
+        XCTAssertTrue(vm.todos[0].isRunning)
+        XCTAssertEqual(vm.runningTaskId, taskId)
+    }
+
+    func testResumeTask_setsStartedAt_onFirstResume() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        XCTAssertNil(vm.todos[0].startedAt)
+        vm.resumeTask(vm.todos[0].id)
+        XCTAssertNotNil(vm.todos[0].startedAt)
+    }
+
+    func testResumeTask_doesNotOverwriteStartedAt_onSubsequentResume() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        vm.toggleTimer(vm.todos[0])
+        let firstStartedAt = vm.todos[0].startedAt
+        vm.pauseTask(vm.todos[0].id, keepWindowOpen: true)
+        vm.resumeTask(vm.todos[0].id)
+        XCTAssertEqual(vm.todos[0].startedAt, firstStartedAt)
+    }
+
+    // MARK: - createTask with switchToIt
+
+    func testCreateTask_switchToIt_true_makesNewTaskRunning() {
+        let (vm, _) = makeViewModel()
+        vm.createTask(title: "New Task", switchToIt: true)
+        XCTAssertEqual(vm.todos.count, 1)
+        XCTAssertTrue(vm.todos[0].isRunning)
+        XCTAssertEqual(vm.runningTaskId, vm.todos[0].id)
+    }
+
+    func testCreateTask_switchToIt_false_doesNotStartTask() {
+        let (vm, _) = makeViewModel()
+        vm.createTask(title: "New Task", switchToIt: false)
+        XCTAssertFalse(vm.todos[0].isRunning)
+        XCTAssertNil(vm.runningTaskId)
+    }
+
+    func testCreateTask_switchToIt_true_stopsPreviouslyRunningTask() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Existing")]
+        vm.toggleTimer(vm.todos[0])
+        XCTAssertTrue(vm.todos[0].isRunning)
+
+        vm.createTask(title: "New Task", switchToIt: true)
+
+        XCTAssertFalse(vm.todos.first(where: { $0.text == "Existing" })!.isRunning)
+        XCTAssertTrue(vm.todos.first(where: { $0.text == "New Task" })!.isRunning)
+    }
+
+    // MARK: - updateTaskFields — full field coverage
+
+    func testUpdateTaskFields_updatesAllFields() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let id = vm.todos[0].id
+        let dueDate = Date(timeIntervalSinceNow: 86400)
+
+        vm.updateTaskFields(
+            id: id,
+            text: "Updated",
+            description: "A description",
+            notes: "Some notes",
+            dueDate: dueDate,
+            isAdhoc: true,
+            fromWho: "Alice",
+            estimatedTime: 1800
+        )
+
+        let task = vm.todos[0]
+        XCTAssertEqual(task.text, "Updated")
+        XCTAssertEqual(task.description, "A description")
+        XCTAssertEqual(task.notes, "Some notes")
+        XCTAssertEqual(task.dueDate, dueDate)
+        XCTAssertTrue(task.isAdhoc)
+        XCTAssertEqual(task.fromWho, "Alice")
+        XCTAssertEqual(task.estimatedTime, 1800)
+    }
+
+    func testUpdateTaskFields_nilValues_doNotClearFields() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let id = vm.todos[0].id
+        vm.updateTaskFields(id: id, text: "Set", description: "Desc", notes: nil,
+                            dueDate: nil, isAdhoc: nil, fromWho: "Bob", estimatedTime: nil)
+        // A second call with all-nil should not wipe what was set
+        vm.updateTaskFields(id: id, text: nil, description: nil, notes: nil,
+                            dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
+        XCTAssertEqual(vm.todos[0].text, "Set")
+        XCTAssertEqual(vm.todos[0].description, "Desc")
+        XCTAssertEqual(vm.todos[0].fromWho, "Bob")
+    }
+
+    // MARK: - renameSubtask
+
+    func testRenameSubtask_happyPath() {
+        let (vm, _) = makeViewModel()
+        let sub = makeSubtask(title: "Old Name")
+        vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
+
+        vm.renameSubtask(sub, in: vm.todos[0], newTitle: "New Name")
+
+        XCTAssertEqual(vm.todos[0].subtasks[0].title, "New Name")
+    }
+
+    func testRenameSubtask_whitespaceTrimmed() {
+        let (vm, _) = makeViewModel()
+        let sub = makeSubtask(title: "Original")
+        vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
+
+        vm.renameSubtask(sub, in: vm.todos[0], newTitle: "  Trimmed  ")
+
+        XCTAssertEqual(vm.todos[0].subtasks[0].title, "Trimmed")
+    }
+
+    func testRenameSubtask_whitespaceOnly_doesNotRename() {
+        let (vm, _) = makeViewModel()
+        let sub = makeSubtask(title: "Keep This")
+        vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
+
+        vm.renameSubtask(sub, in: vm.todos[0], newTitle: "   ")
+
+        XCTAssertEqual(vm.todos[0].subtasks[0].title, "Keep This")
+    }
+
+    // MARK: - switchToTask(byId:)
+
+    func testSwitchToTaskById_stopsPreviousTask() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
+        vm.toggleTimer(vm.todos[0])
+
+        vm.switchToTask(byId: vm.todos[1].id)
+
+        XCTAssertFalse(vm.todos[0].isRunning)
+    }
+
+    func testSwitchToTaskById_autoPlays_whenEnabled() {
+        let (vm, _) = makeViewModel()
+        vm.autoPlayAfterSwitching = true
+        vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
+        vm.toggleTimer(vm.todos[0])
+        let targetId = vm.todos[1].id
+
+        vm.switchToTask(byId: targetId)
+
+        XCTAssertTrue(vm.todos.first(where: { $0.id == targetId })!.isRunning)
+        XCTAssertEqual(vm.runningTaskId, targetId)
+    }
+
+    func testSwitchToTaskById_unknownId_doesNothing() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "A")]
+        vm.toggleTimer(vm.todos[0])
+
+        vm.switchToTask(byId: UUID()) // unknown id
+
+        // Original task should still be in the same state it was before (stopped,
+        // because switchToTask always pauses the current task first)
+        // — key invariant: no crash, todos unchanged in count
+        XCTAssertEqual(vm.todos.count, 1)
+    }
+
+    // MARK: - toggleExpanded / toggleExpandAll
+
+    func testToggleExpanded_insertsId_whenNotExpanded() {
+        let (vm, _) = makeViewModel()
+        let todo = makeTodo(text: "Task")
+        vm.todos = [todo]
+
+        vm.toggleExpanded(todo)
+
+        XCTAssertTrue(vm.expandedTodos.contains(todo.id))
+    }
+
+    func testToggleExpanded_removesId_whenAlreadyExpanded() {
+        let (vm, _) = makeViewModel()
+        let todo = makeTodo(text: "Task")
+        vm.todos = [todo]
+        vm.toggleExpanded(todo)    // expand
+        vm.toggleExpanded(todo)    // collapse
+
+        XCTAssertFalse(vm.expandedTodos.contains(todo.id))
+    }
+
+    func testToggleExpandAll_expandsAllTasks() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "A"), makeTodo(text: "B"), makeTodo(text: "C")]
+
+        vm.toggleExpandAll()
+
+        for todo in vm.todos {
+            XCTAssertTrue(vm.expandedTodos.contains(todo.id))
+        }
+        XCTAssertTrue(vm.areAllTasksExpanded)
+    }
+
+    func testToggleExpandAll_collapsesAll_whenAlreadyExpanded() {
+        let (vm, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
+        vm.toggleExpandAll() // expand all
+        vm.toggleExpandAll() // collapse all
+
+        XCTAssertTrue(vm.expandedTodos.isEmpty)
+        XCTAssertFalse(vm.areAllTasksExpanded)
+    }
+
+    func testToggleExpanded_setsAreAllTasksExpanded_whenAllOpen() {
+        let (vm, _) = makeViewModel()
+        let t1 = makeTodo(text: "A")
+        let t2 = makeTodo(text: "B")
+        vm.todos = [t1, t2]
+
+        vm.toggleExpanded(t1)
+        XCTAssertFalse(vm.areAllTasksExpanded)
+        vm.toggleExpanded(t2)
+        XCTAssertTrue(vm.areAllTasksExpanded)
+    }
+
+    // MARK: - Auto-play on task switch with no incomplete subtasks
+
+    func testSwitchToTask_autoPlay_noIncompleteSubtasks_noSubtaskTimerStarts() {
+        let (vm, _) = makeViewModel()
+        vm.autoPlayAfterSwitching = true
+        let completedSub = makeSubtask(title: "Done", isCompleted: true)
+        vm.todos = [makeTodo(text: "A"), makeTodo(text: "B", subtasks: [completedSub])]
+        vm.toggleTimer(vm.todos[0])
+
+        vm.switchToTask(vm.todos[1])
+
+        // New task is running but no subtask timer should start (all are completed)
+        XCTAssertTrue(vm.todos[1].isRunning)
+        XCTAssertFalse(vm.todos[1].subtasks[0].isRunning)
+    }
+
+    // MARK: - Delete task while subtask timer running
+
+    func testDeleteTask_whileSubtaskTimerRunning_noDanglingState() {
+        let (vm, _) = makeViewModel()
+        vm.confirmTaskDeletion = false
+        let sub = makeSubtask(title: "Active Sub")
+        vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
+        vm.toggleTimer(vm.todos[0]) // starts parent + sub auto-starts
+        XCTAssertTrue(vm.todos[0].subtasks[0].isRunning)
+
+        vm.deleteTodo(vm.todos[0])
+
+        XCTAssertTrue(vm.todos.isEmpty)
+        XCTAssertNil(vm.runningTaskId)
+    }
 }

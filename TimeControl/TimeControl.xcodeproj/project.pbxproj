@@ -30,6 +30,8 @@
 		A1000000000000000000129 /* FilterSortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000128 /* FilterSortTests.swift */; };
 		A100000000000000000012B /* TaskSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000012A /* TaskSessionTests.swift */; };
 		A100000000000000000012D /* NotificationSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000012C /* NotificationSchedulerTests.swift */; };
+		A100000000000000000012F /* ModelEnumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000012E /* ModelEnumTests.swift */; };
+		A1000000000000000000131 /* FloatingWindowOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000130 /* FloatingWindowOperationsTests.swift */; };
 		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
 		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
 		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
@@ -93,6 +95,8 @@
 		A1000000000000000000128 /* FilterSortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterSortTests.swift; sourceTree = "<group>"; };
 		A100000000000000000012A /* TaskSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSessionTests.swift; sourceTree = "<group>"; };
 		A100000000000000000012C /* NotificationSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSchedulerTests.swift; sourceTree = "<group>"; };
+		A100000000000000000012E /* ModelEnumTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelEnumTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000130 /* FloatingWindowOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowOperationsTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
@@ -239,6 +243,8 @@
 				A1000000000000000000120 /* TodoOperationsTests.swift */,
 				A1000000000000000000122 /* TimeFormattingTests.swift */,
 				A100000000000000000012C /* NotificationSchedulerTests.swift */,
+				A100000000000000000012E /* ModelEnumTests.swift */,
+				A1000000000000000000130 /* FloatingWindowOperationsTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -388,6 +394,8 @@
 				A1000000000000000000121 /* TodoOperationsTests.swift in Sources */,
 				A1000000000000000000123 /* TimeFormattingTests.swift in Sources */,
 				A100000000000000000012D /* NotificationSchedulerTests.swift in Sources */,
+				A100000000000000000012F /* ModelEnumTests.swift in Sources */,
+				A1000000000000000000131 /* FloatingWindowOperationsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
