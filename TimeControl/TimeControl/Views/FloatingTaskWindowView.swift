@@ -461,14 +461,6 @@ struct FloatingTaskWindowView: View {
                                             .cornerRadius(6)
                                             .id(timerUpdateTrigger)
 
-                                        // Chevron marker
-                                        if progress > 0 && progress < 1.0 {
-                                            Image(systemName: "chevron.down")
-                                                .font(.system(size: 8, weight: .bold))
-                                                .foregroundColor(Color.primary.opacity(0.7))
-                                                .frame(width: geometry.size.width * progress, alignment: .trailing)
-                                                .offset(y: -10)
-                                        }
                                     }
                                 }
                                 .frame(height: 12)
@@ -568,13 +560,6 @@ struct FloatingTaskWindowView: View {
                                                 .fill(estProgress >= 1.0 ? Color.red : Color.green)
                                                 .frame(width: geo.size.width * estProgress, height: 12)
 
-                                            if estProgress > 0 && estProgress < 1.0 {
-                                                Image(systemName: "chevron.down")
-                                                    .font(.system(size: 8, weight: .bold))
-                                                    .foregroundColor(Color.primary.opacity(0.7))
-                                                    .frame(width: geo.size.width * estProgress, alignment: .trailing)
-                                                    .offset(y: -10)
-                                            }
                                         }
                                     }
                                     .frame(height: 12)
@@ -662,13 +647,6 @@ struct FloatingTaskWindowView: View {
                                                 .fill(isOverdue ? Color.red : Color.blue)
                                                 .frame(width: geo.size.width * dueProgress, height: 12)
 
-                                            if dueProgress > 0 && dueProgress < 1.0 {
-                                                Image(systemName: "chevron.down")
-                                                    .font(.system(size: 8, weight: .bold))
-                                                    .foregroundColor(Color.primary.opacity(0.7))
-                                                    .frame(width: geo.size.width * dueProgress, alignment: .trailing)
-                                                    .offset(y: -10)
-                                            }
                                         }
                                     }
                                     .frame(height: 12)
