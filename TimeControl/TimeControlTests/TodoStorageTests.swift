@@ -33,7 +33,7 @@ final class TodoStorageTests: XCTestCase {
         let todos: [TodoItem] = []
 
         // This test verifies the method doesn't crash with empty array
-        TodoStorage.save(todos: todos, notificationRecords: [])
+        TodoStorage.save(todos: todos, notificationRecords: [], to: testStorageURL)
 
         // No assertion needed, just verify it doesn't crash
     }
@@ -41,10 +41,10 @@ final class TodoStorageTests: XCTestCase {
     func testSaveSingleTodo() {
         let todo = TodoItem(text: "Test Todo", index: 0)
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
 
         // Verify file was created by loading it back
-        let loadedTodos = TodoStorage.load().todos
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
         XCTAssertEqual(loadedTodos.count, 1)
         XCTAssertEqual(loadedTodos.first?.text, "Test Todo")
     }
@@ -56,9 +56,9 @@ final class TodoStorageTests: XCTestCase {
             TodoItem(text: "Todo 3", index: 2)
         ]
 
-        TodoStorage.save(todos: todos, notificationRecords: [])
+        TodoStorage.save(todos: todos, notificationRecords: [], to: testStorageURL)
 
-        let loadedTodos = TodoStorage.load().todos
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
         XCTAssertEqual(loadedTodos.count, 3)
     }
 
@@ -86,9 +86,9 @@ final class TodoStorageTests: XCTestCase {
             notes: "Some notes"
         )
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
 
-        let loadedTodos = TodoStorage.load().todos
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
         XCTAssertEqual(loadedTodos.count, 1)
 
         let loadedTodo = loadedTodos.first!
@@ -109,11 +109,8 @@ final class TodoStorageTests: XCTestCase {
     // MARK: - Load Tests
 
     func testLoadWhenFileDoesNotExist() {
-        // Create a URL for a non-existent file
-        _ = FileManager.default.temporaryDirectory
-            .appendingPathComponent("nonexistent_\(UUID().uuidString).json")
-
-        let loadedTodos = TodoStorage.load().todos
+        // testStorageURL is always a fresh temp path that has never been written to
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         // Should return empty array when file doesn't exist
         XCTAssertTrue(loadedTodos.isEmpty)
@@ -126,8 +123,8 @@ final class TodoStorageTests: XCTestCase {
             TodoItem(text: "Todo 3", index: 2)
         ]
 
-        TodoStorage.save(todos: todos, notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: todos, notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertEqual(loadedTodos.count, 3)
         XCTAssertEqual(loadedTodos[0].text, "Todo 1")
@@ -142,8 +139,8 @@ final class TodoStorageTests: XCTestCase {
             TodoItem(text: "Todo B", index: 1)
         ]
 
-        TodoStorage.save(todos: todos, notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: todos, notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         // Should be sorted by index
         XCTAssertEqual(loadedTodos[0].text, "Todo A")
@@ -159,8 +156,8 @@ final class TodoStorageTests: XCTestCase {
 
         let todo = TodoItem(text: "Parent Todo", index: 0, subtasks: [subtask1, subtask2])
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertEqual(loadedTodos.first?.subtasks.count, 2)
         XCTAssertEqual(loadedTodos.first?.subtasks[0].title, "Subtask 1")
@@ -175,8 +172,8 @@ final class TodoStorageTests: XCTestCase {
         let subtask = Subtask(id: subtaskId, title: "Test Subtask")
         let todo = TodoItem(text: "Parent Todo", index: 0, subtasks: [subtask])
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertEqual(loadedTodos.first?.subtasks.first?.id, subtaskId)
     }
@@ -187,8 +184,8 @@ final class TodoStorageTests: XCTestCase {
         let createdAt: TimeInterval = 1000000
         let todo = TodoItem(text: "Test", index: 0, createdAt: createdAt)
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertEqual(loadedTodos.first?.createdAt, createdAt)
     }
@@ -198,8 +195,8 @@ final class TodoStorageTests: XCTestCase {
         var todo = TodoItem(text: "Test", index: 0)
         todo.startedAt = startedAt
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertEqual(loadedTodos.first?.startedAt, startedAt)
     }
@@ -209,8 +206,8 @@ final class TodoStorageTests: XCTestCase {
         var todo = TodoItem(text: "Test", index: 0)
         todo.completedAt = completedAt
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertEqual(loadedTodos.first?.completedAt, completedAt)
     }
@@ -218,8 +215,8 @@ final class TodoStorageTests: XCTestCase {
     func testNilTimestampsPersistence() {
         let todo = TodoItem(text: "Test", index: 0)
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertNil(loadedTodos.first?.startedAt)
         XCTAssertNil(loadedTodos.first?.completedAt)
@@ -231,8 +228,8 @@ final class TodoStorageTests: XCTestCase {
         let dueDate = Date(timeIntervalSince1970: 5000000)
         let todo = TodoItem(text: "Test", index: 0, dueDate: dueDate)
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertNotNil(loadedTodos.first?.dueDate)
         if let loadedDueDate = loadedTodos.first?.dueDate {
@@ -247,8 +244,8 @@ final class TodoStorageTests: XCTestCase {
         var todo = TodoItem(text: "Test", index: 0)
         todo.lastStartTime = lastStartTime
 
-        TodoStorage.save(todos: [todo], notificationRecords: [])
-        let loadedTodos = TodoStorage.load().todos
+        TodoStorage.save(todos: [todo], notificationRecords: [], to: testStorageURL)
+        let loadedTodos = TodoStorage.load(from: testStorageURL).todos
 
         XCTAssertNotNil(loadedTodos.first?.lastStartTime)
         if let loadedLastStartTime = loadedTodos.first?.lastStartTime {
@@ -263,8 +260,8 @@ final class TodoStorageTests: XCTestCase {
     func testMultipleSaveLoadCycles() {
         // First cycle
         let todos1 = [TodoItem(text: "Todo 1", index: 0)]
-        TodoStorage.save(todos: todos1, notificationRecords: [])
-        let loaded1 = TodoStorage.load().todos
+        TodoStorage.save(todos: todos1, notificationRecords: [], to: testStorageURL)
+        let loaded1 = TodoStorage.load(from: testStorageURL).todos
         XCTAssertEqual(loaded1.count, 1)
 
         // Second cycle - overwrite
@@ -272,20 +269,20 @@ final class TodoStorageTests: XCTestCase {
             TodoItem(text: "Todo A", index: 0),
             TodoItem(text: "Todo B", index: 1)
         ]
-        TodoStorage.save(todos: todos2, notificationRecords: [])
-        let loaded2 = TodoStorage.load().todos
+        TodoStorage.save(todos: todos2, notificationRecords: [], to: testStorageURL)
+        let loaded2 = TodoStorage.load(from: testStorageURL).todos
         XCTAssertEqual(loaded2.count, 2)
         XCTAssertEqual(loaded2[0].text, "Todo A")
     }
 
     func testOverwritingExistingData() {
         let original = [TodoItem(text: "Original", index: 0)]
-        TodoStorage.save(todos: original, notificationRecords: [])
+        TodoStorage.save(todos: original, notificationRecords: [], to: testStorageURL)
 
         let updated = [TodoItem(text: "Updated", index: 0)]
-        TodoStorage.save(todos: updated, notificationRecords: [])
+        TodoStorage.save(todos: updated, notificationRecords: [], to: testStorageURL)
 
-        let loaded = TodoStorage.load().todos
+        let loaded = TodoStorage.load(from: testStorageURL).todos
         XCTAssertEqual(loaded.count, 1)
         XCTAssertEqual(loaded.first?.text, "Updated")
     }

@@ -8,12 +8,12 @@
 import Foundation
 
 class TodoStorage {
-    private static let storageURL: URL = {
+    static let storageURL: URL = {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return documentsPath.appendingPathComponent("todos.json")
     }()
 
-    static func save(todos: [TodoItem], notificationRecords: [NotificationRecord]) {
+    static func save(todos: [TodoItem], notificationRecords: [NotificationRecord], to url: URL = storageURL) {
         var tasksDict: [String: [String: Any]] = [:]
 
         for todo in todos {
@@ -94,19 +94,19 @@ class TodoStorage {
 
         do {
             let data = try JSONSerialization.data(withJSONObject: jsonData, options: .prettyPrinted)
-            try data.write(to: storageURL)
+            try data.write(to: url)
         } catch {
             print("Error saving todos: \(error.localizedDescription)")
         }
     }
 
-    static func load() -> (todos: [TodoItem], notificationRecords: [NotificationRecord]) {
-        guard FileManager.default.fileExists(atPath: storageURL.path) else {
+    static func load(from url: URL = storageURL) -> (todos: [TodoItem], notificationRecords: [NotificationRecord]) {
+        guard FileManager.default.fileExists(atPath: url.path) else {
             return ([], [])
         }
 
         do {
-            let data = try Data(contentsOf: storageURL)
+            let data = try Data(contentsOf: url)
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
             // Load notification records

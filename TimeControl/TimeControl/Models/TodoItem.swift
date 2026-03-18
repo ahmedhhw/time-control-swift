@@ -18,6 +18,7 @@ struct TaskSession: Codable, Equatable {
 }
 
 struct Subtask: Identifiable, Codable, Equatable {
+    static func == (lhs: Subtask, rhs: Subtask) -> Bool { lhs.id == rhs.id }
     let id: UUID
     var title: String
     var description: String
@@ -50,6 +51,7 @@ struct Subtask: Identifiable, Codable, Equatable {
 }
 
 struct TodoItem: Identifiable, Codable, Equatable {
+    static func == (lhs: TodoItem, rhs: TodoItem) -> Bool { lhs.id == rhs.id }
     let id: UUID
     var text: String
     var isCompleted: Bool = false
