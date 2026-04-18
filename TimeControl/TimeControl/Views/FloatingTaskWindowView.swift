@@ -24,6 +24,12 @@ struct FloatingTaskWindowView: View {
     @State private var showTimerCompletedMessage: Bool = false
     @State private var showingNewTaskPopup: Bool = false
     @State private var newTaskTitle: String = ""
+    @State private var newTaskSwitchToTask: Bool = false
+    @State private var newTaskCopyNotes: Bool = false
+    @State private var newTaskHasDueDate: Bool = false
+    @State private var newTaskDueDate: Date = Date()
+    @State private var newTaskEstimateHours: Int = 0
+    @State private var newTaskEstimateMinutes: Int = 0
     
     @State private var showingReminderPopover = false
     @State private var lastReminderTime: Date? = nil
@@ -1281,17 +1287,26 @@ struct FloatingTaskWindowView: View {
         // Close existing new task popup window if any
         newTaskPopupWindow?.close()
         
+        // Reset new-task form state every time the popup is opened
+        newTaskTitle = ""
+        newTaskSwitchToTask = false
+        newTaskCopyNotes = false
+        newTaskHasDueDate = false
+        newTaskDueDate = Date()
+        newTaskEstimateHours = 0
+        newTaskEstimateMinutes = 0
+
         // Create the SwiftUI view for new task popup
         let contentView = NewTaskPopupView(
             taskTitle: $newTaskTitle,
+            switchToTask: $newTaskSwitchToTask,
+            copyNotes: $newTaskCopyNotes,
+            hasDueDate: $newTaskHasDueDate,
+            dueDate: $newTaskDueDate,
+            estimateHours: $newTaskEstimateHours,
+            estimateMinutes: $newTaskEstimateMinutes,
             onCreate: {
-                createNewTask(switchToIt: false)
-                newTaskPopupWindow?.close()
-                newTaskPopupWindow = nil
-                showingNewTaskPopup = false
-            },
-            onCreateAndSwitch: {
-                createNewTask(switchToIt: true)
+                createNewTask(switchToIt: newTaskSwitchToTask)
                 newTaskPopupWindow?.close()
                 newTaskPopupWindow = nil
                 showingNewTaskPopup = false
@@ -1306,12 +1321,12 @@ struct FloatingTaskWindowView: View {
         let hostingView = NSHostingView(rootView: contentView)
         
         // Calculate position (centered on top of the task window)
-        let windowWidth: CGFloat = 400
-        let windowHeight: CGFloat = 150
-        
+        let windowWidth: CGFloat = 420
+        let windowHeight: CGFloat = 420
+
         var xPos: CGFloat
         var yPos: CGFloat
-        
+
         if let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) {
             let taskFrame = taskWindow.frame
             // Position centered on top of the task window
@@ -1328,7 +1343,7 @@ struct FloatingTaskWindowView: View {
                 yPos = 100
             }
         }
-        
+
         // Create a floating panel for the new task popup
         let window = NSPanel(
             contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
@@ -1521,7 +1536,20 @@ struct FloatingTaskWindowView: View {
         let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
 
-        viewModel.createTask(title: trimmedTitle, switchToIt: switchToIt)
+        let clampedHours = max(0, newTaskEstimateHours)
+        let clampedMinutes = max(0, min(59, newTaskEstimateMinutes))
+        let estimateSeconds = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
+
+        let dueDateValue: Date? = newTaskHasDueDate ? newTaskDueDate : nil
+        let notesValue: String = newTaskCopyNotes ? localTask.notes : ""
+
+        viewModel.createTask(
+            title: trimmedTitle,
+            switchToIt: switchToIt,
+            dueDate: dueDateValue,
+            estimatedTime: estimateSeconds,
+            notes: notesValue
+        )
 
         if switchToIt {
             taskMarkedComplete = false

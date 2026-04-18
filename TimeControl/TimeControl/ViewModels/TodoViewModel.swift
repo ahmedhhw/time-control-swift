@@ -958,9 +958,21 @@ class TodoViewModel: ObservableObject {
         FloatingWindowManager.shared.updateTask(todos[idx])
     }
 
-    func createTask(title: String, switchToIt: Bool) {
+    func createTask(
+        title: String,
+        switchToIt: Bool,
+        dueDate: Date? = nil,
+        estimatedTime: TimeInterval = 0,
+        notes: String = ""
+    ) {
         let newIndex = todos.count
-        let newTodo = TodoItem(text: title, index: newIndex)
+        let newTodo = TodoItem(
+            text: title,
+            index: newIndex,
+            dueDate: dueDate,
+            estimatedTime: estimatedTime,
+            notes: notes
+        )
         todos.append(newTodo)
         saveTodos()
         
