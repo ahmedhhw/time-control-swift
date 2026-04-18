@@ -47,6 +47,8 @@ struct FloatingTaskWindowView: View {
     @State private var showEstimateBar: Bool = true
     @State private var showDueDateBar: Bool = true
     @State private var isViewActive: Bool = true
+    @State private var descriptionText: String = ""
+    @FocusState private var descriptionFocused: Bool
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -56,6 +58,7 @@ struct FloatingTaskWindowView: View {
         self.viewModel = viewModel
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
+        self._descriptionText = State(initialValue: task.description)
         
         if task.countdownTime > 0 {
             let totalMinutes = Int(task.countdownTime / 60)
@@ -438,12 +441,27 @@ struct FloatingTaskWindowView: View {
                     }
                     
                     // Task description
-                    if !localTask.description.isEmpty {
-                        Text(localTask.description)
+                    ZStack(alignment: .topLeading) {
+                        if descriptionText.isEmpty && !descriptionFocused {
+                            Text("Add description…")
+                                .font(.body)
+                                .foregroundColor(.secondary.opacity(0.5))
+                                .allowsHitTesting(false)
+                                .padding(.top, 2)
+                        }
+                        TextEditor(text: $descriptionText)
                             .font(.body)
                             .foregroundColor(.secondary)
-                            .lineLimit(2)
+                            .scrollContentBackground(.hidden)
+                            .background(.clear)
+                            .frame(minHeight: 20, maxHeight: descriptionFocused ? 120 : (descriptionText.isEmpty ? 20 : 60))
+                            .focused($descriptionFocused)
                             .opacity(taskMarkedComplete ? 0.5 : 1.0)
+                            .onChange(of: descriptionFocused) { focused in
+                                if !focused {
+                                    viewModel.updateTaskFields(id: localTask.id, text: nil, description: descriptionText, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
+                                }
+                            }
                     }
                     
                     // Time tracking section
@@ -1103,10 +1121,12 @@ struct FloatingTaskWindowView: View {
                     localTask.lastStartTime = newTask.lastStartTime
                     localTask.estimatedTime = newTask.estimatedTime
                     notesText = newTask.notes
+                    if !descriptionFocused { descriptionText = newTask.description }
                 } else {
                     // Normal update
                     localTask = newTask
                     notesText = newTask.notes
+                    if !descriptionFocused { descriptionText = newTask.description }
                 }
                 
                 // If timer was cleared externally (from ContentView), reset completion flags
@@ -1452,9 +1472,9 @@ struct FloatingTaskWindowView: View {
         // Task title dropdown
         height += 40
         
-        // Description (if present)
-        if !localTask.description.isEmpty {
-            height += 50  // Approximate height for 2 lines of description
+        // Description field (always visible)
+        do {
+            height += descriptionText.isEmpty ? 28 : 50
         }
         
         // Time tracking section (Time Elapsed + optional Attention Check)
