@@ -143,6 +143,10 @@ class FloatingWindowManager: ObservableObject {
 
     func closeFloatingWindow() {
         floatingWindow?.close()
+        clearWindowState()
+    }
+
+    func clearWindowState() {
         floatingWindow = nil
         currentTask = nil
         allTodos = []

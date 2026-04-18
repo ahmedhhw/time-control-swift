@@ -19,13 +19,17 @@ class FloatingWindowDelegate: NSObject, NSWindowDelegate {
     
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         let isTaskRunning = FloatingWindowManager.shared.currentTask?.isRunning ?? false
-        
+
         if !isTaskRunning {
             return true
         }
-        
+
         showPauseConfirmationPanel(parentWindow: sender)
         return false
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        FloatingWindowManager.shared.clearWindowState()
     }
     
     private func showPauseConfirmationPanel(parentWindow: NSWindow) {
