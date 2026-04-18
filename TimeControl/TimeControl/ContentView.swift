@@ -10,11 +10,28 @@ import AppKit
 import AVFoundation
 import Quartz
 
+private struct SubtaskToPromote: Identifiable {
+    let id = UUID()
+    let subtask: Subtask
+    let parentTodo: TodoItem
+}
+
 struct ContentView: View {
     @EnvironmentObject var viewModel: TodoViewModel
     @FocusState private var subtaskInputFocused: UUID?
     @State private var notesViewerWindow: NSWindow?
     @State private var historyWindow: NSWindow?
+
+    // Subtask promotion state
+    @State private var subtaskToPromote: SubtaskToPromote?
+    @State private var promoteTaskTitle: String = ""
+    @State private var promoteSwitchToTask: Bool = false
+    @State private var promoteCopyNotes: Bool = false
+    @State private var promoteHasDueDate: Bool = false
+    @State private var promoteDueDate: Date = Date()
+    @State private var promoteEstimateHours: Int = 0
+    @State private var promoteEstimateMinutes: Int = 0
+    @State private var showPromoteToast: Bool = false
     
     @AppStorage("activateReminders") private var activateReminders: Bool = false
     @AppStorage("confirmTaskDeletion") private var confirmTaskDeletion: Bool = true
@@ -27,6 +44,7 @@ struct ContentView: View {
     @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
     
     var body: some View {
+        ZStack {
         VStack(spacing: 0) {
             TaskListToolbar(
                 newTodoText: $viewModel.newTodoText,
@@ -100,6 +118,9 @@ struct ContentView: View {
                                         viewModel.renameSubtask(subtask, in: todo, newTitle: newTitle)
                                     },
                                     onAddSubtask: { addSubtask(to: todo) },
+                                    onPromoteSubtask: { subtask in
+                                        subtaskToPromote = SubtaskToPromote(subtask: subtask, parentTodo: todo)
+                                    },
                                     onSetReminder: { date in
                                         viewModel.setReminder(date, for: todo.id)
                                     },
@@ -201,6 +222,35 @@ struct ContentView: View {
                 }
             }
         }
+
+        // Promote-to-task success toast
+        if showPromoteToast {
+            VStack {
+                Spacer()
+
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+
+                    Text("Subtask promoted to task!")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(Color.teal)
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 4)
+                .padding(.bottom, 24)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(false)
+            .transition(.opacity)
+        }
+
+        } // end ZStack
         .frame(minWidth: 400, minHeight: 300)
         .onAppear {
             viewModel.activateReminders = activateReminders
@@ -280,6 +330,33 @@ struct ContentView: View {
         } message: { data in
             Text("Are you sure you want to delete the subtask '\(data.subtask.title)'?")
         }
+        .sheet(item: $subtaskToPromote) { data in
+            NewTaskPopupView(
+                taskTitle: $promoteTaskTitle,
+                switchToTask: $promoteSwitchToTask,
+                copyNotes: $promoteCopyNotes,
+                hasDueDate: $promoteHasDueDate,
+                dueDate: $promoteDueDate,
+                estimateHours: $promoteEstimateHours,
+                estimateMinutes: $promoteEstimateMinutes,
+                onCreate: {
+                    performPromoteSubtask(data: data)
+                    subtaskToPromote = nil
+                },
+                onCancel: {
+                    subtaskToPromote = nil
+                }
+            )
+            .onAppear {
+                promoteTaskTitle = data.subtask.title
+                promoteSwitchToTask = false
+                promoteCopyNotes = false
+                promoteHasDueDate = false
+                promoteDueDate = Date()
+                promoteEstimateHours = 0
+                promoteEstimateMinutes = 0
+            }
+        }
     }
     
     private func addSubtask(to todo: TodoItem) {
@@ -306,6 +383,39 @@ struct ContentView: View {
     }
     
     private func editSubtask(_ subtask: Subtask, in todo: TodoItem) {
+    }
+
+    private func performPromoteSubtask(data: SubtaskToPromote) {
+        let trimmedTitle = promoteTaskTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmedTitle.isEmpty else { return }
+
+        let clampedHours = max(0, promoteEstimateHours)
+        let clampedMinutes = max(0, min(59, promoteEstimateMinutes))
+        let estimateSeconds = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
+        let dueDateValue: Date? = promoteHasDueDate ? promoteDueDate : nil
+        // "Copy notes" copies from the parent task — a natural choice when promoting a subtask
+        let notesValue: String = promoteCopyNotes ? data.parentTodo.notes : ""
+
+        viewModel.createTask(
+            title: trimmedTitle,
+            switchToIt: promoteSwitchToTask,
+            dueDate: dueDateValue,
+            estimatedTime: estimateSeconds,
+            notes: notesValue
+        )
+
+        // Delete the subtask from its parent
+        viewModel.performDeleteSubtask(data.subtask, from: data.parentTodo)
+
+        // Show success toast
+        withAnimation {
+            showPromoteToast = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation(.easeOut(duration: 0.5)) {
+                showPromoteToast = false
+            }
+        }
     }
 
     private func openHistoryWindow() {

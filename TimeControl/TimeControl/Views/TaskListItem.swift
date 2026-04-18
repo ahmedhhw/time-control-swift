@@ -26,6 +26,7 @@ struct TaskListItem: View {
     let onEditSubtask: (Subtask) -> Void
     let onRenameSubtask: (Subtask, String) -> Void
     let onAddSubtask: () -> Void
+    var onPromoteSubtask: ((Subtask) -> Void)? = nil
     var onSetReminder: ((Date?) -> Void)? = nil
     var onDismissBell: (() -> Void)? = nil
 
@@ -62,7 +63,8 @@ struct TaskListItem: View {
                                 onToggle: { onToggleSubtask(subtask) },
                                 onDelete: { onDeleteSubtask(subtask) },
                                 onToggleTimer: { onToggleSubtaskTimer(subtask) },
-                                onRename: { newTitle in onRenameSubtask(subtask, newTitle) }
+                                onRename: { newTitle in onRenameSubtask(subtask, newTitle) },
+                                onPromote: onPromoteSubtask.map { promote in { promote(subtask) } }
                             )
                             .padding(.horizontal, 12)
                         }

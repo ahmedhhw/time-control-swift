@@ -16,13 +16,15 @@ struct SubtaskRow: View {
     let onDelete: () -> Void
     let onToggleTimer: () -> Void
     let onRename: (String) -> Void
-    
+    let onPromote: (() -> Void)?
+
     @State private var editingTitle: String
-    
+
     init(subtask: Subtask, parentTodoCompleted: Bool, parentTodoRunning: Bool,
          timerUpdateTrigger: Int, onToggle: @escaping () -> Void,
          onDelete: @escaping () -> Void, onToggleTimer: @escaping () -> Void,
-         onRename: @escaping (String) -> Void) {
+         onRename: @escaping (String) -> Void,
+         onPromote: (() -> Void)? = nil) {
         self.subtask = subtask
         self.parentTodoCompleted = parentTodoCompleted
         self.parentTodoRunning = parentTodoRunning
@@ -31,6 +33,7 @@ struct SubtaskRow: View {
         self.onDelete = onDelete
         self.onToggleTimer = onToggleTimer
         self.onRename = onRename
+        self.onPromote = onPromote
         self._editingTitle = State(initialValue: subtask.title)
     }
     
@@ -78,6 +81,16 @@ struct SubtaskRow: View {
             .disabled(parentTodoCompleted || !parentTodoRunning || subtask.isCompleted)
             .opacity((parentTodoCompleted || !parentTodoRunning || subtask.isCompleted) ? 0.3 : 1.0)
             
+            if let onPromote = onPromote {
+                Button(action: onPromote) {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.subheadline)
+                        .foregroundColor((parentTodoCompleted || subtask.isCompleted) ? .gray : .teal)
+                }
+                .buttonStyle(.plain)
+                .disabled(parentTodoCompleted || subtask.isCompleted)
+            }
+
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .font(.subheadline)

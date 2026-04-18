@@ -30,6 +30,9 @@ struct FloatingTaskWindowView: View {
     @State private var newTaskDueDate: Date = Date()
     @State private var newTaskEstimateHours: Int = 0
     @State private var newTaskEstimateMinutes: Int = 0
+    @State private var subtaskBeingPromoted: Subtask? = nil
+    @State private var showFloatingPromoteToast: Bool = false
+    @State private var showNewTaskToast: Bool = false
     
     @State private var showingReminderPopover = false
     @State private var lastReminderTime: Date? = nil
@@ -158,6 +161,17 @@ struct FloatingTaskWindowView: View {
                         .buttonStyle(.plain)
                         .disabled(!localTask.isRunning || taskMarkedComplete || subtask.isCompleted)
                         .opacity((localTask.isRunning && !taskMarkedComplete && !subtask.isCompleted) ? 1.0 : 0.3)
+
+                        Button(action: {
+                            promoteSubtask(subtask)
+                        }) {
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.subheadline)
+                                .foregroundColor((taskMarkedComplete || subtask.isCompleted) ? .gray : .teal)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(taskMarkedComplete || subtask.isCompleted)
+                        .opacity((taskMarkedComplete || subtask.isCompleted) ? 0.3 : 1.0)
 
                         Button(action: {
                             deleteSubtask(subtask)
@@ -870,12 +884,12 @@ struct FloatingTaskWindowView: View {
             if showTaskPausedAlert {
                 VStack {
                     Spacer()
-                    
+
                     HStack(spacing: 8) {
                         Image(systemName: "pause.circle.fill")
                             .font(.title2)
                             .foregroundColor(.white)
-                        
+
                         Text("Task Paused due to inactivity!")
                             .font(.title2)
                             .fontWeight(.bold)
@@ -887,10 +901,68 @@ struct FloatingTaskWindowView: View {
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
                     .padding(.bottom, 60)
-                    
+
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity)
+            }
+
+            // "Subtask promoted!" toast
+            if showFloatingPromoteToast {
+                VStack {
+                    Spacer()
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+
+                        Text("Subtask promoted to task!")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                    .background(Color.teal)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .padding(.bottom, 60)
+
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
+
+            // "Task created!" toast (normal new-task flow)
+            if showNewTaskToast {
+                VStack {
+                    Spacer()
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+
+                        Text("Task created!")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                    .background(Color.green)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .padding(.bottom, 60)
+
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
                 .transition(.opacity)
             }
         }
@@ -1286,9 +1358,12 @@ struct FloatingTaskWindowView: View {
     private func openNewTaskPopupWindow() {
         // Close existing new task popup window if any
         newTaskPopupWindow?.close()
-        
-        // Reset new-task form state every time the popup is opened
-        newTaskTitle = ""
+
+        // Reset new-task form state every time the popup is opened.
+        // When called via promoteSubtask, title is already pre-filled — preserve it.
+        if subtaskBeingPromoted == nil {
+            newTaskTitle = ""
+        }
         newTaskSwitchToTask = false
         newTaskCopyNotes = false
         newTaskHasDueDate = false
@@ -1316,6 +1391,7 @@ struct FloatingTaskWindowView: View {
                 newTaskPopupWindow = nil
                 showingNewTaskPopup = false
                 newTaskTitle = ""
+                subtaskBeingPromoted = nil
             }
         )
         let hostingView = NSHostingView(rootView: contentView)
@@ -1428,23 +1504,23 @@ struct FloatingTaskWindowView: View {
         DispatchQueue.main.async {
             guard let window = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }),
                   let screen = window.screen else { return }
-            
+
             let currentFrame = window.frame
-            let newHeight: CGFloat = isCollapsed ? 50 : calculateDynamicHeight()
-            
-            // Calculate new frame anchored at bottom-left corner
+            let visible = screen.visibleFrame
+            let rawHeight: CGFloat = isCollapsed ? 50 : calculateDynamicHeight()
+            // Never let the window exceed the screen's usable height
+            let newHeight = min(rawHeight, visible.height)
+
+            // Anchor top where it currently is, then clamp so the whole frame fits on screen
             var newY = currentFrame.maxY - newHeight
-            let newFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
-            
-            // Check if the new frame would go below the screen's visible area
-            let screenMinY = screen.visibleFrame.minY
-            if newFrame.minY < screenMinY {
-                // Adjust window position to stay within screen bounds
-                newY = screenMinY
+            if newY + newHeight > visible.maxY {
+                newY = visible.maxY - newHeight
             }
-            
+            if newY < visible.minY {
+                newY = visible.minY
+            }
+
             let adjustedFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
-            
             window.setFrame(adjustedFrame, display: true, animate: true)
         }
     }
@@ -1532,6 +1608,19 @@ struct FloatingTaskWindowView: View {
         }
     }
     
+    private func promoteSubtask(_ subtask: Subtask) {
+        subtaskBeingPromoted = subtask
+        // Pre-fill the new task title with the subtask title
+        newTaskTitle = subtask.title
+        newTaskSwitchToTask = false
+        newTaskCopyNotes = false
+        newTaskHasDueDate = false
+        newTaskDueDate = Date()
+        newTaskEstimateHours = 0
+        newTaskEstimateMinutes = 0
+        showingNewTaskPopup = true
+    }
+
     private func createNewTask(switchToIt: Bool) {
         let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
@@ -1553,6 +1642,33 @@ struct FloatingTaskWindowView: View {
 
         if switchToIt {
             taskMarkedComplete = false
+        }
+
+        // If we were promoting a subtask, delete it and show promote toast;
+        // otherwise show a regular "Task created!" toast.
+        if let promoted = subtaskBeingPromoted {
+            deleteSubtask(promoted)
+            subtaskBeingPromoted = nil
+
+            withAnimation {
+                showFloatingPromoteToast = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [self] in
+                guard isViewActive else { return }
+                withAnimation(.easeOut(duration: 0.5)) {
+                    showFloatingPromoteToast = false
+                }
+            }
+        } else {
+            withAnimation {
+                showNewTaskToast = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [self] in
+                guard isViewActive else { return }
+                withAnimation(.easeOut(duration: 0.5)) {
+                    showNewTaskToast = false
+                }
+            }
         }
 
         newTaskTitle = ""

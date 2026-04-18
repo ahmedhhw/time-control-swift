@@ -35,11 +35,15 @@ class FloatingWindowManager: ObservableObject {
         
         guard let screen = NSScreen.main else { return }
         let windowWidth: CGFloat = 350
-        let windowHeight: CGFloat = initialHeight
         let padding: CGFloat = 20
-        
-        let xPos = screen.visibleFrame.maxX - windowWidth - padding
-        let yPos = screen.visibleFrame.minY + padding
+        let visible = screen.visibleFrame
+        let windowHeight: CGFloat = min(initialHeight, visible.height)
+
+        let xPos = visible.maxX - windowWidth - padding
+        var yPos = visible.minY + padding
+        if yPos + windowHeight > visible.maxY {
+            yPos = visible.maxY - windowHeight
+        }
         
         let window = NSPanel(
             contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
