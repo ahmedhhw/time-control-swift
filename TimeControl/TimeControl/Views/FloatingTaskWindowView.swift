@@ -48,6 +48,7 @@ struct FloatingTaskWindowView: View {
     @State private var showDueDateBar: Bool = true
     @State private var isViewActive: Bool = true
     @State private var descriptionText: String = ""
+    @State private var descriptionVisualLines: Int = 1
     @FocusState private var descriptionFocused: Bool
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -225,10 +226,15 @@ struct FloatingTaskWindowView: View {
                 Color.clear.preference(key: WidthPreferenceKey.self, value: geo.size.width)
             }
             .frame(height: 0)
-            .onPreferenceChange(WidthPreferenceKey.self) { windowWidth = $0 }
+            .onPreferenceChange(WidthPreferenceKey.self) {
+                windowWidth = $0
+                updateDescriptionLines()
+            }
             .onAppear {
-                resizeWindow()
                 updateWindowTitle()
+                DispatchQueue.main.async {
+                    resizeWindow()
+                }
             }
             
             // Main content
@@ -454,13 +460,20 @@ struct FloatingTaskWindowView: View {
                             .foregroundColor(.secondary)
                             .scrollContentBackground(.hidden)
                             .background(.clear)
-                            .frame(minHeight: 20, maxHeight: descriptionFocused ? 120 : (descriptionText.isEmpty ? 20 : 60))
+                            .frame(minHeight: 20, maxHeight: {
+                                guard !descriptionText.isEmpty else { return 20 }
+                                let natural = CGFloat(descriptionLineCount()) * 20 + 4
+                                return min(natural, 120)
+                            }())
                             .focused($descriptionFocused)
                             .opacity(taskMarkedComplete ? 0.5 : 1.0)
                             .onChange(of: descriptionFocused) { focused in
                                 if !focused {
                                     viewModel.updateTaskFields(id: localTask.id, text: nil, description: descriptionText, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
                                 }
+                            }
+                            .onChange(of: descriptionText) { _ in
+                                updateDescriptionLines()
                             }
                     }
                     
@@ -1473,9 +1486,8 @@ struct FloatingTaskWindowView: View {
         height += 40
         
         // Description field (always visible)
-        do {
-            height += descriptionText.isEmpty ? 28 : 50
-        }
+        let lines = CGFloat(descriptionLineCount())
+        height += descriptionText.isEmpty ? 28 : min(lines * 40 + 20, 148)
         
         // Time tracking section (Time Elapsed + optional Attention Check)
         height += 80  // Divider + time section
@@ -1519,6 +1531,21 @@ struct FloatingTaskWindowView: View {
         return min(max(height, 380), 900)
     }
     
+    private func descriptionLineCount() -> Int {
+        let charsPerLine = max(1, Int(windowWidth / 7.5))
+        return descriptionText.components(separatedBy: "\n").reduce(0) { count, line in
+            count + max(1, Int(ceil(Double(max(1, line.count)) / Double(charsPerLine))))
+        }
+    }
+
+    private func updateDescriptionLines() {
+        let newCount = descriptionLineCount()
+        if newCount != descriptionVisualLines {
+            descriptionVisualLines = newCount
+            resizeWindow()
+        }
+    }
+
     private func resizeWindow() {
         // Get the window from the view hierarchy
         DispatchQueue.main.async {
