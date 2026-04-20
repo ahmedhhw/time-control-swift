@@ -32,6 +32,18 @@ class SQLiteStorage {
         }
     }
 
+    /// Blocks until all prior async writes have completed. For use in tests only.
+    func drainWrites() {
+        try? dbQueue.write { _ in }
+    }
+
+    func saveAsync(_ task: TodoItem) {
+        let snapshot = task
+        dbQueue.asyncWrite({ db in
+            try self.upsertTask(snapshot, db: db)
+        }, completion: { _, _ in })
+    }
+
     // MARK: - Load
 
     func load() throws -> [TodoItem] {

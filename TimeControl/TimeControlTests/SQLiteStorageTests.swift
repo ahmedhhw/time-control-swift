@@ -415,6 +415,52 @@ final class SQLiteStorageTests: XCTestCase {
         XCTAssertEqual(loaded.count, 1)
     }
 
+    // MARK: - Phase 6: saveAsync
+
+    func testSaveAsync_taskIsInDBAfterQueueDrains() throws {
+        let task = makeTodo(text: "Async task")
+        storage.saveAsync(task)
+
+        // Drain: a sync write acts as a barrier — it waits until all prior async writes finish
+        try storage.dbQueue.write { _ in }
+
+        let loaded = try storage.load()
+        XCTAssertEqual(loaded.count, 1)
+        XCTAssertEqual(loaded[0].text, "Async task")
+    }
+
+    func testSaveAsync_twoRapidCalls_secondVersionWinsAfterDrain() throws {
+        var task = makeTodo(text: "Version 1")
+        storage.saveAsync(task)
+        task.text = "Version 2"
+        storage.saveAsync(task)
+
+        try storage.dbQueue.write { _ in }
+
+        let loaded = try storage.load()
+        XCTAssertEqual(loaded.count, 1)
+        XCTAssertEqual(loaded[0].text, "Version 2")
+    }
+
+    func testSaveAsync_doesNotBlockBeforeQueueDrains() throws {
+        let task = makeTodo(text: "Non-blocking")
+        let start = Date()
+        storage.saveAsync(task)
+        let elapsed = Date().timeIntervalSince(start)
+
+        // saveAsync must return well under 1ms — 50ms is a very generous upper bound
+        XCTAssertLessThan(elapsed, 0.05, "saveAsync blocked the caller for \(elapsed)s")
+    }
+
+    func testSaveAsync_syncSaveStillWorksCorrectly() throws {
+        let task = makeTodo(text: "Sync task")
+        try storage.save(task)
+
+        let loaded = try storage.load()
+        XCTAssertEqual(loaded.count, 1)
+        XCTAssertEqual(loaded[0].text, "Sync task")
+    }
+
     func testMigrationOfRunningTaskPreservesLastStartTime() throws {
         let jsonURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString + "_todos.json")

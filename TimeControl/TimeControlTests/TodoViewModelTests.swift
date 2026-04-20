@@ -671,6 +671,98 @@ final class TodoViewModelTests: XCTestCase {
         NotificationStore.shared.setInitialRecords([])
     }
 
+    // MARK: - Async persistence (Phase 2–4)
+
+    func testSaveTask_persistsTaskAfterQueueDrains() {
+        let (vm, _, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Async persist")]
+        vm.toggleTimer(vm.todos[0])  // calls saveTask internally after the refactor
+        vm.sqliteStorage?.drainWrites()
+
+        let loaded = try? vm.sqliteStorage?.load()
+        XCTAssertEqual(loaded?.first?.text, "Async persist")
+        XCTAssertNotNil(loaded?.first?.lastStartTime)
+    }
+
+    func testSaveAllTasks_allTasksPersistedAfterDrain() {
+        let (vm, _, _) = makeViewModel()
+        vm.todos = [
+            TodoItem(text: "Task A", index: 0),
+            TodoItem(text: "Task B", index: 1),
+            TodoItem(text: "Task C", index: 2)
+        ]
+        vm.newTodoText = "Task D"
+        vm.addTodo()  // triggers saveAllTasks (adds task, reindexes)
+        vm.sqliteStorage?.drainWrites()
+
+        let loaded = try? vm.sqliteStorage?.load()
+        XCTAssertEqual(loaded?.count, 4)
+        XCTAssertTrue(loaded?.contains(where: { $0.text == "Task D" }) == true)
+    }
+
+    func testToggleTimer_lastStartTime_persistedAfterDrain() {
+        let (vm, _, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Timer task")]
+        vm.toggleTimer(vm.todos[0])
+        vm.sqliteStorage?.drainWrites()
+
+        let loaded = try? vm.sqliteStorage?.load()
+        XCTAssertNotNil(loaded?.first?.lastStartTime)
+    }
+
+    func testToggleSubtask_isCompleted_persistedAfterDrain() {
+        let (vm, _, _) = makeViewModel()
+        let sub = makeSubtask(title: "Sub")
+        vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
+        vm.toggleTimer(vm.todos[0])
+        let runningSub = vm.todos[0].subtasks.first(where: { $0.isRunning })!
+        vm.toggleSubtask(runningSub, in: vm.todos[0])
+        vm.sqliteStorage?.drainWrites()
+
+        let loaded = try? vm.sqliteStorage?.load()
+        XCTAssertTrue(loaded?.first?.subtasks.contains(where: { $0.id == sub.id && $0.isCompleted }) == true)
+    }
+
+    func testPauseTask_lastStartTimeNil_persistedAfterDrain() {
+        let (vm, _, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Pauseable")]
+        vm.toggleTimer(vm.todos[0])
+        let taskId = vm.todos[0].id
+        vm.pauseTask(taskId, keepWindowOpen: false)
+        vm.sqliteStorage?.drainWrites()
+
+        let loaded = try? vm.sqliteStorage?.load()
+        XCTAssertNil(loaded?.first?.lastStartTime)
+    }
+
+    func testResumeTask_lastStartTime_persistedAfterDrain() {
+        let (vm, _, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Resumeable")]
+        let taskId = vm.todos[0].id
+        vm.resumeTask(taskId)
+        vm.sqliteStorage?.drainWrites()
+
+        let loaded = try? vm.sqliteStorage?.load()
+        XCTAssertNotNil(loaded?.first?.lastStartTime)
+    }
+
+    func testMoveTodo_indices_persistedAfterDrain() {
+        let (vm, _, _) = makeViewModel()
+        vm.todos = [
+            TodoItem(text: "A", index: 0),
+            TodoItem(text: "B", index: 1),
+            TodoItem(text: "C", index: 2)
+        ]
+        // Pre-save so they exist in DB
+        for task in vm.todos { try? vm.sqliteStorage?.save(task) }
+
+        vm.moveTodo(from: 0, to: 2)
+        vm.sqliteStorage?.drainWrites()
+
+        let loaded = try? vm.sqliteStorage?.load()  // sorted by index
+        XCTAssertEqual(loaded?.map { $0.text }, ["B", "C", "A"])
+    }
+
     func testDismissBell_unknownId_doesNotCrash() {
         let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]

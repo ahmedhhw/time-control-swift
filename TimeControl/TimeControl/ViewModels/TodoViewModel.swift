@@ -40,7 +40,7 @@ class TodoViewModel: ObservableObject {
     
     private var timer: AnyCancellable?
     var storageURL: URL = TodoStorage.storageURL
-    private var sqliteStorage: SQLiteStorage?
+    var sqliteStorage: SQLiteStorage?
     private var saveDebounceTimer: Timer?
 
     init(storageURL: URL = TodoStorage.storageURL, dbURL: URL? = nil) {
@@ -162,7 +162,7 @@ class TodoViewModel: ObservableObject {
         let newTodo = TodoItem(text: trimmedText, index: newIndex)
         todos.append(newTodo)
         newTodoText = ""
-        saveTodos()
+        saveAllTasks()
     }
     
     func toggleTodo(_ todo: TodoItem) {
@@ -209,7 +209,7 @@ class TodoViewModel: ObservableObject {
                 todos[index].completedAt = nil
             }
 
-            saveTodos()
+            saveTask(todos[index])
         }
     }
 
@@ -235,20 +235,32 @@ class TodoViewModel: ObservableObject {
             todos[index].index = index
         }
 
-        saveTodos()
+        saveAllTasks()
     }
-    
-    func saveTodos() {
+
+    private func saveTask(_ task: TodoItem) {
         if let storage = sqliteStorage {
-            for todo in todos {
-                try? storage.save(todo)
+            storage.saveAsync(task)
+        } else {
+            TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records, to: storageURL)
+        }
+    }
+
+    private func saveAllTasks() {
+        if let storage = sqliteStorage {
+            let snapshot = todos
+            for task in snapshot {
+                storage.saveAsync(task)
             }
-            // Notification records stay in JSON until migrated to SQLite
             TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
         } else {
             TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records, to: storageURL)
         }
         FloatingWindowManager.shared.updateAllTodos(todos)
+    }
+
+    func saveTodos() {
+        saveAllTasks()
     }
     
     func editTodo(_ todo: TodoItem) {
@@ -306,18 +318,18 @@ class TodoViewModel: ObservableObject {
                 todos[index].countdownElapsedAtPause = 0
             }
 
-            saveTodos()
+            saveAllTasks()
             FloatingWindowManager.shared.updateTask(todos[index])
         } else {
             runningTaskId = nil
-            saveTodos()
-            
+            saveAllTasks()
+
             if let index = todos.firstIndex(where: { $0.id == newTask.id }) {
                 FloatingWindowManager.shared.updateTask(todos[index])
             }
         }
     }
-    
+
     func toggleTimer(_ todo: TodoItem) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             if todos[index].isRunning {
@@ -407,7 +419,7 @@ class TodoViewModel: ObservableObject {
                 }
             }
 
-            saveTodos()
+            saveTask(todos[index])
         }
     }
 
@@ -449,14 +461,14 @@ class TodoViewModel: ObservableObject {
                 todos[todoIndex].subtasks.append(startedSubtask)
             }
         }
-        
-        saveTodos()
-        
+
+        saveTask(todos[todoIndex])
+
         if todo.id == runningTaskId {
             FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
     }
-    
+
     func moveTodo(from sourceIndex: Int, to destinationIndex: Int) {
         guard sourceIndex != destinationIndex else { return }
         
@@ -468,10 +480,10 @@ class TodoViewModel: ObservableObject {
                 todos[index].index = index
             }
         }
-        
-        saveTodos()
+
+        saveAllTasks()
     }
-    
+
     func addSubtask(to todo: TodoItem) {
         let trimmedTitle = (newSubtaskTexts[todo.id] ?? "").trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
@@ -489,14 +501,14 @@ class TodoViewModel: ObservableObject {
                 todos[index].subtasks[newSubtaskIndex].lastStartTime = Date()
             }
 
-            saveTodos()
+            saveTask(todos[index])
 
             if todo.id == runningTaskId {
                 FloatingWindowManager.shared.updateTask(todos[index])
             }
         }
     }
-    
+
     func toggleExpanded(_ todo: TodoItem) {
         if expandedTodos.contains(todo.id) {
             expandedTodos.remove(todo.id)
@@ -570,13 +582,13 @@ class TodoViewModel: ObservableObject {
             }
         }
 
-        saveTodos()
+        saveTask(todos[todoIndex])
 
         if todo.id == runningTaskId {
             FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
     }
-    
+
     // MARK: - Session helpers
 
     private func startSession(todoIndex: Int) {
@@ -636,12 +648,12 @@ class TodoViewModel: ObservableObject {
             return
         }
         todos[todoIndex].subtasks[subtaskIndex].title = trimmed
-        saveTodos()
+        saveTask(todos[todoIndex])
         if todo.id == runningTaskId {
             FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
     }
-    
+
     func renameSubtaskFromFloatingWindow(_ subtaskId: UUID, in taskId: UUID, newTitle: String) {
         let trimmed = newTitle.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty,
@@ -650,7 +662,7 @@ class TodoViewModel: ObservableObject {
             return
         }
         todos[todoIndex].subtasks[subtaskIndex].title = trimmed
-        saveTodos()
+        saveTask(todos[todoIndex])
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
 
@@ -663,9 +675,9 @@ class TodoViewModel: ObservableObject {
             return
         }
         todos[todoIndex].subtasks[subtaskIndex].title = trimmed
-        saveTodos()
+        saveTask(todos[todoIndex])
     }
-    
+
     func deleteSubtask(_ subtask: Subtask, from todo: TodoItem) {
         if confirmSubtaskDeletion {
             subtaskToDelete = (subtask: subtask, parentTodo: todo)
@@ -680,13 +692,13 @@ class TodoViewModel: ObservableObject {
         }
         
         todos[todoIndex].subtasks.removeAll { $0.id == subtask.id }
-        saveTodos()
-        
+        saveTask(todos[todoIndex])
+
         if todo.id == runningTaskId {
             FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
     }
-    
+
     func generateExportTextForTask(_ todo: TodoItem) -> String {
         var text = ""
         
@@ -819,9 +831,9 @@ class TodoViewModel: ObservableObject {
                 todos[todoIndex].subtasks[i].lastStartTime = nil
             }
         }
-        
-        saveTodos()
-        
+
+        saveTask(todos[todoIndex])
+
         if !keepWindowOpen {
             runningTaskId = nil
             FloatingWindowManager.shared.closeFloatingWindow()
@@ -829,7 +841,7 @@ class TodoViewModel: ObservableObject {
             FloatingWindowManager.shared.updateTask(todos[todoIndex])
         }
     }
-    
+
     private func pauseRunningTaskForTermination() {
         guard let taskId = runningTaskId,
               let index = todos.firstIndex(where: { $0.id == taskId }) else { return }
@@ -857,7 +869,9 @@ class TodoViewModel: ObservableObject {
         }
 
         runningTaskId = nil
-        saveTodos()
+        // Sync write: must complete before the process exits
+        try? sqliteStorage?.save(todos[index])
+        TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
     }
 
     func resumeTask(_ taskId: UUID) {
@@ -881,11 +895,11 @@ class TodoViewModel: ObservableObject {
         todos[todoIndex].lastPlayedAt = Date().timeIntervalSince1970
         
         runningTaskId = taskId
-        saveTodos()
-        
+        saveTask(todos[todoIndex])
+
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
-    
+
     func updateTaskFields(id: UUID, text: String?, description: String?, notes: String?, dueDate: Date?, isAdhoc: Bool?, fromWho: String?, estimatedTime: TimeInterval?) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == id }) else {
             return
@@ -920,11 +934,11 @@ class TodoViewModel: ObservableObject {
             saveDebounceTimer?.invalidate()
             saveDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
                 guard let self else { return }
-                try? storage.save(self.todos[index])
+                storage.saveAsync(self.todos[index])
                 TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
             }
         } else {
-            saveTodos()
+            saveAllTasks()
         }
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
@@ -937,7 +951,7 @@ class TodoViewModel: ObservableObject {
         todos[todoIndex].countdownTime = time
         todos[todoIndex].countdownStartTime = Date()
         todos[todoIndex].countdownElapsedAtPause = 0
-        saveTodos()
+        saveTask(todos[todoIndex])
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
     
@@ -949,7 +963,7 @@ class TodoViewModel: ObservableObject {
         todos[todoIndex].countdownTime = 0
         todos[todoIndex].countdownStartTime = nil
         todos[todoIndex].countdownElapsedAtPause = 0
-        saveTodos()
+        saveTask(todos[todoIndex])
     }
     
     func switchToTask(byId taskId: UUID) {
@@ -960,7 +974,7 @@ class TodoViewModel: ObservableObject {
     func setReminder(_ date: Date?, for taskId: UUID) {
         guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
         todos[idx].reminderDate = date
-        saveTodos()
+        saveTask(todos[idx])
         FloatingWindowManager.shared.updateTask(todos[idx])
 
         if date != nil {
@@ -975,7 +989,7 @@ class TodoViewModel: ObservableObject {
         guard let idx = todos.firstIndex(where: { $0.id == taskId }) else { return }
         todos[idx].hasActiveNotification = active
         FloatingWindowManager.shared.updateTask(todos[idx])
-        saveTodos()
+        saveTask(todos[idx])
     }
 
 
@@ -1003,8 +1017,8 @@ class TodoViewModel: ObservableObject {
             notes: notes
         )
         todos.append(newTodo)
-        saveTodos()
-        
+        saveAllTasks()
+
         FloatingWindowManager.shared.updateAllTodos(todos)
         
         if switchToIt {
@@ -1038,8 +1052,8 @@ class TodoViewModel: ObservableObject {
                 }
                 
                 runningTaskId = newTodo.id
-                saveTodos()
-                
+                saveTask(todos[newTaskIndex])
+
                 FloatingWindowManager.shared.switchToTask(todos[newTaskIndex])
             }
         }
@@ -1093,10 +1107,10 @@ class TodoViewModel: ObservableObject {
             }
         }
 
-        saveTodos()
+        saveTask(todos[todoIndex])
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
-    
+
     func addSubtaskFromFloatingWindow(to taskId: UUID, title: String) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
@@ -1112,20 +1126,20 @@ class TodoViewModel: ObservableObject {
             todos[todoIndex].subtasks[newSubtaskIndex].lastStartTime = Date()
         }
 
-        saveTodos()
+        saveTask(todos[todoIndex])
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
-    
+
     func deleteSubtaskFromFloatingWindow(_ subtaskId: UUID, from taskId: UUID) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
         }
         
         todos[todoIndex].subtasks.removeAll { $0.id == subtaskId }
-        saveTodos()
+        saveTask(todos[todoIndex])
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
-    
+
     func toggleSubtaskTimerFromFloatingWindow(_ subtaskId: UUID, in taskId: UUID) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }),
               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) else {
@@ -1160,11 +1174,11 @@ class TodoViewModel: ObservableObject {
                 todos[todoIndex].subtasks.append(startedSubtask)
             }
         }
-        
-        saveTodos()
+
+        saveTask(todos[todoIndex])
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
-    
+
     func updateNotesFromFloatingWindow(_ notes: String, for taskId: UUID) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
@@ -1177,11 +1191,11 @@ class TodoViewModel: ObservableObject {
             saveDebounceTimer?.invalidate()
             saveDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
                 guard let self else { return }
-                try? storage.save(self.todos[todoIndex])
+                storage.saveAsync(self.todos[todoIndex])
                 TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
             }
         } else {
-            saveTodos()
+            saveAllTasks()
         }
     }
     
@@ -1229,6 +1243,6 @@ class TodoViewModel: ObservableObject {
             todos[todoIndex].completedAt = nil
         }
 
-        saveTodos()
+        saveTask(todos[todoIndex])
     }
 }
