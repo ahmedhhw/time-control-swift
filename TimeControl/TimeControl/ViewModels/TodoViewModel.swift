@@ -1245,4 +1245,33 @@ class TodoViewModel: ObservableObject {
 
         saveTask(todos[todoIndex])
     }
+
+    var todayTotalTime: TimeInterval {
+        let cal = Calendar.current
+        let today = Date()
+
+        func sessionStartsAndEndsToday(_ session: TaskSession) -> Bool {
+            guard let stoppedAt = session.stoppedAt else { return false }
+            let start = Date(timeIntervalSince1970: session.startedAt)
+            let end = Date(timeIntervalSince1970: stoppedAt)
+            return cal.isDate(start, inSameDayAs: today) && cal.isDate(end, inSameDayAs: today)
+        }
+
+        func duration(_ session: TaskSession) -> TimeInterval {
+            session.stoppedAt! - session.startedAt
+        }
+
+        var total: TimeInterval = 0
+        for todo in todos {
+            for session in todo.sessions where sessionStartsAndEndsToday(session) {
+                total += duration(session)
+            }
+            for subtask in todo.subtasks {
+                for session in subtask.sessions where sessionStartsAndEndsToday(session) {
+                    total += duration(session)
+                }
+            }
+        }
+        return total
+    }
 }

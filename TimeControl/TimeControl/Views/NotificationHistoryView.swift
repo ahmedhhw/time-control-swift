@@ -59,6 +59,17 @@ struct NotificationHistoryView: View {
             }
             .padding(.horizontal, 12)
             .padding(.top, 12)
+            .padding(.bottom, 4)
+
+            HStack(spacing: 4) {
+                Image(systemName: "clock")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("Today: \(TimeFormatter.formatTimeNoSeconds(viewModel.todayTotalTime))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
             .padding(.bottom, 8)
 
             Divider()
