@@ -39,6 +39,7 @@
 		A1000000000000000000133 /* NotificationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000132 /* NotificationStoreTests.swift */; };
 		A1000000000000000000135 /* ExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000134 /* ExportTests.swift */; };
 		A1000000000000000000137 /* TodayTotalTimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000136 /* TodayTotalTimeTests.swift */; };
+		A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000138 /* OrphanedSessionTests.swift */; };
 		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
 		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
 		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
@@ -107,6 +108,7 @@
 		A1000000000000000000132 /* NotificationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationStoreTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000134 /* ExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000136 /* TodayTotalTimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayTotalTimeTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000138 /* OrphanedSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrphanedSessionTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
@@ -264,6 +266,7 @@
 				A1000000000000000000132 /* NotificationStoreTests.swift */,
 				A1000000000000000000134 /* ExportTests.swift */,
 				A1000000000000000000136 /* TodayTotalTimeTests.swift */,
+				A1000000000000000000138 /* OrphanedSessionTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -428,6 +431,7 @@
 				A1000000000000000000133 /* NotificationStoreTests.swift in Sources */,
 				A1000000000000000000135 /* ExportTests.swift in Sources */,
 				A1000000000000000000137 /* TodayTotalTimeTests.swift in Sources */,
+				A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

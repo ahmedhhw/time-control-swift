@@ -57,6 +57,7 @@ class TodoViewModel: ObservableObject {
         let notificationRecords = TodoStorage.load(from: storageURL).notificationRecords
         NotificationStore.shared.setInitialRecords(notificationRecords)
         NotificationStore.shared.onNeedsSave = { [weak self] in self?.saveTodos() }
+        sanitizeOrphanedRunningState()
         startTimer()
 
         NotificationCenter.default.addObserver(
@@ -872,6 +873,37 @@ class TodoViewModel: ObservableObject {
         // Sync write: must complete before the process exits
         try? sqliteStorage?.save(todos[index])
         TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
+    }
+
+    func sanitizeOrphanedRunningState() {
+        var needsSave = false
+        let now = Date()
+
+        for i in todos.indices {
+            if let startTime = todos[i].lastStartTime {
+                stopSession(todoIndex: i)
+                todos[i].totalTimeSpent += now.timeIntervalSince(startTime)
+                todos[i].lastStartTime = nil
+                if todos[i].countdownTime > 0, let countdownStart = todos[i].countdownStartTime {
+                    todos[i].countdownElapsedAtPause += now.timeIntervalSince(countdownStart)
+                    todos[i].countdownStartTime = nil
+                }
+                needsSave = true
+            }
+
+            for j in todos[i].subtasks.indices {
+                if let startTime = todos[i].subtasks[j].lastStartTime {
+                    stopSubtaskSession(todoIndex: i, subtaskIndex: j)
+                    todos[i].subtasks[j].totalTimeSpent += now.timeIntervalSince(startTime)
+                    todos[i].subtasks[j].lastStartTime = nil
+                    needsSave = true
+                }
+            }
+        }
+
+        if needsSave {
+            saveTodos()
+        }
     }
 
     func resumeTask(_ taskId: UUID) {
