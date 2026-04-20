@@ -467,13 +467,11 @@ struct FloatingTaskWindowView: View {
                             }())
                             .focused($descriptionFocused)
                             .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            .onChange(of: descriptionFocused) { focused in
-                                if !focused {
-                                    viewModel.updateTaskFields(id: localTask.id, text: nil, description: descriptionText, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
-                                }
-                            }
-                            .onChange(of: descriptionText) { _ in
+                            .onChange(of: descriptionText) { newValue in
                                 updateDescriptionLines()
+                                if newValue != localTask.description {
+                                    viewModel.updateTaskFields(id: localTask.id, text: nil, description: newValue, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
+                                }
                             }
                     }
                     
@@ -1129,6 +1127,7 @@ struct FloatingTaskWindowView: View {
                 let subtasksChanged = localTask.subtasks.count != newTask.subtasks.count
                 
                 // Don't overwrite localTask if timer just completed (let it finish the completion process)
+                let taskSwitched = newTask.id != localTask.id
                 if timerJustCompleted && localTask.countdownTime == 0 {
                     // Timer already cleared locally, just update other fields
                     localTask.text = newTask.text
@@ -1138,12 +1137,12 @@ struct FloatingTaskWindowView: View {
                     localTask.lastStartTime = newTask.lastStartTime
                     localTask.estimatedTime = newTask.estimatedTime
                     notesText = newTask.notes
-                    if !descriptionFocused { descriptionText = newTask.description }
+                    if taskSwitched || !descriptionFocused { descriptionText = newTask.description }
                 } else {
                     // Normal update
                     localTask = newTask
                     notesText = newTask.notes
-                    if !descriptionFocused { descriptionText = newTask.description }
+                    if taskSwitched || !descriptionFocused { descriptionText = newTask.description }
                 }
                 
                 // If timer was cleared externally (from ContentView), reset completion flags
