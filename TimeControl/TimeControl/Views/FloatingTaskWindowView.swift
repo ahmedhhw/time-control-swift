@@ -536,15 +536,19 @@ struct FloatingTaskWindowView: View {
                     ScrollViewReader { scrollProxy in
                     ScrollView {
                         subtaskSectionContent
-                            .background(
+                            .overlay(
                                 GeometryReader { geo in
                                     Color.clear.preference(key: SubtaskContentHeightKey.self, value: geo.size.height)
                                 }
                             )
                     }
-                    .onPreferenceChange(SubtaskContentHeightKey.self) { subtaskContentHeight = $0 }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxHeight: 300)
+                    .onPreferenceChange(SubtaskContentHeightKey.self) { newHeight in
+                        if newHeight != subtaskContentHeight {
+                            subtaskContentHeight = newHeight
+                            resizeWindow()
+                        }
+                    }
+                    .frame(height: min(max(subtaskContentHeight, 80), 400))
                     .onChange(of: shouldScrollToBottom) { _ in
                         if shouldScrollToBottom {
                             withAnimation {
@@ -1522,7 +1526,7 @@ struct FloatingTaskWindowView: View {
         }
 
         // Subtasks section - use measured content height (capped at 300)
-        height += subtaskContentHeight > 0 ? min(subtaskContentHeight, 300) : 80
+        height += subtaskContentHeight > 0 ? min(subtaskContentHeight, 400) : 80
 
         // Bottom buttons (Pause/Resume and Complete)
         height += 60
