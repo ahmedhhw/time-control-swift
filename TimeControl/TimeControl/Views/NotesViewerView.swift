@@ -210,6 +210,7 @@ private struct NotesDetailView: View {
     var onSaveNotes: ((UUID, String) -> Void)? = nil
 
     @State private var editedNotes: String
+    @State private var saveTimer: Timer?
 
     init(todo: TodoItem, searchQuery: String, onSaveNotes: ((UUID, String) -> Void)? = nil) {
         self.todo = todo
@@ -263,7 +264,10 @@ private struct NotesDetailView: View {
                 .background(Color(NSColor.textBackgroundColor))
                 .padding(8)
                 .onChange(of: editedNotes) { newValue in
-                    onSaveNotes?(todo.id, newValue)
+                    saveTimer?.invalidate()
+                    saveTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { _ in
+                        onSaveNotes?(todo.id, newValue)
+                    }
                 }
                 .onChange(of: todo.notes) { newValue in
                     if newValue != editedNotes {

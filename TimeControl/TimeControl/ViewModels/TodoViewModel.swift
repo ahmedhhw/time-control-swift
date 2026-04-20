@@ -41,6 +41,7 @@ class TodoViewModel: ObservableObject {
     private var timer: AnyCancellable?
     var storageURL: URL = TodoStorage.storageURL
     private var sqliteStorage: SQLiteStorage?
+    private var saveDebounceTimer: Timer?
 
     init(storageURL: URL = TodoStorage.storageURL, dbURL: URL? = nil) {
         self.storageURL = storageURL
@@ -914,10 +915,20 @@ class TodoViewModel: ObservableObject {
             todos[todoIndex].estimatedTime = estimatedTime
         }
         
-        saveTodos()
+        let index = todoIndex
+        if let storage = sqliteStorage {
+            saveDebounceTimer?.invalidate()
+            saveDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
+                guard let self else { return }
+                try? storage.save(self.todos[index])
+                TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
+            }
+        } else {
+            saveTodos()
+        }
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
-    
+
     func setCountdown(taskId: UUID, time: TimeInterval) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
@@ -1158,9 +1169,20 @@ class TodoViewModel: ObservableObject {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
         }
-        
+
         todos[todoIndex].notes = notes
-        saveTodos()
+        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+
+        if let storage = sqliteStorage {
+            saveDebounceTimer?.invalidate()
+            saveDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
+                guard let self else { return }
+                try? storage.save(self.todos[todoIndex])
+                TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
+            }
+        } else {
+            saveTodos()
+        }
     }
     
     func completeTaskFromFloatingWindow(_ taskId: UUID) {
