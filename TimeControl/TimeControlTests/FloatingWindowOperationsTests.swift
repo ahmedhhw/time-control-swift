@@ -11,7 +11,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     // MARK: - toggleSubtaskFromFloatingWindow
 
     func testToggleSubtaskFromFloatingWindow_completesSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -21,7 +21,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskFromFloatingWindow_uncompletes_alreadyCompletedSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Done", isCompleted: true)
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -31,7 +31,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskFromFloatingWindow_completing_pausesRunningSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
         vm.toggleTimer(vm.todos[0]) // starts parent + auto-starts sub
@@ -44,7 +44,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskFromFloatingWindow_completing_autoStartsNextIncomplete() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "First")
         let sub2 = makeSubtask(title: "Second")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub1, sub2])]
@@ -57,7 +57,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskFromFloatingWindow_completedSubtask_movedBeforeIncomplete() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "A")
         let sub2 = makeSubtask(title: "B")
         let sub3 = makeSubtask(title: "C")
@@ -73,7 +73,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskFromFloatingWindow_unknownSubtaskId_doesNotCrash() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Parent")]
 
         // Should return early — no crash, no state change
@@ -85,7 +85,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     // MARK: - addSubtaskFromFloatingWindow
 
     func testAddSubtaskFromFloatingWindow_appendsSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Parent")]
 
         vm.addSubtaskFromFloatingWindow(to: vm.todos[0].id, title: "New Sub")
@@ -95,7 +95,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testAddSubtaskFromFloatingWindow_titleMatches() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Parent")]
 
         vm.addSubtaskFromFloatingWindow(to: vm.todos[0].id, title: "Exact Title")
@@ -104,7 +104,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testAddSubtaskFromFloatingWindow_multipleSubtasks_eachAppended() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Parent")]
         let id = vm.todos[0].id
 
@@ -117,7 +117,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testAddSubtaskFromFloatingWindow_whenParentRunning_andNoIncompleteSubtasks_autoStartsNewSub() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let completedSub = makeSubtask(title: "Done", isCompleted: true)
         vm.todos = [makeTodo(text: "Parent", subtasks: [completedSub])]
         vm.toggleTimer(vm.todos[0])
@@ -129,7 +129,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testAddSubtaskFromFloatingWindow_whenParentRunning_withExistingIncomplete_doesNotAutoStartNewSub() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let existingSub = makeSubtask(title: "Existing")
         vm.todos = [makeTodo(text: "Parent", subtasks: [existingSub])]
         vm.toggleTimer(vm.todos[0]) // auto-starts existingSub
@@ -141,7 +141,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testAddSubtaskFromFloatingWindow_unknownTaskId_doesNotCrash() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Parent")]
 
         vm.addSubtaskFromFloatingWindow(to: UUID(), title: "Orphan")
@@ -153,7 +153,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     // MARK: - deleteSubtaskFromFloatingWindow
 
     func testDeleteSubtaskFromFloatingWindow_removesSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Remove Me")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -163,7 +163,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testDeleteSubtaskFromFloatingWindow_onlyRemovesTargetSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "Keep")
         let sub2 = makeSubtask(title: "Delete Me")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub1, sub2])]
@@ -175,7 +175,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testDeleteSubtaskFromFloatingWindow_runningSubtask_removedWithoutDanglingState() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Running Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
         vm.toggleTimer(vm.todos[0]) // auto-starts sub
@@ -189,7 +189,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testDeleteSubtaskFromFloatingWindow_unknownSubtaskId_doesNotAlterList() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Keep")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -201,7 +201,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     // MARK: - toggleSubtaskTimerFromFloatingWindow
 
     func testToggleSubtaskTimerFromFloatingWindow_startsSubtask_whenNotRunning() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
         vm.toggleTimer(vm.todos[0]) // start parent
@@ -216,7 +216,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskTimerFromFloatingWindow_pausesSubtask_whenRunning() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
         vm.toggleTimer(vm.todos[0])
@@ -228,7 +228,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskTimerFromFloatingWindow_onlyOneSubtaskRunsAtATime() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "A")
         let sub2 = makeSubtask(title: "B")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub1, sub2])]
@@ -241,7 +241,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testToggleSubtaskTimerFromFloatingWindow_startedSubtask_movedToTopOfIncompleteList() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "A")
         let sub2 = makeSubtask(title: "B")
         let sub3 = makeSubtask(title: "C")
@@ -258,7 +258,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     // MARK: - renameSubtaskFromFloatingWindow
 
     func testRenameSubtaskFromFloatingWindow_happyPath() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Old")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -268,7 +268,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testRenameSubtaskFromFloatingWindow_whitespaceTrimmed() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Original")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -278,7 +278,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testRenameSubtaskFromFloatingWindow_whitespaceOnly_doesNotRename() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Keep This")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -288,7 +288,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testRenameSubtaskFromFloatingWindow_emptyString_doesNotRename() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Stays")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -298,7 +298,7 @@ final class FloatingWindowOperationsTests: XCTestCase {
     }
 
     func testRenameSubtaskFromFloatingWindow_unknownSubtaskId_doesNotAlterOtherSubtasks() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Untouched")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 

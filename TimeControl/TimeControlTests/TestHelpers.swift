@@ -19,9 +19,11 @@ func makeSubtask(title: String = "Subtask", isCompleted: Bool = false) -> Subtas
     Subtask(title: title, isCompleted: isCompleted)
 }
 
-func makeViewModel() -> (vm: TodoViewModel, url: URL) {
+func makeViewModel() -> (vm: TodoViewModel, url: URL, dbURL: URL) {
     let url = FileManager.default.temporaryDirectory
         .appendingPathComponent(UUID().uuidString + ".json")
-    let vm = TodoViewModel(storageURL: url)
-    return (vm, url)
+    let dbURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString + ".db")
+    let vm = TodoViewModel(storageURL: url, dbURL: dbURL)
+    return (vm, url, dbURL)
 }

@@ -11,21 +11,21 @@ final class ExportTests: XCTestCase {
     // MARK: - generateExportTextForTask
 
     func testExportTask_containsTitle() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let todo = makeTodo(text: "Write documentation")
         let output = vm.generateExportTextForTask(todo)
         XCTAssertTrue(output.contains("Write documentation"))
     }
 
     func testExportTask_incompleteStatus() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let todo = makeTodo(text: "Task", isCompleted: false)
         let output = vm.generateExportTextForTask(todo)
         XCTAssertTrue(output.contains("Incomplete"))
     }
 
     func testExportTask_completedStatus() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         var todo = makeTodo(text: "Task")
         todo.isCompleted = true
         let output = vm.generateExportTextForTask(todo)
@@ -33,7 +33,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_containsSubtaskTitles() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "Research")
         let sub2 = makeSubtask(title: "Write draft", isCompleted: true)
         let todo = makeTodo(text: "Project", subtasks: [sub1, sub2])
@@ -43,7 +43,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_subtaskCompletionMarkers() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let incomplete = makeSubtask(title: "Pending", isCompleted: false)
         let complete = makeSubtask(title: "Done", isCompleted: true)
         let todo = makeTodo(text: "Task", subtasks: [incomplete, complete])
@@ -53,7 +53,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_containsNotes() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         var todo = makeTodo(text: "Task")
         todo.notes = "Remember to follow up with Alice"
         let output = vm.generateExportTextForTask(todo)
@@ -61,7 +61,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_containsDescription() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         var todo = makeTodo(text: "Task")
         todo.description = "Detailed description here"
         let output = vm.generateExportTextForTask(todo)
@@ -69,7 +69,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_containsFromWho() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         var todo = makeTodo(text: "Task")
         todo.fromWho = "Manager Bob"
         let output = vm.generateExportTextForTask(todo)
@@ -77,7 +77,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_noSubtasks_doesNotCrash() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let todo = makeTodo(text: "Solo task")
         let output = vm.generateExportTextForTask(todo)
         XCTAssertFalse(output.isEmpty)
@@ -85,7 +85,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_withEstimatedTime_showsProgress() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let todo = makeTodo(text: "Task", estimatedTime: 3600)
         let output = vm.generateExportTextForTask(todo)
         XCTAssertTrue(output.contains("Estimated"))
@@ -93,7 +93,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportTask_noOptionalFields_omitsEmptySections() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let todo = makeTodo(text: "Bare task")
         let output = vm.generateExportTextForTask(todo)
         XCTAssertFalse(output.contains("From:"))
@@ -105,14 +105,14 @@ final class ExportTests: XCTestCase {
     // MARK: - generateExportTextForAllTasks
 
     func testExportAllTasks_containsHeader() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A")]
         let output = vm.generateExportTextForAllTasks()
         XCTAssertTrue(output.contains("TASKS EXPORT"))
     }
 
     func testExportAllTasks_containsSummarySection() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
         let output = vm.generateExportTextForAllTasks()
         XCTAssertTrue(output.contains("Total tasks: 2"))
@@ -120,7 +120,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportAllTasks_containsAllTitles() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Alpha"), makeTodo(text: "Beta"), makeTodo(text: "Gamma")]
         let output = vm.generateExportTextForAllTasks()
         XCTAssertTrue(output.contains("Alpha"))
@@ -129,7 +129,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportAllTasks_separatesIncompleteAndCompleted() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         var completed = makeTodo(text: "Done Task")
         completed.isCompleted = true
         let incomplete = makeTodo(text: "Pending Task")
@@ -142,7 +142,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportAllTasks_emptyList_returnsHeaderOnly() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = []
         let output = vm.generateExportTextForAllTasks()
         XCTAssertFalse(output.isEmpty)
@@ -153,7 +153,7 @@ final class ExportTests: XCTestCase {
     }
 
     func testExportAllTasks_allCompleted_noIncompleteSection() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         var t = makeTodo(text: "Finished")
         t.isCompleted = true
         vm.todos = [t]

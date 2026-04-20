@@ -11,7 +11,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Task lifecycle
 
     func testAddTodo_appendsToTodos() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.newTodoText = "Write report"
         vm.addTodo()
         XCTAssertEqual(vm.todos.count, 1)
@@ -20,14 +20,14 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testAddTodo_emptyText_doesNotAdd() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.newTodoText = "   "
         vm.addTodo()
         XCTAssertTrue(vm.todos.isEmpty)
     }
 
     func testToggleTodo_completesTask_andStopsTimer() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.newTodoText = "Task"
         vm.addTodo()
         vm.toggleTimer(vm.todos[0])
@@ -38,7 +38,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testDeleteTodo_removesFromList() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.confirmTaskDeletion = false
         vm.todos = [makeTodo(text: "Task")]
         let todo = vm.todos[0]
@@ -49,7 +49,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Timer — single task enforcement
 
     func testToggleTimer_onlyOneTaskRunsAtATime() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
 
         vm.toggleTimer(vm.todos[0])
@@ -62,7 +62,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleTimer_pause_stopsTimer() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A")]
         vm.toggleTimer(vm.todos[0])
         vm.toggleTimer(vm.todos[0]) // pause
@@ -71,7 +71,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleTimer_setsStartedAt_onFirstStart() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A")]
         XCTAssertNil(vm.todos[0].startedAt)
         vm.toggleTimer(vm.todos[0])
@@ -79,7 +79,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleTimer_doesNotOverwriteStartedAt_onResume() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A")]
         vm.toggleTimer(vm.todos[0])
         let firstStart = vm.todos[0].startedAt
@@ -91,7 +91,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Subtask auto-start
 
     func testToggleSubtask_completing_autoStartsNextIncomplete() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "First")
         let sub2 = makeSubtask(title: "Second")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub1, sub2])]
@@ -105,7 +105,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleSubtask_completing_pausesItsTimer() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -118,7 +118,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleSubtaskTimer_requiresParentRunning() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
         // parent NOT started
@@ -127,7 +127,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleSubtaskTimer_onlyOneSubtaskRunsAtATime() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub1 = makeSubtask(title: "A")
         let sub2 = makeSubtask(title: "B")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub1, sub2])]
@@ -142,7 +142,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Subtask ordering
 
     func testCompletedSubtasks_movedToTopOfCompletedBlock() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let subA = makeSubtask(title: "A")
         let subB = makeSubtask(title: "B")
         let subC = makeSubtask(title: "C")
@@ -159,7 +159,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testStartedSubtasks_movedToTopOfIncompleteList() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let subA = makeSubtask(title: "A")
         let subB = makeSubtask(title: "B")
         let subC = makeSubtask(title: "C")
@@ -175,7 +175,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - switchToTask
 
     func testSwitchToTask_stopsCurrentTask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
         vm.toggleTimer(vm.todos[0])
         vm.switchToTask(vm.todos[1])
@@ -183,7 +183,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSwitchToTask_autoPlays_whenSettingEnabled() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.autoPlayAfterSwitching = true
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
         vm.toggleTimer(vm.todos[0])
@@ -192,7 +192,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSwitchToTask_doesNotAutoPlay_whenSettingDisabled() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.autoPlayAfterSwitching = false
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
         vm.toggleTimer(vm.todos[0])
@@ -203,11 +203,11 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Persistence round-trip
 
     func testSaveTodos_persistsAndLoadsCorrectly() {
-        let (vm, url) = makeViewModel()
+        let (vm, url, dbURL) = makeViewModel()
         vm.newTodoText = "Persisted task"
         vm.addTodo() // addTodo calls saveTodos internally
 
-        let vm2 = TodoViewModel(storageURL: url)
+        let vm2 = TodoViewModel(storageURL: url, dbURL: dbURL)
         XCTAssertEqual(vm2.todos.count, 1)
         XCTAssertEqual(vm2.todos[0].text, "Persisted task")
     }
@@ -215,7 +215,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Field updates
 
     func testUpdateTaskFields_updatesTitleAndNotes() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Old")]
         let id = vm.todos[0].id
         vm.updateTaskFields(id: id, text: "New", description: nil, notes: "my note",
@@ -227,7 +227,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Countdown
 
     func testSetCountdown_storesCountdownTime() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let id = vm.todos[0].id
         vm.setCountdown(taskId: id, time: 300)
@@ -236,7 +236,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testClearCountdown_removesCountdownTime() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let id = vm.todos[0].id
         vm.setCountdown(taskId: id, time: 300)
@@ -248,7 +248,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Reordering
 
     func testMoveTodo_updatesIndexOrder() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [
             TodoItem(text: "A", index: 0),
             TodoItem(text: "B", index: 1),
@@ -266,7 +266,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - pauseTask / resumeTask
 
     func testPauseTask_stopsTimer_andClearsRunningTaskId() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         vm.toggleTimer(vm.todos[0])
         XCTAssertTrue(vm.todos[0].isRunning)
@@ -280,7 +280,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testPauseTask_keepWindowOpen_doesNotClearRunningTaskId() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         vm.toggleTimer(vm.todos[0])
         let taskId = vm.todos[0].id
@@ -293,7 +293,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testPauseTask_alsoStopsRunningSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
         vm.toggleTimer(vm.todos[0]) // starts parent + auto-starts sub
@@ -306,7 +306,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testResumeTask_startsTimer_andSetsRunningTaskId() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
 
@@ -317,7 +317,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testResumeTask_setsStartedAt_onFirstResume() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         XCTAssertNil(vm.todos[0].startedAt)
         vm.resumeTask(vm.todos[0].id)
@@ -325,7 +325,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testResumeTask_doesNotOverwriteStartedAt_onSubsequentResume() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         vm.toggleTimer(vm.todos[0])
         let firstStartedAt = vm.todos[0].startedAt
@@ -337,7 +337,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - createTask with switchToIt
 
     func testCreateTask_switchToIt_true_makesNewTaskRunning() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.createTask(title: "New Task", switchToIt: true)
         XCTAssertEqual(vm.todos.count, 1)
         XCTAssertTrue(vm.todos[0].isRunning)
@@ -345,14 +345,14 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testCreateTask_switchToIt_false_doesNotStartTask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.createTask(title: "New Task", switchToIt: false)
         XCTAssertFalse(vm.todos[0].isRunning)
         XCTAssertNil(vm.runningTaskId)
     }
 
     func testCreateTask_switchToIt_true_stopsPreviouslyRunningTask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Existing")]
         vm.toggleTimer(vm.todos[0])
         XCTAssertTrue(vm.todos[0].isRunning)
@@ -366,7 +366,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - updateTaskFields — full field coverage
 
     func testUpdateTaskFields_updatesAllFields() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let id = vm.todos[0].id
         let dueDate = Date(timeIntervalSinceNow: 86400)
@@ -393,7 +393,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testUpdateTaskFields_nilValues_doNotClearFields() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let id = vm.todos[0].id
         vm.updateTaskFields(id: id, text: "Set", description: "Desc", notes: nil,
@@ -409,7 +409,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - renameSubtask
 
     func testRenameSubtask_happyPath() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Old Name")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -419,7 +419,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testRenameSubtask_whitespaceTrimmed() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Original")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -429,7 +429,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testRenameSubtask_whitespaceOnly_doesNotRename() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let sub = makeSubtask(title: "Keep This")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
 
@@ -441,7 +441,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - switchToTask(byId:)
 
     func testSwitchToTaskById_stopsPreviousTask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
         vm.toggleTimer(vm.todos[0])
 
@@ -451,7 +451,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSwitchToTaskById_autoPlays_whenEnabled() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.autoPlayAfterSwitching = true
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
         vm.toggleTimer(vm.todos[0])
@@ -464,7 +464,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSwitchToTaskById_unknownId_doesNothing() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A")]
         vm.toggleTimer(vm.todos[0])
 
@@ -479,7 +479,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - toggleExpanded / toggleExpandAll
 
     func testToggleExpanded_insertsId_whenNotExpanded() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let todo = makeTodo(text: "Task")
         vm.todos = [todo]
 
@@ -489,7 +489,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleExpanded_removesId_whenAlreadyExpanded() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let todo = makeTodo(text: "Task")
         vm.todos = [todo]
         vm.toggleExpanded(todo)    // expand
@@ -499,7 +499,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleExpandAll_expandsAllTasks() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B"), makeTodo(text: "C")]
 
         vm.toggleExpandAll()
@@ -511,7 +511,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleExpandAll_collapsesAll_whenAlreadyExpanded() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B")]
         vm.toggleExpandAll() // expand all
         vm.toggleExpandAll() // collapse all
@@ -521,7 +521,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testToggleExpanded_setsAreAllTasksExpanded_whenAllOpen() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         let t1 = makeTodo(text: "A")
         let t2 = makeTodo(text: "B")
         vm.todos = [t1, t2]
@@ -535,7 +535,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Auto-play on task switch with no incomplete subtasks
 
     func testSwitchToTask_autoPlay_noIncompleteSubtasks_noSubtaskTimerStarts() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.autoPlayAfterSwitching = true
         let completedSub = makeSubtask(title: "Done", isCompleted: true)
         vm.todos = [makeTodo(text: "A"), makeTodo(text: "B", subtasks: [completedSub])]
@@ -551,7 +551,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Delete task while subtask timer running
 
     func testDeleteTask_whileSubtaskTimerRunning_noDanglingState() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.confirmTaskDeletion = false
         let sub = makeSubtask(title: "Active Sub")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]
@@ -567,7 +567,7 @@ final class TodoViewModelTests: XCTestCase {
     // MARK: - Phase 7: Notification ViewModel integration
 
     func testSetReminder_setsReminderDateOnTask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
         let date = Date().addingTimeInterval(3600)
@@ -581,7 +581,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSetReminder_addsToSchedulerPending() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
         let date = Date().addingTimeInterval(3600)
@@ -593,7 +593,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSetReminder_nil_clearsReminderDate() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
         vm.setReminder(Date().addingTimeInterval(3600), for: taskId)
@@ -604,7 +604,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSetReminder_nil_removesFromSchedulerPending() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
         vm.setReminder(Date().addingTimeInterval(3600), for: taskId)
@@ -616,7 +616,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSetActiveNotification_true_setsFlag() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
 
@@ -626,7 +626,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSetActiveNotification_false_clearsFlag() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
         vm.setActiveNotification(true, for: taskId)
@@ -637,14 +637,14 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testSetActiveNotification_unknownId_doesNotCrash() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         vm.setActiveNotification(true, for: UUID()) // unknown id
         XCTAssertFalse(vm.todos[0].hasActiveNotification)
     }
 
     func testDismissBell_clearsHasActiveNotification() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
         vm.setActiveNotification(true, for: taskId)
@@ -656,7 +656,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testDismissBell_dismissesNotificationStoreRecord() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         let taskId = vm.todos[0].id
 
@@ -672,7 +672,7 @@ final class TodoViewModelTests: XCTestCase {
     }
 
     func testDismissBell_unknownId_doesNotCrash() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         NotificationStore.shared.setInitialRecords([])
         vm.dismissBell(for: UUID()) // unknown id — should not crash

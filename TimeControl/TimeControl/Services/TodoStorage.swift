@@ -100,6 +100,11 @@ class TodoStorage {
         }
     }
 
+    static func saveNotificationRecords(_ records: [NotificationRecord], to url: URL = storageURL) {
+        let loaded = load(from: url)
+        save(todos: loaded.todos, notificationRecords: records, to: url)
+    }
+
     static func load(from url: URL = storageURL) -> (todos: [TodoItem], notificationRecords: [NotificationRecord]) {
         guard FileManager.default.fileExists(atPath: url.path) else {
             return ([], [])

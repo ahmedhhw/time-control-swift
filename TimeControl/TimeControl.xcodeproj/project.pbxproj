@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FF000001000000000000001 /* GRDB in Frameworks (app) */ = {isa = PBXBuildFile; productRef = FF000003000000000000001 /* GRDB */; };
+		FF000002000000000000001 /* GRDB in Frameworks (tests) */ = {isa = PBXBuildFile; productRef = FF000004000000000000001 /* GRDB */; };
+		FF000005000000000000001 /* SQLiteStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000006000000000000001 /* SQLiteStorage.swift */; };
+		FF000007000000000000001 /* SQLiteStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000008000000000000001 /* SQLiteStorageTests.swift */; };
 		9D1052C62F46DA0000B7B24D /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */; };
 		9D1052C72F46DA0000B7B24D /* SubtaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */; };
 		9D1052C82F46DA0000B7B24D /* PauseTaskConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */; };
@@ -129,6 +133,8 @@
 		EE000004000000000000001 /* NotificationWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationWindowManager.swift; sourceTree = "<group>"; };
 		EE000005000000000000001 /* NotificationOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationOverlayView.swift; sourceTree = "<group>"; };
 		EE000006000000000000001 /* NotificationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationHistoryView.swift; sourceTree = "<group>"; };
+		FF000006000000000000001 /* SQLiteStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStorage.swift; sourceTree = "<group>"; };
+		FF000008000000000000001 /* SQLiteStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStorageTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -136,6 +142,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FF000002000000000000001 /* GRDB in Frameworks (tests) */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,6 +150,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FF000001000000000000001 /* GRDB in Frameworks (app) */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -164,6 +172,7 @@
 			children = (
 				9D1052B22F46DA0000B7B24D /* TimeFormatter.swift */,
 				9D1052B32F46DA0000B7B24D /* TodoStorage.swift */,
+				FF000006000000000000001 /* SQLiteStorage.swift */,
 				EE000002000000000000001 /* NotificationStore.swift */,
 				EE000003000000000000001 /* NotificationScheduler.swift */,
 			);
@@ -238,6 +247,7 @@
 			isa = PBXGroup;
 			children = (
 				A1000000000000000000124 /* TestHelpers.swift */,
+				FF000008000000000000001 /* SQLiteStorageTests.swift */,
 				A1000000000000000000126 /* TodoViewModelTests.swift */,
 				A1000000000000000000128 /* FilterSortTests.swift */,
 				A1000000000000000000114 /* TodoItemTests.swift */,
@@ -308,6 +318,9 @@
 				A1000000000000000000106 /* PBXTargetDependency */,
 			);
 			name = TimeControlTests;
+			packageProductDependencies = (
+				FF000004000000000000001 /* GRDB */,
+			);
 			productName = TimeControlTests;
 			productReference = A1000000000000000000101 /* TimeControlTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -325,6 +338,9 @@
 			dependencies = (
 			);
 			name = TimeControl;
+			packageProductDependencies = (
+				FF000003000000000000001 /* GRDB */,
+			);
 			productName = TimeControl;
 			productReference = A1000009000000000000001 /* TimeControl.app */;
 			productType = "com.apple.product-type.application";
@@ -360,6 +376,9 @@
 			productRefGroup = A1000014000000000000001 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
+			packageReferences = (
+				FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+			);
 			targets = (
 				A1000016000000000000001 /* TimeControl */,
 				A1000000000000000000100 /* TimeControlTests */,
@@ -391,6 +410,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000000000000000000125 /* TestHelpers.swift in Sources */,
+				FF000007000000000000001 /* SQLiteStorageTests.swift in Sources */,
 				A1000000000000000000127 /* TodoViewModelTests.swift in Sources */,
 				A1000000000000000000129 /* FilterSortTests.swift in Sources */,
 				A1000000000000000000115 /* TodoItemTests.swift in Sources */,
@@ -432,6 +452,7 @@
 				9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */,
 				9D1052D32F46DA0000B7B24D /* TodoItem.swift in Sources */,
 				9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */,
+				FF000005000000000000001 /* SQLiteStorage.swift in Sources */,
 				9D1052D52F46DA0000B7B24D /* NewTaskPopupView.swift in Sources */,
 				9D1052D62F46DA0000B7B24D /* Enums.swift in Sources */,
 				AA000001000000000000002 /* TodoRow.swift in Sources */,
@@ -461,6 +482,30 @@
 			targetProxy = A1000000000000000000108 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FF000003000000000000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		FF000004000000000000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000110 /* Debug */ = {

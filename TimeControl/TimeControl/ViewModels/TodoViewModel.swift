@@ -40,12 +40,21 @@ class TodoViewModel: ObservableObject {
     
     private var timer: AnyCancellable?
     var storageURL: URL = TodoStorage.storageURL
+    private var sqliteStorage: SQLiteStorage?
 
-    init(storageURL: URL = TodoStorage.storageURL) {
+    init(storageURL: URL = TodoStorage.storageURL, dbURL: URL? = nil) {
         self.storageURL = storageURL
-        let loaded = TodoStorage.load(from: storageURL)
-        self.todos = loaded.todos
-        NotificationStore.shared.setInitialRecords(loaded.notificationRecords)
+
+        let storage = try? SQLiteStorage(dbURL: dbURL)
+        self.sqliteStorage = storage
+
+        // One-time migration from todos.json on first launch
+        try? storage?.migrateFromJSONIfNeeded(jsonURL: storageURL)
+
+        let loadedTodos = (try? storage?.load()) ?? []
+        self.todos = loadedTodos.isEmpty ? TodoStorage.load(from: storageURL).todos : loadedTodos
+        let notificationRecords = TodoStorage.load(from: storageURL).notificationRecords
+        NotificationStore.shared.setInitialRecords(notificationRecords)
         NotificationStore.shared.onNeedsSave = { [weak self] in self?.saveTodos() }
         startTimer()
 
@@ -218,17 +227,26 @@ class TodoViewModel: ObservableObject {
         }
 
         NotificationScheduler.shared.cancel(for: todo.id)
+        try? sqliteStorage?.delete(todo.id)
         todos.removeAll { $0.id == todo.id }
-        
+
         for (index, _) in todos.enumerated() {
             todos[index].index = index
         }
-        
+
         saveTodos()
     }
     
     func saveTodos() {
-        TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records, to: storageURL)
+        if let storage = sqliteStorage {
+            for todo in todos {
+                try? storage.save(todo)
+            }
+            // Notification records stay in JSON until migrated to SQLite
+            TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
+        } else {
+            TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records, to: storageURL)
+        }
         FloatingWindowManager.shared.updateAllTodos(todos)
     }
     

@@ -356,7 +356,7 @@ final class TodoOperationsTests: XCTestCase {
     // MARK: - ViewModel-level subtask operations
 
     func testAddSubtask_viaViewModel_appendsSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Parent")]
         let todo = vm.todos[0]
         vm.newSubtaskTexts[todo.id] = "New Sub"
@@ -367,7 +367,7 @@ final class TodoOperationsTests: XCTestCase {
     }
 
     func testAddSubtask_viaViewModel_whitespaceOnly_doesNotAdd() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Parent")]
         let todo = vm.todos[0]
         vm.newSubtaskTexts[todo.id] = "   "
@@ -377,7 +377,7 @@ final class TodoOperationsTests: XCTestCase {
     }
 
     func testDeleteSubtask_viaViewModel_removesSubtask() {
-        let (vm, _) = makeViewModel()
+        let (vm, _, _) = makeViewModel()
         vm.confirmSubtaskDeletion = false
         let sub = makeSubtask(title: "Remove Me")
         vm.todos = [makeTodo(text: "Parent", subtasks: [sub])]

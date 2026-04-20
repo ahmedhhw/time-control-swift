@@ -12,7 +12,7 @@ final class FilterSortTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        let (freshVm, _) = makeViewModel()
+        let (freshVm, _, _) = makeViewModel()
         vm = freshVm
     }
 
