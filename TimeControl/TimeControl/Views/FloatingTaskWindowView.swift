@@ -379,8 +379,18 @@ struct FloatingTaskWindowView: View {
                         .font(.subheadline)
                         .labelsHidden()
                         .frame(maxWidth: collapsedPickerMaxWidth)
-                        Spacer()
+                        Button(action: {
+                            showingNewTaskPopup = true
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Create new task")
                         
+                        Spacer()
+
                         // Show time elapsed when collapsed and setting is enabled
                         if viewModel.showTimeWhenCollapsed {
                             Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
@@ -942,7 +952,7 @@ struct FloatingTaskWindowView: View {
             }
 
             // "Subtask promoted!" toast
-            if showFloatingPromoteToast {
+            if showFloatingPromoteToast && !isCollapsed {
                 VStack {
                     Spacer()
 
@@ -971,7 +981,7 @@ struct FloatingTaskWindowView: View {
             }
 
             // "Task created!" toast (normal new-task flow)
-            if showNewTaskToast {
+            if showNewTaskToast && !isCollapsed {
                 VStack {
                     Spacer()
 
