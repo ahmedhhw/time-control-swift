@@ -1290,7 +1290,8 @@ class TodoViewModel: ObservableObject {
         }
 
         func duration(_ session: TaskSession) -> TimeInterval {
-            session.stoppedAt! - session.startedAt
+            guard let stoppedAt = session.stoppedAt else { return 0 }
+            return stoppedAt - session.startedAt
         }
 
         var total: TimeInterval = 0

@@ -1084,28 +1084,20 @@ struct FloatingTaskWindowView: View {
                     // Countdown completed - mark as just completed
                     timerJustCompleted = true
                     
-                    // Expand window if collapsed
-                    if isCollapsed {
-                        withAnimation {
-                            isCollapsed = false
-                        }
-                        resizeWindow()
-                    }
-                    
                     // Play notification sound
                     NSSound.beep()
-                    
-                    // Show the "Timer's up!" message with animation
-                    withAnimation {
-                        showTimerCompletedMessage = true
-                    }
-                    
-                    // Clear all timer fields locally and in view model
+
+                    // Apply all state changes before any resize so calculateDynamicHeight()
+                    // sees the final state and resizeWindow() fires exactly once.
                     localTask.countdownTime = 0
                     localTask.countdownStartTime = nil
                     localTask.countdownElapsedAtPause = 0
-
                     viewModel.clearCountdown(taskId: localTask.id)
+                    withAnimation {
+                        isCollapsed = false
+                        showTimerCompletedMessage = true
+                    }
+                    resizeWindow()
                 }
             }
         }
