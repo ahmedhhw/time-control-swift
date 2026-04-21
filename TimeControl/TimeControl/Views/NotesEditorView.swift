@@ -47,6 +47,6 @@ struct NotesEditorView: View {
                 }
         }
         .padding()
-        .frame(minWidth: 500, minHeight: 400)
+        .frame(minWidth: 180, minHeight: 120)
     }
 }

@@ -1257,7 +1257,7 @@ struct FloatingTaskWindowView: View {
         window.isFloatingPanel = true
         window.becomesKeyOnlyIfNeeded = true
         window.hidesOnDeactivate = false
-        window.minSize = NSSize(width: 300, height: 200)
+        window.minSize = NSSize(width: 180, height: 120)
 
         notesWindow = window
         window.orderFrontRegardless()
