@@ -49,6 +49,10 @@ struct FloatingTaskWindowView: View {
     @State private var showTimerBar: Bool = true
     @State private var showEstimateBar: Bool = true
     @State private var showDueDateBar: Bool = true
+    @AppStorage("floatingWindow.showDescription") private var showDescription: Bool = true
+    @AppStorage("floatingWindow.showTimers") private var showTimers: Bool = true
+    @AppStorage("floatingWindow.showSubtasks") private var showSubtasks: Bool = true
+    @State private var showVisibilityPopover: Bool = false
     @State private var isViewActive: Bool = true
     @State private var descriptionText: String = ""
     @FocusState private var descriptionFocused: Bool
@@ -349,8 +353,23 @@ struct FloatingTaskWindowView: View {
                         }
                     }
 
+                    Button(action: { showVisibilityPopover.toggle() }) {
+                        Image(systemName: "eye")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                    .buttonStyle(.plain)
+                    .floatingTooltip("Show/hide sections")
+                    .popover(isPresented: $showVisibilityPopover) {
+                        VisibilityPopoverView(
+                            showDescription: $showDescription,
+                            showTimers: $showTimers,
+                            showSubtasks: $showSubtasks
+                        )
+                    }
+
                     if isCollapsed {
-                        
+
                         Picker("Current Task", selection: Binding(
                             get: { localTask.id },
                             set: { newTaskId in
@@ -474,80 +493,84 @@ struct FloatingTaskWindowView: View {
                     }
                     
                     // Task description
-                    ZStack(alignment: .topLeading) {
-                        if descriptionText.isEmpty && !descriptionFocused {
-                            Text("Add description…")
-                                .font(.body)
-                                .foregroundColor(.secondary.opacity(0.5))
-                                .allowsHitTesting(false)
-                                .padding(.top, 2)
-                        }
-                        TextEditor(text: $descriptionText)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .scrollContentBackground(.hidden)
-                            .background(.clear)
-                            .frame(minHeight: 20, maxHeight: {
-                                guard !descriptionText.isEmpty else { return 20 }
-                                let natural = CGFloat(descriptionLineCount()) * 20 + 4
-                                return min(natural, 120)
-                            }())
-                            .focused($descriptionFocused)
-                            .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            .onChange(of: descriptionText) { newValue in
-                                if newValue != localTask.description {
-                                    viewModel.updateTaskFields(id: localTask.id, text: nil, description: newValue, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
-                                }
+                    if showDescription {
+                        ZStack(alignment: .topLeading) {
+                            if descriptionText.isEmpty && !descriptionFocused {
+                                Text("Add description…")
+                                    .font(.body)
+                                    .foregroundColor(.secondary.opacity(0.5))
+                                    .allowsHitTesting(false)
+                                    .padding(.top, 2)
                             }
+                            TextEditor(text: $descriptionText)
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .scrollContentBackground(.hidden)
+                                .background(.clear)
+                                .frame(minHeight: 20, maxHeight: {
+                                    guard !descriptionText.isEmpty else { return 20 }
+                                    let natural = CGFloat(descriptionLineCount()) * 20 + 4
+                                    return min(natural, 120)
+                                }())
+                                .focused($descriptionFocused)
+                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
+                                .onChange(of: descriptionText) { newValue in
+                                    if newValue != localTask.description {
+                                        viewModel.updateTaskFields(id: localTask.id, text: nil, description: newValue, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
+                                    }
+                                }
+                        }
                     }
                     
                     // Time tracking section
-                    VStack(alignment: .leading, spacing: 4) {
-                        Divider()
-                        
-                        HStack(alignment: .top, spacing: 16) {
-                            // Time elapsed
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Time Elapsed")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
-                                    .font(.title)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.blue)
-                                    .monospacedDigit()
-                                    .id(timerUpdateTrigger)
-                            }
-                            .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            
-                            Spacer()
-                            
-                            // Attention Check countdown (only shown when reminders are active and task is running)
-                            if viewModel.activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("Attention Check")
+                    if showTimers {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Divider()
+
+                            HStack(alignment: .top, spacing: 16) {
+                                // Time elapsed
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Time Elapsed")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                         .textCase(.uppercase)
-                                    
-                                    if let lastReminder = lastReminderTime {
-                                        let elapsed = Date().timeIntervalSince(lastReminder)
-                                        let remaining = max(0, 120 - elapsed)  // 120 seconds = 2 minutes
-                                        
-                                        Text(TimeFormatter.formatTime(remaining))
-                                            .font(.title)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(remaining < 30 ? .orange : .purple)
-                                            .monospacedDigit()
-                                            .id(timerUpdateTrigger)
-                                    } else {
-                                        Text(TimeFormatter.formatTime(120))
-                                            .font(.title)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.purple)
-                                            .monospacedDigit()
-                                            .id(timerUpdateTrigger)
+                                    Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                        .font(.title)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.blue)
+                                        .monospacedDigit()
+                                        .id(timerUpdateTrigger)
+                                }
+                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
+
+                                Spacer()
+
+                                // Attention Check countdown (only shown when reminders are active and task is running)
+                                if viewModel.activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("Attention Check")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                            .textCase(.uppercase)
+
+                                        if let lastReminder = lastReminderTime {
+                                            let elapsed = Date().timeIntervalSince(lastReminder)
+                                            let remaining = max(0, 120 - elapsed)
+
+                                            Text(TimeFormatter.formatTime(remaining))
+                                                .font(.title)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(remaining < 30 ? .orange : .purple)
+                                                .monospacedDigit()
+                                                .id(timerUpdateTrigger)
+                                        } else {
+                                            Text(TimeFormatter.formatTime(120))
+                                                .font(.title)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.purple)
+                                                .monospacedDigit()
+                                                .id(timerUpdateTrigger)
+                                        }
                                     }
                                 }
                             }
@@ -555,35 +578,37 @@ struct FloatingTaskWindowView: View {
                     }
 
                     // Subtasks section
-                    Divider()
+                    if showSubtasks {
+                        Divider()
 
-                    ScrollViewReader { scrollProxy in
-                    ScrollView {
-                        subtaskSectionContent
-                            .overlay(
-                                GeometryReader { geo in
-                                    Color.clear.preference(key: SubtaskContentHeightKey.self, value: geo.size.height)
-                                }
-                            )
-                    }
-                    .onPreferenceChange(SubtaskContentHeightKey.self) { newHeight in
-                        if newHeight != subtaskContentHeight {
-                            subtaskContentHeight = newHeight
-                        }
-                    }
-                    .frame(height: min(max(subtaskContentHeight, 80), 400))
-                    .onChange(of: shouldScrollToBottom) { _ in
-                        if shouldScrollToBottom {
-                            withAnimation {
-                                scrollProxy.scrollTo("subtaskInput", anchor: .bottom)
+                        ScrollViewReader { scrollProxy in
+                            ScrollView {
+                                subtaskSectionContent
+                                    .overlay(
+                                        GeometryReader { geo in
+                                            Color.clear.preference(key: SubtaskContentHeightKey.self, value: geo.size.height)
+                                        }
+                                    )
                             }
-                            shouldScrollToBottom = false
-                        }
+                            .onPreferenceChange(SubtaskContentHeightKey.self) { newHeight in
+                                if newHeight != subtaskContentHeight {
+                                    subtaskContentHeight = newHeight
+                                }
+                            }
+                            .frame(height: min(max(subtaskContentHeight, 80), 400))
+                            .onChange(of: shouldScrollToBottom) { _ in
+                                if shouldScrollToBottom {
+                                    withAnimation {
+                                        scrollProxy.scrollTo("subtaskInput", anchor: .bottom)
+                                    }
+                                    shouldScrollToBottom = false
+                                }
+                            }
+                        } // ScrollViewReader
                     }
-                    } // ScrollViewReader
-                    
+
                     // Countdown Timer section (if set)
-                    if localTask.countdownTime > 0 {
+                    if showTimers && localTask.countdownTime > 0 {
                         VStack(alignment: .leading, spacing: 4) {
                             Divider()
 
@@ -676,7 +701,7 @@ struct FloatingTaskWindowView: View {
                     }
 
                     // Timer's up! message (shown after timer completes and is cleared)
-                    if showTimerCompletedMessage && !taskMarkedComplete {
+                    if showTimers && showTimerCompletedMessage && !taskMarkedComplete {
                         VStack(spacing: 8) {
                             Divider()
 
@@ -712,7 +737,7 @@ struct FloatingTaskWindowView: View {
                     }
 
                     // Estimate progress bar
-                    if localTask.estimatedTime > 0 {
+                    if showTimers && localTask.estimatedTime > 0 {
                         VStack(alignment: .leading, spacing: 6) {
                             Divider()
 
@@ -795,7 +820,7 @@ struct FloatingTaskWindowView: View {
                     }
 
                     // Due date progress bar
-                    if let dueDate = localTask.dueDate {
+                    if showTimers, let dueDate = localTask.dueDate {
                         VStack(alignment: .leading, spacing: 6) {
                             Divider()
 
@@ -1501,7 +1526,10 @@ struct FloatingTaskWindowView: View {
             estimatedTime: localTask.estimatedTime,
             dueDate: localTask.dueDate,
             showEstimateBar: showEstimateBar,
-            showDueDateBar: showDueDateBar
+            showDueDateBar: showDueDateBar,
+            showDescription: showDescription,
+            showTimers: showTimers,
+            showSubtasks: showSubtasks
         )
     }
 
@@ -1877,6 +1905,32 @@ struct FloatingTaskWindowView: View {
     }
 }
 
+// MARK: - FloatingWindowVisibility
+
+struct FloatingWindowVisibility {
+    var showDescription: Bool = true
+    var showTimers: Bool = true
+    var showSubtasks: Bool = true
+}
+
+// MARK: - VisibilityPopoverView
+
+struct VisibilityPopoverView: View {
+    @Binding var showDescription: Bool
+    @Binding var showTimers: Bool
+    @Binding var showSubtasks: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle("Description", isOn: $showDescription)
+            Toggle("Timers", isOn: $showTimers)
+            Toggle("Subtasks", isOn: $showSubtasks)
+        }
+        .padding(12)
+        .frame(width: 180)
+    }
+}
+
 private struct WidthPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 350
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -1905,6 +1959,9 @@ struct ResizeSnapshot: Equatable {
     var dueDate: Date? = nil
     var showEstimateBar: Bool = false
     var showDueDateBar: Bool = false
+    var showDescription: Bool = true
+    var showTimers: Bool = true
+    var showSubtasks: Bool = true
 
     static func fixture(
         isCollapsed: Bool = false,
@@ -1917,7 +1974,10 @@ struct ResizeSnapshot: Equatable {
         estimatedTime: TimeInterval = 0,
         dueDate: Date? = nil,
         showEstimateBar: Bool = false,
-        showDueDateBar: Bool = false
+        showDueDateBar: Bool = false,
+        showDescription: Bool = true,
+        showTimers: Bool = true,
+        showSubtasks: Bool = true
     ) -> ResizeSnapshot {
         ResizeSnapshot(
             isCollapsed: isCollapsed,
@@ -1930,7 +1990,10 @@ struct ResizeSnapshot: Equatable {
             estimatedTime: estimatedTime,
             dueDate: dueDate,
             showEstimateBar: showEstimateBar,
-            showDueDateBar: showDueDateBar
+            showDueDateBar: showDueDateBar,
+            showDescription: showDescription,
+            showTimers: showTimers,
+            showSubtasks: showSubtasks
         )
     }
 }
@@ -1944,45 +2007,52 @@ func calculateDynamicHeight(snapshot s: ResizeSnapshot) -> CGFloat {
     height += 40  // task title dropdown
 
     // Description field
-    let charsPerLine = max(1, Int(s.windowWidth / 7.5))
-    let lines = s.descriptionText.components(separatedBy: "\n").reduce(0) { count, line in
-        count + max(1, Int(ceil(Double(max(1, line.count)) / Double(charsPerLine))))
-    }
-    height += s.descriptionText.isEmpty ? 28 : min(CGFloat(lines) * 40 + 20, 148)
-
-    height += 80  // divider + time section
-
-    // Countdown timer section
-    if s.countdownTime > 0 {
-        height += 30  // chevron header row
-        if s.showTimerBar {
-            height += 60  // timer display + progress bar
+    if s.showDescription {
+        let charsPerLine = max(1, Int(s.windowWidth / 7.5))
+        let lines = s.descriptionText.components(separatedBy: "\n").reduce(0) { count, line in
+            count + max(1, Int(ceil(Double(max(1, line.count)) / Double(charsPerLine))))
         }
+        height += s.descriptionText.isEmpty ? 28 : min(CGFloat(lines) * 40 + 20, 148)
     }
 
-    // Timer completed message
-    if s.showTimerCompletedMessage {
-        height += 120
-    }
+    // Time section (elapsed + attention check)
+    if s.showTimers {
+        height += 80  // divider + time section
 
-    // Estimate progress bar
-    if s.estimatedTime > 0 {
-        height += 30
-        if s.showEstimateBar {
-            height += 70
+        // Countdown timer section
+        if s.countdownTime > 0 {
+            height += 30  // chevron header row
+            if s.showTimerBar {
+                height += 60  // timer display + progress bar
+            }
         }
-    }
 
-    // Due date progress bar
-    if s.dueDate != nil {
-        height += 30
-        if s.showDueDateBar {
-            height += 70
+        // Timer completed message
+        if s.showTimerCompletedMessage {
+            height += 120
+        }
+
+        // Estimate progress bar
+        if s.estimatedTime > 0 {
+            height += 30
+            if s.showEstimateBar {
+                height += 70
+            }
+        }
+
+        // Due date progress bar
+        if s.dueDate != nil {
+            height += 30
+            if s.showDueDateBar {
+                height += 70
+            }
         }
     }
 
     // Subtasks section
-    height += s.subtaskContentHeight > 0 ? min(s.subtaskContentHeight, 400) : 80
+    if s.showSubtasks {
+        height += s.subtaskContentHeight > 0 ? min(s.subtaskContentHeight, 400) : 80
+    }
 
     height += 60  // bottom buttons
 

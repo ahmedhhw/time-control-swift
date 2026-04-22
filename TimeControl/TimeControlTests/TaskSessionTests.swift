@@ -30,40 +30,42 @@ final class TaskSessionTests: XCTestCase {
         XCTAssertFalse(s.isComplete)
     }
 
-    // MARK: - HistoryView session filtering
+    // MARK: - HistorySessionProcessor filtering
 
-    func testHistoryView_excludesOpenSession_onToday() {
+    func testHistory_excludesOpenSession_onToday() {
         let now = Date()
-        let openSession = TaskSession(startedAt: now.timeIntervalSince1970 - 300)  // started 5 min ago, no end
-        var todo = makeTodoWithSessions([openSession])
-        let view = HistoryView(todos: [todo])
-        XCTAssertTrue(view.visibleSessions(for: now).isEmpty, "Open sessions must not appear in history view")
-    }
-
-    func testHistoryView_includesCompletedSession_onToday() {
-        let now = Date()
-        let completedSession = TaskSession(startedAt: now.timeIntervalSince1970 - 300, stoppedAt: now.timeIntervalSince1970 - 60)
-        let todo = makeTodoWithSessions([completedSession])
-        let view = HistoryView(todos: [todo])
-        XCTAssertEqual(view.visibleSessions(for: now).count, 1)
-    }
-
-    func testHistoryView_excludesOpenSession_onPastDay() {
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
-        let start = Calendar.current.startOfDay(for: yesterday).timeIntervalSince1970 + 3600  // 1 AM yesterday
-        let openSession = TaskSession(startedAt: start)  // no stoppedAt
+        let openSession = TaskSession(startedAt: now.timeIntervalSince1970 - 600)  // no stoppedAt
         let todo = makeTodoWithSessions([openSession])
-        let view = HistoryView(todos: [todo])
-        XCTAssertTrue(view.visibleSessions(for: yesterday).isEmpty, "Open sessions on past days must not appear")
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: now)
+        XCTAssertTrue(entries.isEmpty, "Open sessions must not appear in history")
     }
 
-    func testHistoryView_includesCompletedSession_onPastDay() {
+    func testHistory_includesLongCompletedSession_onToday() {
+        let now = Date()
+        // 10-minute completed session (>= 5 min threshold)
+        let completedSession = TaskSession(startedAt: now.timeIntervalSince1970 - 600, stoppedAt: now.timeIntervalSince1970 - 60)
+        let todo = makeTodoWithSessions([completedSession])
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: now)
+        XCTAssertEqual(entries.count, 1)
+    }
+
+    func testHistory_excludesOpenSession_onPastDay() {
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         let start = Calendar.current.startOfDay(for: yesterday).timeIntervalSince1970 + 3600
+        let openSession = TaskSession(startedAt: start)  // no stoppedAt
+        let todo = makeTodoWithSessions([openSession])
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: yesterday)
+        XCTAssertTrue(entries.isEmpty, "Open sessions on past days must not appear")
+    }
+
+    func testHistory_includesLongCompletedSession_onPastDay() {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        let start = Calendar.current.startOfDay(for: yesterday).timeIntervalSince1970 + 3600
+        // 30-minute session
         let completedSession = TaskSession(startedAt: start, stoppedAt: start + 1800)
         let todo = makeTodoWithSessions([completedSession])
-        let view = HistoryView(todos: [todo])
-        XCTAssertEqual(view.visibleSessions(for: yesterday).count, 1)
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: yesterday)
+        XCTAssertEqual(entries.count, 1)
     }
 
     // MARK: - Helper

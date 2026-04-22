@@ -58,6 +58,8 @@
 		BB000002000000000000002 /* TaskListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000002000000000000001 /* TaskListItem.swift */; };
 		BB000003000000000000002 /* CompletedTasksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000003000000000000001 /* CompletedTasksSection.swift */; };
 		CC000001000000000000002 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001000000000000001 /* HistoryView.swift */; };
+		CC000002000000000000002 /* HistorySessionProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000002000000000000001 /* HistorySessionProcessor.swift */; };
+		A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000001FE /* HistorySessionFilterTests.swift */; };
 		DD000002000000000000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD000002000000000000001 /* AppDelegate.swift */; };
 		DD000003000000000000002 /* ReminderPickerPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD000003000000000000001 /* ReminderPickerPopover.swift */; };
 		EE000001000000000000002 /* NotificationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000001000000000000001 /* NotificationModels.swift */; };
@@ -131,6 +133,8 @@
 		BB000002000000000000001 /* TaskListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListItem.swift; sourceTree = "<group>"; };
 		BB000003000000000000001 /* CompletedTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedTasksSection.swift; sourceTree = "<group>"; };
 		CC000001000000000000001 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		CC000002000000000000001 /* HistorySessionProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySessionProcessor.swift; sourceTree = "<group>"; };
+		A10000000000000000001FE /* HistorySessionFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySessionFilterTests.swift; sourceTree = "<group>"; };
 		DD000002000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DD000003000000000000001 /* ReminderPickerPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderPickerPopover.swift; sourceTree = "<group>"; };
 		EE000001000000000000001 /* NotificationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationModels.swift; sourceTree = "<group>"; };
@@ -207,6 +211,7 @@
 				9D1052B92F46DA0000B7B24D /* NotesEditorView.swift */,
 				AA000006000000000000001 /* NotesViewerView.swift */,
 				CC000001000000000000001 /* HistoryView.swift */,
+				CC000002000000000000001 /* HistorySessionProcessor.swift */,
 				9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */,
 				9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */,
 				9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */,
@@ -273,6 +278,7 @@
 				A1000000000000000000136 /* TodayTotalTimeTests.swift */,
 				A1000000000000000000138 /* OrphanedSessionTests.swift */,
 				FF00000B000000000000001 /* NewTaskStickyModeTests.swift */,
+				A10000000000000000001FE /* HistorySessionFilterTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -439,6 +445,7 @@
 				A1000000000000000000137 /* TodayTotalTimeTests.swift in Sources */,
 				A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */,
 				FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */,
+				A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +471,7 @@
 				9D1052D12F46DA0000B7B24D /* NotesEditorView.swift in Sources */,
 				AA000006000000000000002 /* NotesViewerView.swift in Sources */,
 				CC000001000000000000002 /* HistoryView.swift in Sources */,
+				CC000002000000000000002 /* HistorySessionProcessor.swift in Sources */,
 				9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */,
 				9D1052D32F46DA0000B7B24D /* TodoItem.swift in Sources */,
 				9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */,

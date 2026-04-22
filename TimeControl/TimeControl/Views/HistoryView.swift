@@ -118,65 +118,33 @@ struct HistoryView: View {
         return result
     }
 
-    // MARK: - Session Clipping
+    // MARK: - Timeline events (merged, filtered, sorted)
 
-    func visibleSessions(for day: Date) -> [TaskSession] {
-        todos.flatMap { todo in
-            (todo.sessions + todo.subtasks.flatMap(\.sessions)).filter { $0.isComplete }
-        }.filter { session in
-            clipSession(session, to: day) != nil
-        }
+    private var processedEntries: [SessionEntry] {
+        guard let day = selectedDay else { return [] }
+        return HistorySessionProcessor.filteredSessions(from: todos, for: day)
     }
-
-    private func clipSession(_ session: TaskSession, to day: Date) -> GanttBar? {
-        guard session.isComplete else { return nil }
-
-        let cal = Calendar.current
-        let dayStart = cal.startOfDay(for: day).timeIntervalSince1970
-        let dayEnd = dayStart + 86400
-
-        let rawStart = session.startedAt
-        let rawEnd = session.stoppedAt!
-
-        guard rawStart < dayEnd && rawEnd > dayStart else { return nil }
-
-        let clippedStart = max(rawStart, dayStart) - dayStart
-        let clippedEnd   = min(rawEnd, dayEnd)   - dayStart
-
-        guard clippedEnd > clippedStart else { return nil }
-        return GanttBar(startSeconds: clippedStart, endSeconds: clippedEnd)
-    }
-
-    // MARK: - Timeline events (one per session, sorted by time)
 
     private var timelineEvents: [TimelineEvent] {
         guard let day = selectedDay else { return [] }
+        let dayStart = Calendar.current.startOfDay(for: day).timeIntervalSince1970
         var events: [TimelineEvent] = []
+        var colorMap: [UUID: Int] = [:]
         var colorIdx = 0
 
-        for todo in todos {
-            var hasSessions = false
-
-            for session in todo.sessions {
-                if let bar = clipSession(session, to: day) {
-                    events.append(TimelineEvent(id: UUID(), label: todo.text, colorIndex: colorIdx, bar: bar, isSubtask: false))
-                    hasSessions = true
-                }
+        for entry in processedEntries {
+            if colorMap[entry.taskId] == nil {
+                colorMap[entry.taskId] = colorIdx
+                colorIdx += 1
             }
-
-            for subtask in todo.subtasks {
-                for session in subtask.sessions {
-                    if let bar = clipSession(session, to: day) {
-                        events.append(TimelineEvent(id: UUID(), label: subtask.title, colorIndex: colorIdx, bar: bar, isSubtask: true))
-                        hasSessions = true
-                    }
-                }
-            }
-
-            if hasSessions { colorIdx += 1 }
+            let idx = colorMap[entry.taskId]!
+            let startSec = entry.startedAt - dayStart
+            let endSec   = entry.stoppedAt - dayStart
+            let bar = GanttBar(startSeconds: startSec, endSeconds: endSec)
+            events.append(TimelineEvent(id: UUID(), label: entry.label, colorIndex: idx, bar: bar, isSubtask: entry.subtaskId != nil))
         }
 
-        return events.sorted { $0.bar.startSeconds < $1.bar.startSeconds }
+        return events
     }
 
     // MARK: - Timeline hour range
@@ -191,7 +159,7 @@ struct HistoryView: View {
     }
 
     private var totalTime: Double {
-        timelineEvents.reduce(0) { $0 + $1.bar.duration }
+        HistorySessionProcessor.totalDuration(of: processedEntries)
     }
 
     // MARK: - Calendar helpers
