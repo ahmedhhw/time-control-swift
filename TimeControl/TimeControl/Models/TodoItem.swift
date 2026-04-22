@@ -15,6 +15,8 @@ struct TaskSession: Codable, Equatable {
         self.startedAt = startedAt
         self.stoppedAt = stoppedAt
     }
+
+    var isComplete: Bool { stoppedAt != nil }
 }
 
 struct Subtask: Identifiable, Codable, Equatable {

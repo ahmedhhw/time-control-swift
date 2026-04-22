@@ -100,13 +100,12 @@ struct HistoryView: View {
         var result = Set<String>()
 
         func markSession(_ session: TaskSession) {
+            guard session.isComplete, let stopped = session.stoppedAt else { return }
             let startDate = Date(timeIntervalSince1970: session.startedAt)
+            let endDate = Date(timeIntervalSince1970: stopped)
             result.insert(fmt.string(from: startDate))
-            if let stopped = session.stoppedAt {
-                let endDate = Date(timeIntervalSince1970: stopped)
-                if !cal.isDate(startDate, inSameDayAs: endDate) {
-                    result.insert(fmt.string(from: endDate))
-                }
+            if !cal.isDate(startDate, inSameDayAs: endDate) {
+                result.insert(fmt.string(from: endDate))
             }
         }
 
@@ -121,20 +120,23 @@ struct HistoryView: View {
 
     // MARK: - Session Clipping
 
+    func visibleSessions(for day: Date) -> [TaskSession] {
+        todos.flatMap { todo in
+            (todo.sessions + todo.subtasks.flatMap(\.sessions)).filter { $0.isComplete }
+        }.filter { session in
+            clipSession(session, to: day) != nil
+        }
+    }
+
     private func clipSession(_ session: TaskSession, to day: Date) -> GanttBar? {
+        guard session.isComplete else { return nil }
+
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: day).timeIntervalSince1970
         let dayEnd = dayStart + 86400
 
         let rawStart = session.startedAt
-
-        // Only extend an open session to "now" if it actually started on the selected day.
-        // Sessions with no stoppedAt that started on a different day are orphaned/corrupted — skip them.
-        let sessionStartDate = Date(timeIntervalSince1970: rawStart)
-        let sessionStartedOnThisDay = cal.isDate(sessionStartDate, inSameDayAs: day)
-        guard session.stoppedAt != nil || sessionStartedOnThisDay else { return nil }
-
-        let rawEnd = session.stoppedAt ?? Date().timeIntervalSince1970
+        let rawEnd = session.stoppedAt!
 
         guard rawStart < dayEnd && rawEnd > dayStart else { return nil }
 
