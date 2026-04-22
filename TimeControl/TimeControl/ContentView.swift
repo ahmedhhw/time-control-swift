@@ -339,6 +339,7 @@ struct ContentView: View {
                 dueDate: $promoteDueDate,
                 estimateHours: $promoteEstimateHours,
                 estimateMinutes: $promoteEstimateMinutes,
+                stickyMode: .constant(false),
                 onCreate: {
                     performPromoteSubtask(data: data)
                     subtaskToPromote = nil

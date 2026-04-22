@@ -33,7 +33,10 @@ struct FloatingTaskWindowView: View {
     @State private var subtaskBeingPromoted: Subtask? = nil
     @State private var showFloatingPromoteToast: Bool = false
     @State private var showNewTaskToast: Bool = false
-    
+    @AppStorage("newTaskStickyMode") private var newTaskStickyMode: Bool = false
+
+    private let stickyStore = NewTaskStickyStore()
+
     @State private var showingReminderPopover = false
     @State private var lastReminderTime: Date? = nil
     @State private var showingReminder: Bool = false
@@ -1416,17 +1419,28 @@ struct FloatingTaskWindowView: View {
         // Close existing new task popup window if any
         newTaskPopupWindow?.close()
 
-        // Reset new-task form state every time the popup is opened.
+        // Reset title every time; for other fields apply sticky values when enabled.
         // When called via promoteSubtask, title is already pre-filled — preserve it.
         if subtaskBeingPromoted == nil {
             newTaskTitle = ""
         }
-        newTaskSwitchToTask = false
-        newTaskCopyNotes = false
-        newTaskHasDueDate = false
-        newTaskDueDate = Date()
-        newTaskEstimateHours = 0
-        newTaskEstimateMinutes = 0
+        if subtaskBeingPromoted == nil {
+            let fields = stickyStore.applyOrReset(stickyEnabled: newTaskStickyMode)
+            newTaskSwitchToTask = fields.switchToTask
+            newTaskCopyNotes = fields.copyNotes
+            newTaskHasDueDate = fields.hasDueDate
+            newTaskDueDate = fields.dueDate
+            newTaskEstimateHours = fields.estimateHours
+            newTaskEstimateMinutes = fields.estimateMinutes
+        } else {
+            // Promoting a subtask — always reset non-title fields
+            newTaskSwitchToTask = false
+            newTaskCopyNotes = false
+            newTaskHasDueDate = false
+            newTaskDueDate = Date()
+            newTaskEstimateHours = 0
+            newTaskEstimateMinutes = 0
+        }
 
         // Create the SwiftUI view for new task popup
         let contentView = NewTaskPopupView(
@@ -1437,6 +1451,7 @@ struct FloatingTaskWindowView: View {
             dueDate: $newTaskDueDate,
             estimateHours: $newTaskEstimateHours,
             estimateMinutes: $newTaskEstimateMinutes,
+            stickyMode: $newTaskStickyMode,
             onCreate: {
                 createNewTask(switchToIt: newTaskSwitchToTask)
                 newTaskPopupWindow?.close()
@@ -1713,6 +1728,17 @@ struct FloatingTaskWindowView: View {
 
         if switchToIt {
             taskMarkedComplete = false
+        }
+
+        if newTaskStickyMode && subtaskBeingPromoted == nil {
+            stickyStore.save(
+                hasDueDate: newTaskHasDueDate,
+                dueDate: newTaskDueDate,
+                estimateHours: newTaskEstimateHours,
+                estimateMinutes: newTaskEstimateMinutes,
+                switchToTask: switchToIt,
+                copyNotes: newTaskCopyNotes
+            )
         }
 
         // If we were promoting a subtask, delete it and show promote toast;

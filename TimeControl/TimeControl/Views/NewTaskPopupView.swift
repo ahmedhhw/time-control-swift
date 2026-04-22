@@ -16,6 +16,7 @@ struct NewTaskPopupView: View {
     @Binding var dueDate: Date
     @Binding var estimateHours: Int
     @Binding var estimateMinutes: Int
+    @Binding var stickyMode: Bool
     let onCreate: () -> Void
     let onCancel: () -> Void
     @FocusState private var titleFieldFocused: Bool
@@ -128,6 +129,7 @@ struct NewTaskPopupView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Toggle("Switch to this task", isOn: $switchToTask)
                     Toggle("Copy notes", isOn: $copyNotes)
+                    Toggle("Sticky mode", isOn: $stickyMode)
                 }
 
                 Spacer()

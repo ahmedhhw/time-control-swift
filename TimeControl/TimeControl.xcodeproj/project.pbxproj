@@ -66,6 +66,8 @@
 		EE000004000000000000002 /* NotificationWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000004000000000000001 /* NotificationWindowManager.swift */; };
 		EE000005000000000000002 /* NotificationOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000005000000000000001 /* NotificationOverlayView.swift */; };
 		EE000006000000000000002 /* NotificationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000006000000000000001 /* NotificationHistoryView.swift */; };
+		FF00000A000000000000002 /* NewTaskStickyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00000A000000000000001 /* NewTaskStickyStore.swift */; };
+		FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00000B000000000000001 /* NewTaskStickyModeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -139,6 +141,8 @@
 		EE000006000000000000001 /* NotificationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationHistoryView.swift; sourceTree = "<group>"; };
 		FF000006000000000000001 /* SQLiteStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStorage.swift; sourceTree = "<group>"; };
 		FF000008000000000000001 /* SQLiteStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStorageTests.swift; sourceTree = "<group>"; };
+		FF00000A000000000000001 /* NewTaskStickyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskStickyStore.swift; sourceTree = "<group>"; };
+		FF00000B000000000000001 /* NewTaskStickyModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskStickyModeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,6 +183,7 @@
 				FF000006000000000000001 /* SQLiteStorage.swift */,
 				EE000002000000000000001 /* NotificationStore.swift */,
 				EE000003000000000000001 /* NotificationScheduler.swift */,
+				FF00000A000000000000001 /* NewTaskStickyStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -267,6 +272,7 @@
 				A1000000000000000000134 /* ExportTests.swift */,
 				A1000000000000000000136 /* TodayTotalTimeTests.swift */,
 				A1000000000000000000138 /* OrphanedSessionTests.swift */,
+				FF00000B000000000000001 /* NewTaskStickyModeTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -432,6 +438,7 @@
 				A1000000000000000000135 /* ExportTests.swift in Sources */,
 				A1000000000000000000137 /* TodayTotalTimeTests.swift in Sources */,
 				A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */,
+				FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -478,6 +485,7 @@
 				EE000004000000000000002 /* NotificationWindowManager.swift in Sources */,
 				EE000005000000000000002 /* NotificationOverlayView.swift in Sources */,
 				EE000006000000000000002 /* NotificationHistoryView.swift in Sources */,
+				FF00000A000000000000002 /* NewTaskStickyStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
