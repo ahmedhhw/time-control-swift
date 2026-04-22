@@ -5,11 +5,17 @@
 
 import Foundation
 
+enum NotificationKind {
+    case reminder
+    case sleepWake
+}
+
 // Passed from NotificationScheduler → NotificationWindowManager when a reminder fires
 struct NotificationPayload {
     let taskId: UUID
     let title: String
     let body: String
+    var kind: NotificationKind = .reminder
 }
 
 // Persisted entry in notification history

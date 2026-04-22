@@ -42,6 +42,7 @@ class TodoViewModel: ObservableObject {
     var storageURL: URL = TodoStorage.storageURL
     var sqliteStorage: SQLiteStorage?
     private var saveDebounceTimer: Timer?
+    private(set) var sleepPausedTaskId: UUID? = nil
 
     init(storageURL: URL = TodoStorage.storageURL, dbURL: URL? = nil) {
         self.storageURL = storageURL
@@ -82,6 +83,30 @@ class TodoViewModel: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.pauseRunningTaskForTermination()
+        }
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, let taskId = self.runningTaskId else { return }
+            self.sleepPausedTaskId = taskId
+            self.pauseTask(taskId, keepWindowOpen: false)
+        }
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, let taskId = self.sleepPausedTaskId else { return }
+            self.sleepPausedTaskId = nil
+            NotificationCenter.default.post(
+                name: NSNotification.Name("PromptResumeAfterSleep"),
+                object: nil,
+                userInfo: ["taskId": taskId]
+            )
         }
     }
     

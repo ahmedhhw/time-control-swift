@@ -38,22 +38,41 @@ struct NotificationOverlayView: View {
                 }
 
                 HStack(spacing: 8) {
-                    Button(action: startTask) {
-                        Text("Start Task")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                    if payload.kind == .sleepWake {
+                        Button(action: resumeTask) {
+                            Text("Resume")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
 
-                    Button(action: snooze) {
-                        Text("Snooze 30m")
-                            .font(.subheadline)
-                            .frame(maxWidth: .infinity)
+                        Button(action: windowManager.dismiss) {
+                            Text("Dismiss")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    } else {
+                        Button(action: startTask) {
+                            Text("Start Task")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+
+                        Button(action: snooze) {
+                            Text("Snooze 30m")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
                 }
             }
             .padding(12)
@@ -73,6 +92,19 @@ struct NotificationOverlayView: View {
     }
 
     // MARK: - Actions
+
+    private func resumeTask() {
+        guard let viewModel = windowManager.viewModel else { return }
+        viewModel.resumeTask(payload.taskId)
+        if let task = viewModel.todos.first(where: { $0.id == payload.taskId }) {
+            if FloatingWindowManager.shared.isWindowOpen {
+                FloatingWindowManager.shared.updateTask(task)
+            } else {
+                FloatingWindowManager.shared.showFloatingWindow(for: task, viewModel: viewModel)
+            }
+        }
+        windowManager.dismiss()
+    }
 
     private func startTask() {
         windowManager.viewModel?.switchToTask(byId: payload.taskId)

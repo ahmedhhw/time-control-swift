@@ -21,6 +21,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationScheduler.shared.rescheduleAll(viewModel.todos)
 
         setupStatusBarItem()
+        setupSleepWakePrompt()
+    }
+
+    private func setupSleepWakePrompt() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("PromptResumeAfterSleep"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let taskId = notification.userInfo?["taskId"] as? UUID,
+                  let task = self.viewModel.todos.first(where: { $0.id == taskId }) else { return }
+            let payload = NotificationPayload(
+                taskId: taskId,
+                title: "Task paused",
+                body: "\"\(task.text)\" was paused while your Mac slept.",
+                kind: .sleepWake
+            )
+            NotificationWindowManager.shared.show(payload)
+        }
     }
 
     private func setupStatusBarItem() {
