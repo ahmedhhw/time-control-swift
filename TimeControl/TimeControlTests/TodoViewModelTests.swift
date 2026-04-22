@@ -205,7 +205,8 @@ final class TodoViewModelTests: XCTestCase {
     func testSaveTodos_persistsAndLoadsCorrectly() {
         let (vm, url, dbURL) = makeViewModel()
         vm.newTodoText = "Persisted task"
-        vm.addTodo() // addTodo calls saveTodos internally
+        vm.addTodo()
+        vm.sqliteStorage?.drainWrites()
 
         let vm2 = TodoViewModel(storageURL: url, dbURL: dbURL)
         XCTAssertEqual(vm2.todos.count, 1)
