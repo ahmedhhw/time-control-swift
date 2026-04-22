@@ -51,7 +51,6 @@ struct FloatingTaskWindowView: View {
     @State private var showDueDateBar: Bool = true
     @State private var isViewActive: Bool = true
     @State private var descriptionText: String = ""
-    @State private var descriptionVisualLines: Int = 1
     @FocusState private var descriptionFocused: Bool
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -231,13 +230,10 @@ struct FloatingTaskWindowView: View {
             .frame(height: 0)
             .onPreferenceChange(WidthPreferenceKey.self) {
                 windowWidth = $0
-                updateDescriptionLines()
             }
             .onAppear {
                 updateWindowTitle()
-                DispatchQueue.main.async {
-                    resizeWindow()
-                }
+                applyResize(currentSnapshot)
             }
             
             // Main content
@@ -248,7 +244,6 @@ struct FloatingTaskWindowView: View {
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isCollapsed.toggle()
-                            resizeWindow()
                         }
                     }) {
                         Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
@@ -500,7 +495,6 @@ struct FloatingTaskWindowView: View {
                             .focused($descriptionFocused)
                             .opacity(taskMarkedComplete ? 0.5 : 1.0)
                             .onChange(of: descriptionText) { newValue in
-                                updateDescriptionLines()
                                 if newValue != localTask.description {
                                     viewModel.updateTaskFields(id: localTask.id, text: nil, description: newValue, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
                                 }
@@ -575,7 +569,6 @@ struct FloatingTaskWindowView: View {
                     .onPreferenceChange(SubtaskContentHeightKey.self) { newHeight in
                         if newHeight != subtaskContentHeight {
                             subtaskContentHeight = newHeight
-                            resizeWindow()
                         }
                     }
                     .frame(height: min(max(subtaskContentHeight, 80), 400))
@@ -1081,14 +1074,13 @@ struct FloatingTaskWindowView: View {
                         withAnimation {
                             isCollapsed = false
                         }
-                        resizeWindow()
                     }
-                    
+
                     // Show "Task Paused!" alert
                     withAnimation {
                         showTaskPausedAlert = true
                     }
-                    
+
                     // Hide the alert after 3 seconds with fade
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [self] in
                         guard isViewActive else { return }
@@ -1109,8 +1101,6 @@ struct FloatingTaskWindowView: View {
                     // Play notification sound
                     NSSound.beep()
 
-                    // Apply all state changes before any resize so calculateDynamicHeight()
-                    // sees the final state and resizeWindow() fires exactly once.
                     localTask.countdownTime = 0
                     localTask.countdownStartTime = nil
                     localTask.countdownElapsedAtPause = 0
@@ -1119,7 +1109,6 @@ struct FloatingTaskWindowView: View {
                         isCollapsed = false
                         showTimerCompletedMessage = true
                     }
-                    resizeWindow()
                 }
             }
         }
@@ -1146,9 +1135,6 @@ struct FloatingTaskWindowView: View {
                         reminderResponseDeadline = nil
                     }
                 }
-                
-                // Check if subtasks changed to trigger resize
-                let subtasksChanged = localTask.subtasks.count != newTask.subtasks.count
                 
                 // Don't overwrite localTask if timer just completed (let it finish the completion process)
                 let taskSwitched = newTask.id != localTask.id
@@ -1180,11 +1166,10 @@ struct FloatingTaskWindowView: View {
                     showTimerCompletedMessage = false
                 }
                 
-                // Resize window if subtasks changed
-                if subtasksChanged && !isCollapsed {
-                    resizeWindow()
-                }
             }
+        }
+        .onChange(of: currentSnapshot) { snapshot in
+            applyResize(snapshot)
         }
         .onChange(of: showingTimerPicker) { newValue in
             if newValue {
@@ -1200,16 +1185,6 @@ struct FloatingTaskWindowView: View {
         .onChange(of: showingNewTaskPopup) { newValue in
             if newValue {
                 openNewTaskPopupWindow()
-            }
-        }
-        .onChange(of: showTimerCompletedMessage) { _ in
-            if !isCollapsed {
-                resizeWindow()
-            }
-        }
-        .onChange(of: localTask.countdownTime) { _ in
-            if !isCollapsed {
-                resizeWindow()
             }
         }
         .onChange(of: viewModel.dropdownSortOption) { _ in
@@ -1514,62 +1489,22 @@ struct FloatingTaskWindowView: View {
         window.makeKey()
     }
     
-    private func calculateDynamicHeight() -> CGFloat {
-        // Base height for header, task title, description, time tracking, and buttons
-        var height: CGFloat = 0
-        
-        // Header with buttons (collapse, notes, timer)
-        height += 40  // Header row
-        
-        // Task title dropdown
-        height += 40
-        
-        // Description field (always visible)
-        let lines = CGFloat(descriptionLineCount())
-        height += descriptionText.isEmpty ? 28 : min(lines * 40 + 20, 148)
-        
-        // Time tracking section (Time Elapsed + optional Attention Check)
-        height += 80  // Divider + time section
-        
-        // Countdown timer section (if active)
-        if localTask.countdownTime > 0 {
-            height += 30  // chevron header row
-            if showTimerBar {
-                height += 60  // timer display + progress bar
-            }
-        }
-
-        // Timer completed message (if shown)
-        if showTimerCompletedMessage {
-            height += 120
-        }
-
-        // Estimate progress bar
-        if localTask.estimatedTime > 0 {
-            height += 30  // chevron header row
-            if showEstimateBar {
-                height += 70  // labels + bar + status line
-            }
-        }
-
-        // Due date progress bar
-        if localTask.dueDate != nil {
-            height += 30  // chevron header row
-            if showDueDateBar {
-                height += 70  // labels + bar + status line
-            }
-        }
-
-        // Subtasks section - use measured content height (capped at 300)
-        height += subtaskContentHeight > 0 ? min(subtaskContentHeight, 400) : 80
-
-        // Bottom buttons (Pause/Resume and Complete)
-        height += 60
-
-        // Clamp between min and max heights
-        return min(max(height, 380), 900)
+    private var currentSnapshot: ResizeSnapshot {
+        ResizeSnapshot(
+            isCollapsed: isCollapsed,
+            subtaskContentHeight: subtaskContentHeight,
+            descriptionText: descriptionText,
+            windowWidth: (windowWidth / 10).rounded() * 10,
+            countdownTime: localTask.countdownTime,
+            showTimerBar: showTimerBar,
+            showTimerCompletedMessage: showTimerCompletedMessage,
+            estimatedTime: localTask.estimatedTime,
+            dueDate: localTask.dueDate,
+            showEstimateBar: showEstimateBar,
+            showDueDateBar: showDueDateBar
+        )
     }
-    
+
     private func descriptionLineCount() -> Int {
         let charsPerLine = max(1, Int(windowWidth / 7.5))
         return descriptionText.components(separatedBy: "\n").reduce(0) { count, line in
@@ -1577,34 +1512,21 @@ struct FloatingTaskWindowView: View {
         }
     }
 
-    private func updateDescriptionLines() {
-        let newCount = descriptionLineCount()
-        if newCount != descriptionVisualLines {
-            descriptionVisualLines = newCount
-            resizeWindow()
-        }
-    }
-
-    private func resizeWindow() {
-        // Get the window from the view hierarchy
+    /// NOTE: must only be invoked from `.onChange(of: currentSnapshot, initial: true)`.
+    /// Direct calls reintroduce the DispatchQueue.main.async pile-up this refactor fixes.
+    private func applyResize(_ snapshot: ResizeSnapshot) {
         DispatchQueue.main.async {
             guard let window = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }),
                   let screen = window.screen else { return }
 
             let currentFrame = window.frame
             let visible = screen.visibleFrame
-            let rawHeight: CGFloat = isCollapsed ? 50 : calculateDynamicHeight()
-            // Never let the window exceed the screen's usable height
+            let rawHeight = calculateDynamicHeight(snapshot: snapshot)
             let newHeight = min(rawHeight, visible.height)
 
-            // Anchor top where it currently is, then clamp so the whole frame fits on screen
             var newY = currentFrame.maxY - newHeight
-            if newY + newHeight > visible.maxY {
-                newY = visible.maxY - newHeight
-            }
-            if newY < visible.minY {
-                newY = visible.minY
-            }
+            if newY + newHeight > visible.maxY { newY = visible.maxY - newHeight }
+            if newY < visible.minY { newY = visible.minY }
 
             let adjustedFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
             window.setFrame(adjustedFrame, display: true, animate: true)
@@ -1683,10 +1605,8 @@ struct FloatingTaskWindowView: View {
         localTask.subtasks.append(newSubtask)
         
         viewModel.addSubtaskFromFloatingWindow(to: localTask.id, title: trimmedTitle)
-        
-        newSubtaskText = ""
 
-        resizeWindow()
+        newSubtaskText = ""
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             shouldScrollToBottom = true
@@ -1775,8 +1695,6 @@ struct FloatingTaskWindowView: View {
         localTask.subtasks.removeAll { $0.id == subtask.id }
         
         viewModel.deleteSubtaskFromFloatingWindow(subtask.id, from: localTask.id)
-        
-        resizeWindow()
     }
     
     private func completeTask() {
@@ -1926,9 +1844,8 @@ struct FloatingTaskWindowView: View {
                 withAnimation {
                     isCollapsed = false
                 }
-                resizeWindow()
             }
-            
+
             // Show "Task Paused!" alert if this was an auto-pause
             if isAutoPause {
                 withAnimation {
@@ -1952,9 +1869,8 @@ struct FloatingTaskWindowView: View {
                 withAnimation {
                     isCollapsed = false
                 }
-                resizeWindow()
             }
-            
+
             // Open the main window
             openMainWindow()
         }
@@ -1973,4 +1889,102 @@ private struct SubtaskContentHeightKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
+}
+
+// MARK: - ResizeSnapshot
+
+struct ResizeSnapshot: Equatable {
+    var isCollapsed: Bool = false
+    var subtaskContentHeight: CGFloat = 0
+    var descriptionText: String = ""
+    var windowWidth: CGFloat = 350
+    var countdownTime: TimeInterval = 0
+    var showTimerBar: Bool = false
+    var showTimerCompletedMessage: Bool = false
+    var estimatedTime: TimeInterval = 0
+    var dueDate: Date? = nil
+    var showEstimateBar: Bool = false
+    var showDueDateBar: Bool = false
+
+    static func fixture(
+        isCollapsed: Bool = false,
+        subtaskContentHeight: CGFloat = 0,
+        descriptionText: String = "",
+        windowWidth: CGFloat = 350,
+        countdownTime: TimeInterval = 0,
+        showTimerBar: Bool = false,
+        showTimerCompletedMessage: Bool = false,
+        estimatedTime: TimeInterval = 0,
+        dueDate: Date? = nil,
+        showEstimateBar: Bool = false,
+        showDueDateBar: Bool = false
+    ) -> ResizeSnapshot {
+        ResizeSnapshot(
+            isCollapsed: isCollapsed,
+            subtaskContentHeight: subtaskContentHeight,
+            descriptionText: descriptionText,
+            windowWidth: windowWidth,
+            countdownTime: countdownTime,
+            showTimerBar: showTimerBar,
+            showTimerCompletedMessage: showTimerCompletedMessage,
+            estimatedTime: estimatedTime,
+            dueDate: dueDate,
+            showEstimateBar: showEstimateBar,
+            showDueDateBar: showDueDateBar
+        )
+    }
+}
+
+func calculateDynamicHeight(snapshot s: ResizeSnapshot) -> CGFloat {
+    if s.isCollapsed { return 50 }
+
+    var height: CGFloat = 0
+
+    height += 40  // header row
+    height += 40  // task title dropdown
+
+    // Description field
+    let charsPerLine = max(1, Int(s.windowWidth / 7.5))
+    let lines = s.descriptionText.components(separatedBy: "\n").reduce(0) { count, line in
+        count + max(1, Int(ceil(Double(max(1, line.count)) / Double(charsPerLine))))
+    }
+    height += s.descriptionText.isEmpty ? 28 : min(CGFloat(lines) * 40 + 20, 148)
+
+    height += 80  // divider + time section
+
+    // Countdown timer section
+    if s.countdownTime > 0 {
+        height += 30  // chevron header row
+        if s.showTimerBar {
+            height += 60  // timer display + progress bar
+        }
+    }
+
+    // Timer completed message
+    if s.showTimerCompletedMessage {
+        height += 120
+    }
+
+    // Estimate progress bar
+    if s.estimatedTime > 0 {
+        height += 30
+        if s.showEstimateBar {
+            height += 70
+        }
+    }
+
+    // Due date progress bar
+    if s.dueDate != nil {
+        height += 30
+        if s.showDueDateBar {
+            height += 70
+        }
+    }
+
+    // Subtasks section
+    height += s.subtaskContentHeight > 0 ? min(s.subtaskContentHeight, 400) : 80
+
+    height += 60  // bottom buttons
+
+    return min(max(height, 380), 900)
 }
