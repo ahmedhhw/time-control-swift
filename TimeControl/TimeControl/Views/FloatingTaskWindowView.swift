@@ -403,12 +403,21 @@ struct FloatingTaskWindowView: View {
 
                         // Show time elapsed when collapsed and setting is enabled
                         if viewModel.showTimeWhenCollapsed {
-                            Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.blue)
-                                .monospacedDigit()
-                                .id(timerUpdateTrigger)
+                            Button(action: {
+                                if localTask.isRunning {
+                                    viewModel.pauseTask(localTask.id, keepWindowOpen: true)
+                                } else {
+                                    viewModel.resumeTask(localTask.id)
+                                }
+                            }) {
+                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(localTask.isRunning ? .blue : .orange)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     
