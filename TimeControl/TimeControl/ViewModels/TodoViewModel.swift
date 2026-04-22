@@ -54,9 +54,14 @@ class TodoViewModel: ObservableObject {
 
         let loadedTodos = (try? storage?.load()) ?? []
         self.todos = loadedTodos.isEmpty ? TodoStorage.load(from: storageURL).todos : loadedTodos
-        let notificationRecords = TodoStorage.load(from: storageURL).notificationRecords
-        NotificationStore.shared.setInitialRecords(notificationRecords)
-        NotificationStore.shared.onNeedsSave = { [weak self] in self?.saveTodos() }
+        if storage != nil {
+            NotificationStore.shared.setInitialRecords(NotificationStore.loadFromUserDefaults())
+            NotificationStore.shared.onNeedsSave = { NotificationStore.shared.saveToUserDefaults() }
+        } else {
+            let notificationRecords = TodoStorage.load(from: storageURL).notificationRecords
+            NotificationStore.shared.setInitialRecords(notificationRecords)
+            NotificationStore.shared.onNeedsSave = { [weak self] in self?.saveTodos() }
+        }
         sanitizeOrphanedRunningState()
         startTimer()
 
@@ -253,7 +258,6 @@ class TodoViewModel: ObservableObject {
             for task in snapshot {
                 storage.saveAsync(task)
             }
-            TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
         } else {
             TodoStorage.save(todos: todos, notificationRecords: NotificationStore.shared.records, to: storageURL)
         }
@@ -872,7 +876,9 @@ class TodoViewModel: ObservableObject {
         runningTaskId = nil
         // Sync write: must complete before the process exits
         try? sqliteStorage?.save(todos[index])
-        TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
+        if sqliteStorage == nil {
+            TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
+        }
     }
 
     func sanitizeOrphanedRunningState() {
@@ -967,7 +973,6 @@ class TodoViewModel: ObservableObject {
             saveDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
                 guard let self else { return }
                 storage.saveAsync(self.todos[index])
-                TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
             }
         } else {
             saveAllTasks()
@@ -1224,7 +1229,6 @@ class TodoViewModel: ObservableObject {
             saveDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
                 guard let self else { return }
                 storage.saveAsync(self.todos[todoIndex])
-                TodoStorage.saveNotificationRecords(NotificationStore.shared.records)
             }
         } else {
             saveAllTasks()
