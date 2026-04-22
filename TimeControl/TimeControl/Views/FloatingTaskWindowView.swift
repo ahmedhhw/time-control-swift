@@ -389,6 +389,16 @@ struct FloatingTaskWindowView: View {
                         .buttonStyle(.plain)
                         .floatingTooltip("Create new task")
                         
+                        Button(action: {
+                            completeTask()
+                        }) {
+                            Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
+                                .font(.subheadline)
+                                .foregroundColor(taskMarkedComplete ? .secondary : .green)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip(taskMarkedComplete ? "Close window" : "Mark task complete")
+                        
                         Spacer()
 
                         // Show time elapsed when collapsed and setting is enabled
