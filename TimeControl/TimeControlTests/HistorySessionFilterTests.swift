@@ -178,4 +178,90 @@ final class HistorySessionFilterTests: XCTestCase {
         let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day)
         XCTAssertEqual(HistorySessionProcessor.totalDuration(of: entries), 0)
     }
+
+    // MARK: - Group A: Custom minDuration parameter
+
+    func test_customMinDuration_zero_includesShortSessions() {
+        let todo = makeTodoWithSession(startOffset: 3600, duration: 239) // 3:59 — normally filtered
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 0)
+        XCTAssertEqual(entries.count, 1)
+    }
+
+    func test_customMinDuration_600_excludes5MinSession() {
+        let todo = makeTodoWithSession(startOffset: 3600, duration: 300) // exactly 5 min
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 600)
+        XCTAssertTrue(entries.isEmpty)
+    }
+
+    func test_customMinDuration_60_includes1MinSession() {
+        let todo = makeTodoWithSession(startOffset: 3600, duration: 60)
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 60)
+        XCTAssertEqual(entries.count, 1)
+    }
+
+    func test_customMinDuration_60_excludes50sSession() {
+        let todo = makeTodoWithSession(startOffset: 3600, duration: 50)
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 60)
+        XCTAssertTrue(entries.isEmpty)
+    }
+
+    // MARK: - Group B: Custom maxGap parameter
+
+    func test_customMaxGap_zero_doesNotMergeSessions() {
+        // 90s gap — would normally merge with default 120s threshold
+        var todo = makeTodo()
+        todo.sessions = [
+            session(startOffset: 3600, duration: 300),
+            session(startOffset: 3990, duration: 300), // gap = 90s
+        ]
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 0, maxGap: 0)
+        XCTAssertEqual(entries.count, 2)
+    }
+
+    func test_customMaxGap_300_merges4MinGapSessions() {
+        // 240s (4 min) gap — merges with maxGap=300
+        var todo = makeTodo()
+        todo.sessions = [
+            session(startOffset: 3600, duration: 300),
+            session(startOffset: 4140, duration: 300), // gap = 240s
+        ]
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 0, maxGap: 300)
+        XCTAssertEqual(entries.count, 1)
+    }
+
+    func test_customMaxGap_30_doesNotMerge60sGap() {
+        var todo = makeTodo()
+        todo.sessions = [
+            session(startOffset: 3600, duration: 300),
+            session(startOffset: 3960, duration: 300), // gap = 60s > 30s
+        ]
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 0, maxGap: 30)
+        XCTAssertEqual(entries.count, 2)
+    }
+
+    // MARK: - Group C: Both params together
+
+    func test_customBoth_largeGapNoFilter_mergesAndIncludes() {
+        // maxGap=600 merges sessions 5 min apart; minDuration=0 keeps all results
+        var todo = makeTodo()
+        todo.sessions = [
+            session(startOffset: 3600, duration: 60),
+            session(startOffset: 3960, duration: 60), // gap = 300s < 600s → merges
+        ]
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 0, maxGap: 600)
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries[0].startedAt, dayStart(day) + 3600, accuracy: 1)
+        XCTAssertEqual(entries[0].stoppedAt, dayStart(day) + 4020, accuracy: 1)
+    }
+
+    func test_customBoth_noMergeNoFilter_returnsRawSessions() {
+        // maxGap=0, minDuration=0 → raw sessions returned without merge or filter
+        var todo = makeTodo()
+        todo.sessions = [
+            session(startOffset: 3600, duration: 30),  // very short
+            session(startOffset: 3690, duration: 30),  // 60s gap — won't merge with maxGap=0
+        ]
+        let entries = HistorySessionProcessor.filteredSessions(from: [todo], for: day, minDuration: 0, maxGap: 0)
+        XCTAssertEqual(entries.count, 2)
+    }
 }

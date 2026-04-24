@@ -135,6 +135,19 @@ struct HistoryView: View {
     private let minHourHeight: CGFloat = 16
     private let maxHourHeight: CGFloat = 320
 
+    @AppStorage("historyMergeGap") private var mergeGap: Double = 120
+    @AppStorage("historyMinDuration") private var minDuration: Double = 300
+    @State private var showFilterSettings: Bool = false
+
+    private let mergeGapOptions: [(label: String, value: Double)] = [
+        ("Off", 0), ("30 sec", 30), ("1 min", 60),
+        ("2 min", 120), ("5 min", 300), ("10 min", 600)
+    ]
+    private let minDurationOptions: [(label: String, value: Double)] = [
+        ("Off", 0), ("1 min", 60), ("2 min", 120),
+        ("5 min", 300), ("10 min", 600), ("15 min", 900), ("30 min", 1800)
+    ]
+
     // MARK: - Computed: days with any session data (for dot indicators)
 
     private var daysWithSessions: Set<String> {
@@ -166,7 +179,8 @@ struct HistoryView: View {
 
     private var processedEntries: [SessionEntry] {
         guard let day = selectedDay else { return [] }
-        return HistorySessionProcessor.filteredSessions(from: todos, for: day)
+        return HistorySessionProcessor.filteredSessions(from: todos, for: day,
+            minDuration: minDuration, maxGap: mergeGap)
     }
 
     private var timelineEvents: [TimelineEvent] {
@@ -341,36 +355,12 @@ struct HistoryView: View {
     // MARK: - Gantt Panel (vertical timeline)
 
     @ViewBuilder private var ganttPanel: some View {
-        if selectedDay == nil {
-            VStack {
+        VStack(spacing: 0) {
+            HStack {
+                Text(dayTitle)
+                    .font(.headline)
                 Spacer()
-                Image(systemName: "calendar")
-                    .font(.system(size: 40))
-                    .foregroundColor(.secondary.opacity(0.35))
-                Text("Select a day to view sessions")
-                    .foregroundColor(.secondary)
-                    .font(.body)
-                    .padding(.top, 8)
-                Spacer()
-            }
-        } else if timelineEvents.isEmpty {
-            VStack {
-                Spacer()
-                Image(systemName: "clock.badge.xmark")
-                    .font(.system(size: 40))
-                    .foregroundColor(.secondary.opacity(0.35))
-                Text("No sessions on this day")
-                    .foregroundColor(.secondary)
-                    .font(.body)
-                    .padding(.top, 8)
-                Spacer()
-            }
-        } else {
-            VStack(spacing: 0) {
-                HStack {
-                    Text(dayTitle)
-                        .font(.headline)
-                    Spacer()
+                if !timelineEvents.isEmpty {
                     Text("Total: \(TimeFormatter.formatTime(totalTime))")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -387,12 +377,47 @@ struct HistoryView: View {
                         .buttonStyle(.plain)
                         .disabled(hourHeight >= maxHourHeight)
                     }
+                    Divider().frame(height: 16).padding(.horizontal, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                Button(action: { showFilterSettings.toggle() }) {
+                    Image(systemName: showFilterSettings ? "gearshape.fill" : "gearshape")
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
 
-                Divider()
+            if showFilterSettings {
+                filterSettingsBar
+            }
 
+            Divider()
+
+            if selectedDay == nil {
+                VStack {
+                    Spacer()
+                    Image(systemName: "calendar")
+                        .font(.system(size: 40))
+                        .foregroundColor(.secondary.opacity(0.35))
+                    Text("Select a day to view sessions")
+                        .foregroundColor(.secondary)
+                        .font(.body)
+                        .padding(.top, 8)
+                    Spacer()
+                }
+            } else if timelineEvents.isEmpty {
+                VStack {
+                    Spacer()
+                    Image(systemName: "clock.badge.xmark")
+                        .font(.system(size: 40))
+                        .foregroundColor(.secondary.opacity(0.35))
+                    Text("No sessions on this day")
+                        .foregroundColor(.secondary)
+                        .font(.body)
+                        .padding(.top, 8)
+                    Spacer()
+                }
+            } else {
                 ScrollView(.vertical) {
                     verticalTimeline
                         .padding(.vertical, 12)
@@ -410,6 +435,39 @@ struct HistoryView: View {
                 )
             }
         }
+    }
+
+    // MARK: - Filter Settings Bar
+
+    @ViewBuilder private var filterSettingsBar: some View {
+        HStack(spacing: 16) {
+            Text("Merge gap:")
+                .foregroundColor(.secondary)
+                .font(.caption)
+            Picker("", selection: $mergeGap) {
+                ForEach(mergeGapOptions, id: \.value) { opt in
+                    Text(opt.label).tag(opt.value)
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+
+            Text("Min duration:")
+                .foregroundColor(.secondary)
+                .font(.caption)
+            Picker("", selection: $minDuration) {
+                ForEach(minDurationOptions, id: \.value) { opt in
+                    Text(opt.label).tag(opt.value)
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(Color(NSColor.controlBackgroundColor))
     }
 
     // MARK: - Event Groups
