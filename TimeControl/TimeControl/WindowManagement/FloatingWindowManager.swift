@@ -16,6 +16,7 @@ class FloatingWindowManager: ObservableObject {
     @Published var allTodos: [TodoItem] = []
     private var windowDelegate: FloatingWindowDelegate?
     var onTaskSwitch: ((TodoItem) -> Void)?
+    var onOpenNotes: (() -> Void)?
     weak var viewModel: TodoViewModel?
     
     func showFloatingWindow(for task: TodoItem, viewModel: TodoViewModel) {
@@ -65,18 +66,31 @@ class FloatingWindowManager: ObservableObject {
         window.delegate = delegate
         windowDelegate = delegate
 
-        // Gear button in title bar
+        // Title bar accessories: notes + gear
         let accessoryVC = NSTitlebarAccessoryViewController()
         accessoryVC.layoutAttribute = .right
-        let gearButton = NSButton(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
+
+        let containerWidth: CGFloat = 56
+        let accessoryContainer = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 28))
+
+        let notesButton = NSButton(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
+        notesButton.image = NSImage(systemSymbolName: "note.text", accessibilityDescription: "Notes")
+        notesButton.bezelStyle = .texturedRounded
+        notesButton.isBordered = false
+        notesButton.target = self
+        notesButton.action = #selector(openNotes)
+        notesButton.toolTip = "Notes"
+        accessoryContainer.addSubview(notesButton)
+
+        let gearButton = NSButton(frame: NSRect(x: 28, y: 0, width: 28, height: 28))
         gearButton.image = NSImage(systemSymbolName: "gear", accessibilityDescription: "Settings")
         gearButton.bezelStyle = .texturedRounded
         gearButton.isBordered = false
         gearButton.target = self
         gearButton.action = #selector(openSettings)
         gearButton.toolTip = "Settings"
-        let accessoryContainer = NSView(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
         accessoryContainer.addSubview(gearButton)
+
         accessoryVC.view = accessoryContainer
         window.addTitlebarAccessoryViewController(accessoryVC)
 
@@ -113,6 +127,10 @@ class FloatingWindowManager: ObservableObject {
         return min(max(height, 300), 550)
     }
     
+    @objc private func openNotes() {
+        onOpenNotes?()
+    }
+
     @objc private func openSettings() {
         // If already open, just bring it forward
         if let existing = settingsWindow, existing.isVisible {
@@ -155,6 +173,7 @@ class FloatingWindowManager: ObservableObject {
         currentTask = nil
         allTodos = []
         onTaskSwitch = nil
+        onOpenNotes = nil
         windowDelegate = nil
         viewModel = nil
     }

@@ -53,6 +53,7 @@ struct FloatingTaskWindowView: View {
     @AppStorage("floatingWindow.showTimers") private var showTimers: Bool = true
     @AppStorage("floatingWindow.showSubtasks") private var showSubtasks: Bool = true
     @State private var showVisibilityPopover: Bool = false
+    @State private var showCollapsedMenu: Bool = false
     @State private var isViewActive: Bool = true
     @State private var descriptionText: String = ""
     @FocusState private var descriptionFocused: Bool
@@ -116,6 +117,58 @@ struct FloatingTaskWindowView: View {
         return 120 + extra
     }
     
+    @ViewBuilder
+    private var collapsedMenuContent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button(action: { openMainWindow(); showCollapsedMenu = false }) {
+                Label("Open task list", systemImage: "macwindow")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: { showingTimerPicker = true; showCollapsedMenu = false }) {
+                Label("Set countdown timer", systemImage: "timer")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .disabled(taskMarkedComplete)
+
+            Button(action: { editTask(); showCollapsedMenu = false }) {
+                Label("Edit task", systemImage: "pencil")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .disabled(taskMarkedComplete)
+
+            if localTask.hasActiveNotification {
+                Button(action: { viewModel.dismissBell(for: localTask.id); showCollapsedMenu = false }) {
+                    Label("Dismiss notification", systemImage: "bell.fill")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundColor(.orange)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button(action: { showingReminderPopover = true; showCollapsedMenu = false }) {
+                    let hasReminder = localTask.reminderDate.map { $0 > Date() } ?? false
+                    Label(hasReminder ? "Reminder set" : "Set reminder",
+                          systemImage: hasReminder ? "bell.fill" : "bell")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundColor(hasReminder ? .orange.opacity(0.7) : .primary)
+                }
+                .buttonStyle(.plain)
+                .disabled(taskMarkedComplete)
+            }
+
+            Button(action: { showVisibilityPopover = true; showCollapsedMenu = false }) {
+                Label("Show/hide sections", systemImage: "eye")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .frame(width: 220)
+    }
+
     @ViewBuilder
     private var subtaskSectionContent: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -238,16 +291,17 @@ struct FloatingTaskWindowView: View {
             .onAppear {
                 updateWindowTitle()
                 applyResize(currentSnapshot)
+                FloatingWindowManager.shared.onOpenNotes = { openNotesWindow() }
             }
             
             // Main content
             VStack(alignment: .leading, spacing: 0) {
-                // Collapse/expand button and Notes button at the top
+                // Toolbar row
                 HStack {
-                                    
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isCollapsed.toggle()
+                            if !isCollapsed { showCollapsedMenu = false }
                         }
                     }) {
                         Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
@@ -257,118 +311,19 @@ struct FloatingTaskWindowView: View {
                     }
                     .buttonStyle(.plain)
                     .floatingTooltip(isCollapsed ? "Expand" : "Collapse")
-                    
-                    Button(action: {
-                        openMainWindow()
-                    }) {
-                        Image(systemName: "macwindow")
-                            .foregroundColor(.blue)
-                            .font(.caption)
-                            .frame(width: 20, height: 20)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Open task list")
-                    
-                    Button(action: {
-                        openNotesWindow()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "note.text")
-                                .font(.subheadline)
-                         
-                        }
-                        .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Take notes while working on this task")
-                    .disabled(taskMarkedComplete)
-                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
-
-                    Button(action: {
-                        showingTimerPicker = true
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "timer")
-                                .font(.subheadline)
-                       
-                        }
-                        .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Set a countdown timer")
-                    .disabled(taskMarkedComplete)
-                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                    
-                    Button(action: {
-                        editTask()
-                    }) {
-                        Image(systemName: "pencil")
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Edit task")
-                    .disabled(taskMarkedComplete)
-                    .opacity(taskMarkedComplete ? 0.3 : 1.0)
-
-                    // Bell icon: lit (active notification) → tap dismisses bell;
-                    // dim (pending reminder) or unset → tap opens picker
-                    if localTask.hasActiveNotification {
-                        Button(action: {
-                            viewModel.dismissBell(for: localTask.id)
-                        }) {
-                            Image(systemName: "bell.fill")
-                                .font(.subheadline)
-                                .foregroundColor(.orange)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip("Notification active — tap to dismiss")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                    } else {
-                        Button(action: {
-                            showingReminderPopover = true
-                        }) {
-                            let hasReminder = localTask.reminderDate.map { $0 > Date() } ?? false
-                            Image(systemName: hasReminder ? "bell.fill" : "bell")
-                                .font(.subheadline)
-                                .foregroundColor(hasReminder ? .orange.opacity(0.5) : .blue)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip(localTask.reminderDate.map { $0 > Date() } ?? false ? "Reminder set" : "Set a reminder")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                        .popover(isPresented: $showingReminderPopover) {
-                            ReminderPickerPopover(
-                                currentReminder: localTask.reminderDate,
-                                onSelect: { date in
-                                    viewModel.setReminder(date, for: localTask.id)
-                                    showingReminderPopover = false
-                                },
-                                onClear: {
-                                    viewModel.setReminder(nil, for: localTask.id)
-                                    showingReminderPopover = false
-                                }
-                            )
-                        }
-                    }
-
-                    Button(action: { showVisibilityPopover.toggle() }) {
-                        Image(systemName: "eye")
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip("Show/hide sections")
-                    .popover(isPresented: $showVisibilityPopover) {
-                        VisibilityPopoverView(
-                            showDescription: $showDescription,
-                            showTimers: $showTimers,
-                            showSubtasks: $showSubtasks
-                        )
-                    }
 
                     if isCollapsed {
+                        // Collapsed: book icon opens a popover with the hidden actions
+                        Button(action: { showCollapsedMenu.toggle() }) {
+                            Image(systemName: "books.vertical")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("More actions")
+                        .popover(isPresented: $showCollapsedMenu, arrowEdge: .bottom) {
+                            collapsedMenuContent
+                        }
 
                         Picker("Current Task", selection: Binding(
                             get: { localTask.id },
@@ -395,39 +350,36 @@ struct FloatingTaskWindowView: View {
                         .pickerStyle(.menu)
                         .font(.subheadline)
                         .labelsHidden()
-                        .frame(maxWidth: collapsedPickerMaxWidth)
-                        Button(action: {
-                            showingNewTaskPopup = true
-                        }) {
+                        .frame(maxWidth: .infinity)
+                        .floatingTooltip(localTask.text)
+
+                        Button(action: { showingNewTaskPopup = true }) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.subheadline)
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(.plain)
                         .floatingTooltip("Create new task")
-                        
-                        Button(action: {
-                            completeTask()
-                        }) {
+
+                        Button(action: { completeTask() }) {
                             Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
                                 .font(.subheadline)
                                 .foregroundColor(taskMarkedComplete ? .secondary : .green)
                         }
                         .buttonStyle(.plain)
                         .floatingTooltip(taskMarkedComplete ? "Close window" : "Mark task complete")
-                        
-                        Spacer()
 
                         // Show time elapsed when collapsed and setting is enabled
                         if viewModel.showTimeWhenCollapsed {
                             Button(action: {
+                                guard !localTask.isCompleted else { return }
                                 if localTask.isRunning {
                                     viewModel.pauseTask(localTask.id, keepWindowOpen: true)
                                 } else {
                                     viewModel.resumeTask(localTask.id)
                                 }
                             }) {
-                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                Text(TimeFormatter.formatTimeNoSeconds(localTask.currentTimeSpent))
                                     .font(.title3)
                                     .fontWeight(.semibold)
                                     .foregroundColor(localTask.isRunning ? .blue : .orange)
@@ -436,8 +388,89 @@ struct FloatingTaskWindowView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                    } else {
+                        // Expanded: show all toolbar icons inline
+                        Button(action: { openMainWindow() }) {
+                            Image(systemName: "macwindow")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+                                .frame(width: 20, height: 20)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Open task list")
+
+                        Button(action: { showingTimerPicker = true }) {
+                            Image(systemName: "timer")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Set a countdown timer")
+                        .disabled(taskMarkedComplete)
+                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
+
+                        Button(action: { editTask() }) {
+                            Image(systemName: "pencil")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Edit task")
+                        .disabled(taskMarkedComplete)
+                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
+
+                        // Bell icon
+                        if localTask.hasActiveNotification {
+                            Button(action: { viewModel.dismissBell(for: localTask.id) }) {
+                                Image(systemName: "bell.fill")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                            }
+                            .buttonStyle(.plain)
+                            .floatingTooltip("Notification active — tap to dismiss")
+                            .disabled(taskMarkedComplete)
+                            .opacity(taskMarkedComplete ? 0.3 : 1.0)
+                        } else {
+                            Button(action: { showingReminderPopover = true }) {
+                                let hasReminder = localTask.reminderDate.map { $0 > Date() } ?? false
+                                Image(systemName: hasReminder ? "bell.fill" : "bell")
+                                    .font(.subheadline)
+                                    .foregroundColor(hasReminder ? .orange.opacity(0.5) : .blue)
+                            }
+                            .buttonStyle(.plain)
+                            .floatingTooltip(localTask.reminderDate.map { $0 > Date() } ?? false ? "Reminder set" : "Set a reminder")
+                            .disabled(taskMarkedComplete)
+                            .opacity(taskMarkedComplete ? 0.3 : 1.0)
+                            .popover(isPresented: $showingReminderPopover) {
+                                ReminderPickerPopover(
+                                    currentReminder: localTask.reminderDate,
+                                    onSelect: { date in
+                                        viewModel.setReminder(date, for: localTask.id)
+                                        showingReminderPopover = false
+                                    },
+                                    onClear: {
+                                        viewModel.setReminder(nil, for: localTask.id)
+                                        showingReminderPopover = false
+                                    }
+                                )
+                            }
+                        }
+
+                        Button(action: { showVisibilityPopover.toggle() }) {
+                            Image(systemName: "eye")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Show/hide sections")
+                        .popover(isPresented: $showVisibilityPopover) {
+                            VisibilityPopoverView(
+                                showDescription: $showDescription,
+                                showTimers: $showTimers,
+                                showSubtasks: $showSubtasks
+                            )
+                        }
                     }
-                    
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -480,7 +513,8 @@ struct FloatingTaskWindowView: View {
                         .pickerStyle(.menu)
                         .font(.title2)
                         .labelsHidden()
-                        
+                        .floatingTooltip(localTask.text)
+
                         Button(action: {
                             showingNewTaskPopup = true
                         }) {

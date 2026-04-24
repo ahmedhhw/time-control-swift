@@ -46,15 +46,20 @@ final class SleepWakeTests: XCTestCase {
         XCTAssertFalse(vm.todos[0].isRunning)
     }
 
-    func testWillSleep_clearsRunningTaskId() {
+    func testWillSleep_keepsRunningTaskIdSoWindowRemainsAddressable() {
+        // After sleep the window stays open (keepWindowOpen: true).
+        // runningTaskId intentionally stays set so the floating window can reference
+        // the task for resumption; isRunning (lastStartTime) is what becomes nil.
         let (vm, _, _) = makeViewModel()
         vm.todos = [makeTodo(text: "Task")]
         vm.toggleTimer(vm.todos[0])
+        let taskId = vm.todos[0].id
         XCTAssertNotNil(vm.runningTaskId)
 
         postSleep()
 
-        XCTAssertNil(vm.runningTaskId)
+        XCTAssertEqual(vm.runningTaskId, taskId, "runningTaskId should stay set so floating window can present Resume")
+        XCTAssertFalse(vm.todos[0].isRunning, "task timer must be stopped")
     }
 
     func testWillSleep_accumulatesTotalTimeSpent() {

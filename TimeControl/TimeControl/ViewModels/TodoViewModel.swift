@@ -92,7 +92,7 @@ class TodoViewModel: ObservableObject {
         ) { [weak self] _ in
             guard let self, let taskId = self.runningTaskId else { return }
             self.sleepPausedTaskId = taskId
-            self.pauseTask(taskId, keepWindowOpen: false)
+            self.pauseTask(taskId, keepWindowOpen: true)
         }
 
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -361,6 +361,7 @@ class TodoViewModel: ObservableObject {
     }
 
     func toggleTimer(_ todo: TodoItem) {
+        guard !todo.isCompleted else { return }
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             if todos[index].isRunning {
                 stopSession(todoIndex: index)

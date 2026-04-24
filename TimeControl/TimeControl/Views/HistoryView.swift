@@ -8,6 +8,50 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Weekly Totals Helper (internal so tests can reach it)
+
+enum HistoryWeeklyTotals {
+    /// Returns one TimeInterval per week row (6 entries for the 42-day calendar grid).
+    /// Only days that belong to `displayedMonth` are included; adjacent-month days contribute 0.
+    static func compute(for calendarDays: [Date], displayedMonth: Date, todos: [TodoItem]) -> [TimeInterval] {
+        let cal = Calendar.current
+        guard calendarDays.count == 42 else { return Array(repeating: 0, count: 6) }
+        return (0..<6).map { weekIndex in
+            let weekDays = Array(calendarDays[(weekIndex * 7)..<(weekIndex * 7 + 7)])
+            return weekDays.reduce(0.0) { acc, day in
+                guard cal.isDate(day, equalTo: displayedMonth, toGranularity: .month) else { return acc }
+                let dayStart = cal.startOfDay(for: day).timeIntervalSince1970
+                let dayEnd = dayStart + 86400
+                var total: TimeInterval = 0
+                for todo in todos {
+                    for session in todo.sessions {
+                        guard let stopped = session.stoppedAt else { continue }
+                        let overlap = min(stopped, dayEnd) - max(session.startedAt, dayStart)
+                        if overlap > 0 { total += overlap }
+                    }
+                    for subtask in todo.subtasks {
+                        for session in subtask.sessions {
+                            guard let stopped = session.stoppedAt else { continue }
+                            let overlap = min(stopped, dayEnd) - max(session.startedAt, dayStart)
+                            if overlap > 0 { total += overlap }
+                        }
+                    }
+                }
+                return acc + total
+            }
+        }
+    }
+
+    static func format(_ seconds: TimeInterval) -> String {
+        guard seconds > 0 else { return "" }
+        let h = Int(seconds) / 3600
+        let m = Int(seconds) / 60 % 60
+        if h > 0 && m > 0 { return "\(h)h \(m)m" }
+        if h > 0 { return "\(h)h" }
+        return "\(m)m"
+    }
+}
+
 // MARK: - Data Types
 
 private struct GanttBar {
@@ -200,6 +244,10 @@ struct HistoryView: View {
         }
     }
 
+    private var weeklyTotals: [TimeInterval] {
+        HistoryWeeklyTotals.compute(for: calendarDays, displayedMonth: displayedMonth, todos: todos)
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -232,32 +280,53 @@ struct HistoryView: View {
                 .disabled(isCurrentMonth)
                 .opacity(isCurrentMonth ? 0.3 : 1.0)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 8)
             .padding(.vertical, 10)
 
+            // Header row: day symbols + "Week" label
             let daySymbols = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 2) {
+            HStack(spacing: 2) {
                 ForEach(daySymbols, id: \.self) { sym in
                     Text(sym)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity)
                 }
+                Text("Week")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .frame(width: 44, alignment: .trailing)
             }
             .padding(.horizontal, 8)
             .padding(.bottom, 4)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 4) {
-                ForEach(calendarDays, id: \.self) { day in
-                    CalendarDayCell(
-                        day: day,
-                        isSelected: selectedDay.map { Calendar.current.isDate($0, inSameDayAs: day) } ?? false,
-                        isToday: Calendar.current.isDateInToday(day),
-                        hasSessions: dayHasSessions(day),
-                        isFuture: day > Date(),
-                        isAdjacentMonth: isAdjacentMonth(day),
-                        onTap: { selectedDay = Calendar.current.startOfDay(for: day) }
-                    )
+            // Week rows
+            let totals = weeklyTotals
+            VStack(spacing: 4) {
+                ForEach(0..<6, id: \.self) { weekIndex in
+                    let days = calendarDays
+                    if weekIndex * 7 < days.count {
+                        HStack(spacing: 2) {
+                            ForEach(0..<7, id: \.self) { dayOffset in
+                                let day = days[weekIndex * 7 + dayOffset]
+                                CalendarDayCell(
+                                    day: day,
+                                    isSelected: selectedDay.map { Calendar.current.isDate($0, inSameDayAs: day) } ?? false,
+                                    isToday: Calendar.current.isDateInToday(day),
+                                    hasSessions: dayHasSessions(day),
+                                    isFuture: day > Date(),
+                                    isAdjacentMonth: isAdjacentMonth(day),
+                                    onTap: { selectedDay = Calendar.current.startOfDay(for: day) }
+                                )
+                            }
+                            let weekTotal = weekIndex < totals.count ? totals[weekIndex] : 0
+                            Text(HistoryWeeklyTotals.format(weekTotal))
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.accentColor)
+                                .frame(width: 44, alignment: .trailing)
+                                .lineLimit(1)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 8)
@@ -265,7 +334,7 @@ struct HistoryView: View {
 
             Spacer()
         }
-        .frame(width: 220)
+        .frame(width: 264)
         .background(Color(NSColor.controlBackgroundColor))
     }
 
