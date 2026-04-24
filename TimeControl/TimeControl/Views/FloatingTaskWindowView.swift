@@ -11,6 +11,8 @@ struct FloatingTaskWindowView: View {
     @State private var notesText: String = ""
     @State private var timerUpdateTrigger = 0
     @State private var notesWindow: NSWindow?
+    private let notesFrameStore = NotesWindowFrameStore()
+    @State private var notesWindowDelegate: NotesWindowDelegate?
     @State private var reminderWindow: NSWindow?
     @State private var timerPickerWindow: NSWindow?
     @State private var newTaskPopupWindow: NSWindow?
@@ -372,14 +374,14 @@ struct FloatingTaskWindowView: View {
                         // Show time elapsed when collapsed and setting is enabled
                         if viewModel.showTimeWhenCollapsed {
                             Button(action: {
-                                guard !localTask.isCompleted else { return }
+                                guard !taskMarkedComplete else { return }
                                 if localTask.isRunning {
                                     viewModel.pauseTask(localTask.id, keepWindowOpen: true)
                                 } else {
                                     viewModel.resumeTask(localTask.id)
                                 }
                             }) {
-                                Text(TimeFormatter.formatTimeNoSeconds(localTask.currentTimeSpent))
+                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
                                     .font(.title3)
                                     .fontWeight(.semibold)
                                     .foregroundColor(localTask.isRunning ? .blue : .orange)
@@ -1286,20 +1288,24 @@ struct FloatingTaskWindowView: View {
         }
         notesWindow = nil
 
-        // Calculate position (next to the floating task window)
-        guard let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) else { return }
-        let taskFrame = taskWindow.frame
+        // Determine frame: use saved frame if available, otherwise position left of task window
+        let initialFrame: NSRect
+        if let saved = notesFrameStore.load() {
+            initialFrame = saved
+        } else {
+            guard let taskWindow = NSApp.windows.first(where: { $0.title.hasPrefix("Current Task") }) else { return }
+            let taskFrame = taskWindow.frame
+            let windowWidth: CGFloat = 500
+            let windowHeight: CGFloat = 400
+            initialFrame = NSRect(x: taskFrame.minX - windowWidth - 20, y: taskFrame.minY,
+                                  width: windowWidth, height: windowHeight)
+        }
 
-        let windowWidth: CGFloat = 500
-        let windowHeight: CGFloat = 400
-
-        // Position to the left of the task window
-        let xPos = taskFrame.minX - windowWidth - 20
-        let yPos = taskFrame.minY
-
-        // Create a floating window for notes
+        // Create a floating window for notes.
+        // Use a fixed content rect for init; if we have a saved frame we apply it via
+        // setFrame after creation so the title-bar height is not double-counted.
         let window = NSPanel(
-            contentRect: NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
+            contentRect: NSRect(x: 0, y: 0, width: initialFrame.width, height: initialFrame.height),
             styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
             backing: .buffered,
             defer: false
@@ -1315,10 +1321,21 @@ struct FloatingTaskWindowView: View {
         window.hidesOnDeactivate = false
         window.minSize = NSSize(width: 180, height: 120)
 
+        if notesFrameStore.load() != nil {
+            // Restore exact saved frame (origin + full frame size, title bar included)
+            window.setFrame(initialFrame, display: false)
+        } else {
+            window.setFrameOrigin(initialFrame.origin)
+        }
+
+        let delegate = NotesWindowDelegate(store: notesFrameStore)
+        window.delegate = delegate
+        notesWindowDelegate = delegate
+
         notesWindow = window
         window.orderFrontRegardless()
     }
-    
+
     private func openReminderWindow() {
         // Close existing reminder window if any
         reminderWindow?.close()

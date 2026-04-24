@@ -19,6 +19,8 @@
 		9D1052CB2F46DA0000B7B24D /* ExportWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C02F46DA0000B7B24D /* ExportWindowManager.swift */; };
 		9D1052CC2F46DA0000B7B24D /* FloatingTooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B52F46DA0000B7B24D /* FloatingTooltip.swift */; };
 		9D1052CD2F46DA0000B7B24D /* FloatingWindowDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C12F46DA0000B7B24D /* FloatingWindowDelegate.swift */; };
+		NW000001000000000000001 /* NotesWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000001000000000000000 /* NotesWindowFrameStore.swift */; };
+		NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */; };
 		9D1052CE2F46DA0000B7B24D /* ExportAllTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */; };
 		9D1052CF2F46DA0000B7B24D /* FloatingWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */; };
 		9D1052D02F46DA0000B7B24D /* ReminderAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */; };
@@ -98,6 +100,8 @@
 		9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerPickerSheet.swift; sourceTree = "<group>"; };
 		9D1052C02F46DA0000B7B24D /* ExportWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C12F46DA0000B7B24D /* FloatingWindowDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowDelegate.swift; sourceTree = "<group>"; };
+		NW000001000000000000000 /* NotesWindowFrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStore.swift; sourceTree = "<group>"; };
+		NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStoreTests.swift; sourceTree = "<group>"; };
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
 		9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
@@ -234,6 +238,7 @@
 			children = (
 				9D1052C02F46DA0000B7B24D /* ExportWindowManager.swift */,
 				9D1052C12F46DA0000B7B24D /* FloatingWindowDelegate.swift */,
+				NW000001000000000000000 /* NotesWindowFrameStore.swift */,
 				9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */,
 				9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */,
 				DD000002000000000000001 /* AppDelegate.swift */,
@@ -279,6 +284,7 @@
 				A1000000000000000000138 /* OrphanedSessionTests.swift */,
 				FF00000B000000000000001 /* NewTaskStickyModeTests.swift */,
 				A10000000000000000001FE /* HistorySessionFilterTests.swift */,
+				NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -446,6 +452,7 @@
 				A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */,
 				FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */,
 				A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */,
+				NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +471,7 @@
 				9D1052CB2F46DA0000B7B24D /* ExportWindowManager.swift in Sources */,
 				9D1052CC2F46DA0000B7B24D /* FloatingTooltip.swift in Sources */,
 				9D1052CD2F46DA0000B7B24D /* FloatingWindowDelegate.swift in Sources */,
+				NW000001000000000000001 /* NotesWindowFrameStore.swift in Sources */,
 				9D1052D92F46DB1800B7B24D /* TodoViewModel.swift in Sources */,
 				9D1052CE2F46DA0000B7B24D /* ExportAllTasksView.swift in Sources */,
 				9D1052CF2F46DA0000B7B24D /* FloatingWindowManager.swift in Sources */,
