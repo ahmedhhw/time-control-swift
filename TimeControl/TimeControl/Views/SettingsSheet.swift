@@ -171,6 +171,11 @@ struct SettingsSheet: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
+                    Divider()
+                        .padding(.vertical, 8)
+
+                    ADOSettingsSection()
+
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)

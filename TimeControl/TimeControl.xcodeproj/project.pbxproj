@@ -12,6 +12,7 @@
 		FF000005000000000000001 /* SQLiteStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000006000000000000001 /* SQLiteStorage.swift */; };
 		FF000007000000000000001 /* SQLiteStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000008000000000000001 /* SQLiteStorageTests.swift */; };
 		9D1052C62F46DA0000B7B24D /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */; };
+		A1000000000000000000153 /* ADOSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000152 /* ADOSettingsSection.swift */; };
 		9D1052C72F46DA0000B7B24D /* SubtaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */; };
 		9D1052C82F46DA0000B7B24D /* PauseTaskConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */; };
 		9D1052C92F46DA0000B7B24D /* TooltipWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */; };
@@ -28,6 +29,12 @@
 		9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */; };
 		9D1052D32F46DA0000B7B24D /* TodoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052AE2F46DA0000B7B24D /* TodoItem.swift */; };
 		9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B32F46DA0000B7B24D /* TodoStorage.swift */; };
+		A1000000000000000000141 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000140 /* Keychain.swift */; };
+		A1000000000000000000143 /* ADOService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000142 /* ADOService.swift */; };
+		A1000000000000000000145 /* ADOSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000144 /* ADOSettingsStore.swift */; };
+		A1000000000000000000147 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000146 /* KeychainTests.swift */; };
+		A1000000000000000000149 /* ADOServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000148 /* ADOServiceTests.swift */; };
+		A1000000000000000000151 /* ADOSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000150 /* ADOSettingsStoreTests.swift */; };
 		9D1052D52F46DA0000B7B24D /* NewTaskPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */; };
 		9D1052D62F46DA0000B7B24D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052AD2F46DA0000B7B24D /* Enums.swift */; };
 		9D1052D92F46DB1800B7B24D /* TodoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */; };
@@ -89,6 +96,12 @@
 		9D1052AE2F46DA0000B7B24D /* TodoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItem.swift; sourceTree = "<group>"; };
 		9D1052B22F46DA0000B7B24D /* TimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatter.swift; sourceTree = "<group>"; };
 		9D1052B32F46DA0000B7B24D /* TodoStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorage.swift; sourceTree = "<group>"; };
+		A1000000000000000000140 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		A1000000000000000000142 /* ADOService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOService.swift; sourceTree = "<group>"; };
+		A1000000000000000000144 /* ADOSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsStore.swift; sourceTree = "<group>"; };
+		A1000000000000000000146 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000148 /* ADOServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000150 /* ADOSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsStoreTests.swift; sourceTree = "<group>"; };
 		9D1052B52F46DA0000B7B24D /* FloatingTooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingTooltip.swift; sourceTree = "<group>"; };
 		9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportAllTasksView.swift; sourceTree = "<group>"; };
 		9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskPopupView.swift; sourceTree = "<group>"; };
@@ -96,6 +109,7 @@
 		9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTaskConfirmationView.swift; sourceTree = "<group>"; };
 		9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderAlertView.swift; sourceTree = "<group>"; };
 		9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
+		A1000000000000000000152 /* ADOSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsSection.swift; sourceTree = "<group>"; };
 		9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskRow.swift; sourceTree = "<group>"; };
 		9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerPickerSheet.swift; sourceTree = "<group>"; };
 		9D1052C02F46DA0000B7B24D /* ExportWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportWindowManager.swift; sourceTree = "<group>"; };
@@ -192,6 +206,9 @@
 				EE000002000000000000001 /* NotificationStore.swift */,
 				EE000003000000000000001 /* NotificationScheduler.swift */,
 				FF00000A000000000000001 /* NewTaskStickyStore.swift */,
+				A1000000000000000000140 /* Keychain.swift */,
+				A1000000000000000000142 /* ADOService.swift */,
+				A1000000000000000000144 /* ADOSettingsStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -219,6 +236,7 @@
 				9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */,
 				9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */,
 				9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */,
+				A1000000000000000000152 /* ADOSettingsSection.swift */,
 				9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */,
 				9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */,
 				AA000001000000000000001 /* TodoRow.swift */,
@@ -285,6 +303,9 @@
 				FF00000B000000000000001 /* NewTaskStickyModeTests.swift */,
 				A10000000000000000001FE /* HistorySessionFilterTests.swift */,
 				NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */,
+				A1000000000000000000146 /* KeychainTests.swift */,
+				A1000000000000000000148 /* ADOServiceTests.swift */,
+				A1000000000000000000150 /* ADOSettingsStoreTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -453,6 +474,9 @@
 				FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */,
 				A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */,
 				NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */,
+				A1000000000000000000147 /* KeychainTests.swift in Sources */,
+				A1000000000000000000149 /* ADOServiceTests.swift in Sources */,
+				A1000000000000000000151 /* ADOSettingsStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +488,7 @@
 				BB000002000000000000002 /* TaskListItem.swift in Sources */,
 				BB000003000000000000002 /* CompletedTasksSection.swift in Sources */,
 				9D1052C62F46DA0000B7B24D /* SettingsSheet.swift in Sources */,
+				A1000000000000000000153 /* ADOSettingsSection.swift in Sources */,
 				9D1052C72F46DA0000B7B24D /* SubtaskRow.swift in Sources */,
 				9D1052C82F46DA0000B7B24D /* PauseTaskConfirmationView.swift in Sources */,
 				9D1052C92F46DA0000B7B24D /* TooltipWindowManager.swift in Sources */,
@@ -483,6 +508,9 @@
 				9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */,
 				9D1052D32F46DA0000B7B24D /* TodoItem.swift in Sources */,
 				9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */,
+				A1000000000000000000141 /* Keychain.swift in Sources */,
+				A1000000000000000000143 /* ADOService.swift in Sources */,
+				A1000000000000000000145 /* ADOSettingsStore.swift in Sources */,
 				FF000005000000000000001 /* SQLiteStorage.swift in Sources */,
 				9D1052D52F46DA0000B7B24D /* NewTaskPopupView.swift in Sources */,
 				9D1052D62F46DA0000B7B24D /* Enums.swift in Sources */,
