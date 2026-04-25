@@ -193,17 +193,581 @@ Note: `System.Description` is HTML. For Phase 1, render it as plain text (strip 
 
 ---
 
+## Proposal — Pull ADO item into a local TodoItem
+
+Take what Phase 1 fetches and turn it into a real, time-trackable TodoItem in TimeControl. Still no writes back to ADO. This is where the integration starts being *useful* — you can pull a ticket assigned to you and start tracking time against it locally.
+
+### Goals
+- Replace the throwaway "Fetch" button in Settings with an "Import from ADO" flow inside the main app.
+- Persist the ADO link on the local task: add `adoWorkItemId: Int?` to `TodoItem`.
+- A task already imported from ADO shows a small badge (`ADO #12345`) next to its title.
+
+### UI Mockup — Import dialog (triggered from "+" menu or a button in the toolbar)
+
+```
+┌─ Import from Azure DevOps ──────────────────────────┐
+│                                                     │
+│  Work Item ID:  ┌─────────────────┐                 │
+│                 │ 12345           │  [ Fetch ]      │
+│                 └─────────────────┘                 │
+│                                                     │
+│  ─────────────────────────────────────────────────  │
+│                                                     │
+│   ✓ Found work item                                 │
+│                                                     │
+│   #12345 · Bug · Active                             │
+│   "Login button misaligned on Safari"               │
+│                                                     │
+│   Description (preview):                            │
+│   ┌─────────────────────────────────────────────┐   │
+│   │ The login button on the auth page shifts    │   │
+│   │ 4px right on Safari 17+. Repro on macOS …   │   │
+│   └─────────────────────────────────────────────┘   │
+│                                                     │
+│   Import as:  ◉ New task   ○ Subtask of …  ▾        │
+│                                                     │
+│              [ Cancel ]      [ Import ]             │
+└─────────────────────────────────────────────────────┘
+```
+
+### UI Mockup — Imported task in the list
+
+```
+  ▸  ┌──────────────────────────────────────────────┐
+     │ ▶  Login button misaligned on Safari         │
+     │    [ ADO #12345 ]   ⏱ 0:00:00                │
+     └──────────────────────────────────────────────┘
+```
+
+The `[ ADO #12345 ]` chip is clickable → opens `https://dev.azure.com/{org}/{project}/_workitems/edit/12345` in the browser.
+
+### Out of scope
+- Any writes back to ADO (state, dates, time)
+- Re-syncing if the ADO item changes
+- Browsing / searching ADO (you must know the ID)
+
+### Effort
+~2–3 hours.
+
+---
+
+## Proposal — Push completion state back to ADO
+
+First write path. When you complete a task or subtask in TimeControl, the linked ADO work item state flips to `Done` (or whatever the closed state is for that work item type).
+
+### Goals
+- On `TodoItem.isCompleted = true` → PATCH ADO state to `Done`.
+- On `Subtask.isCompleted = true` (only if the subtask itself has an `adoWorkItemId`) → same.
+- Introduce the `ADOSyncQueue` here, even if minimally — a single failed PATCH must not be silently lost.
+- Toast / inline confirmation when the ADO update succeeds.
+
+### UI Mockup — Subtle status indicator next to the imported task
+
+```
+  ▸  ┌──────────────────────────────────────────────┐
+     │ ✓  Login button misaligned on Safari         │
+     │    [ ADO #12345 ]  ↑ Synced 2s ago           │
+     └──────────────────────────────────────────────┘
+```
+
+States the chip can show:
+```
+  [ ADO #12345 ]  ↑ Synced 2s ago        ← success
+  [ ADO #12345 ]  ⟳ Syncing…             ← in-flight
+  [ ADO #12345 ]  ⚠ Queued (offline)     ← VPN down, will retry
+  [ ADO #12345 ]  ✗ Sync failed          ← permanent error, click for detail
+```
+
+### UI Mockup — Persistent banner when PAT expires (queue paused)
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ ⚠ Azure DevOps token expired — 3 changes waiting to sync.  │
+│    [ Update PAT in Settings ]                              │
+└────────────────────────────────────────────────────────────┘
+```
+
+### Out of scope
+- Pushing time tracked back to ADO (separate proposal)
+- Pushing due-date / target-date changes (separate proposal)
+- Two-way sync
+
+### Effort
+~3–4 hours (most of it goes into the queue + reachability).
+
+---
+
+## Proposal — Push due dates and create new ADO items
+
+Round out the create / update path so that local task creation and due-date edits both flow upstream.
+
+### Goals
+- "Create in ADO" toggle on the new-task dialog. When on, the task is created locally *and* a corresponding ADO work item is created (queued) and linked.
+- Editing a local task's due date PATCHes `Microsoft.VSTS.Scheduling.TargetDate`.
+- Settings: a default work item type per project (Task / Bug / User Story), since `POST /workitems/$Task` is type-specific.
+
+### UI Mockup — New-task dialog, ADO toggle visible
+
+```
+┌─ New Task ───────────────────────────────────────────┐
+│                                                      │
+│  Title:        ┌─────────────────────────────────┐   │
+│                │ Refactor auth middleware        │   │
+│                └─────────────────────────────────┘   │
+│                                                      │
+│  Due date:     [ 2026-05-15  ▾ ]                     │
+│                                                      │
+│  Estimated:    [ 4h  ▾ ]                             │
+│                                                      │
+│  ☑ Also create in Azure DevOps                       │
+│       Type: [ Task ▾ ]   Project: backend-api        │
+│                                                      │
+│              [ Cancel ]        [ Create ]            │
+└──────────────────────────────────────────────────────┘
+```
+
+### UI Mockup — Settings: ADO sync preferences
+
+```
+┌─ Azure DevOps ───────────────────────────────────────┐
+│                                                      │
+│  Organization:  contoso                              │
+│  Project:       backend-api          [ Change ]      │
+│  PAT:           ●●●●●●●●●●●●  (valid)  [ Update ]    │
+│                                                      │
+│  ─────────────────────────────────────────────────   │
+│                                                      │
+│  ☑ Auto-create ADO items for new tasks               │
+│      Default type:  [ Task ▾ ]                       │
+│                                                      │
+│  ☑ Push due-date changes to ADO                      │
+│  ☑ Push completion state to ADO                      │
+│  ☐ Push tracked time to ADO                          │
+│                                                      │
+│  ─────────────────────────────────────────────────   │
+│                                                      │
+│  Sync queue:  0 pending · last sync 14s ago          │
+│  Network:     ● VPN connected · ADO reachable        │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+```
+
+### Out of scope
+- Pulling ADO changes back (still one-way: TimeControl → ADO)
+- Time tracking sync (separate proposal)
+
+### Effort
+~3 hours.
+
+---
+
+## Proposal — Push tracked time to ADO (optional)
+
+Time tracked locally rolls up to ADO's `Microsoft.VSTS.Scheduling.CompletedWork` field. This is the most value but also the riskiest phase — it changes a numeric field that some teams use for reporting.
+
+### Goals
+- On task pause/complete: add the elapsed session duration (in hours) to `CompletedWork`.
+- Idempotency: never double-count. The queue op carries a session UUID; if the queue is re-played, the server-side state is consulted first.
+- A per-task "Don't sync time to ADO" override for tasks where tracking is local-only.
+
+### UI Mockup — Time-sync indicator on the floating window
+
+```
+┌─ Current Task ───────────────────────────────────┐
+│                                                  │
+│   ▶  Login button misaligned on Safari           │
+│      [ ADO #12345 ]                              │
+│                                                  │
+│      ⏱  1:24:36                                  │
+│      ↑ ADO: 1:24:00 logged                       │
+│                                                  │
+│      ▾  Subtasks (2)                             │
+│                                                  │
+└──────────────────────────────────────────────────┘
+```
+
+When local time exceeds ADO-logged time by >1 minute, an unobtrusive "↑ pending" appears.
+
+### Out of scope
+- Bidirectional time sync (if someone edits CompletedWork directly in ADO)
+
+### Effort
+~2 hours.
+
+---
+
+## Proposal — Read-back and conflict surfacing (stretch)
+
+Up to here, sync is one-way. Phase 6 introduces a periodic poll to detect when ADO has diverged: the work item was closed by someone else, the title changed, the assignee changed.
+
+### Goals
+- Poll linked work items every N minutes (default 10) when the app is foregrounded.
+- If ADO state went to `Done` and the local task is still active, prompt: *"This ADO item was closed by someone else. Mark complete locally?"*
+- If the title differs, show both inline and offer to overwrite local.
+
+### UI Mockup — Conflict banner on the task
+
+```
+  ▸  ┌──────────────────────────────────────────────────┐
+     │ ▶  Login button misaligned on Safari             │
+     │    [ ADO #12345 ]   ⚠ Closed in ADO              │
+     │    ──────────────────────────────────────────    │
+     │    This work item was marked Done in ADO 2h ago. │
+     │    [ Mark complete here ]   [ Reopen in ADO ]    │
+     └──────────────────────────────────────────────────┘
+```
+
+### Out of scope
+- Full bidirectional merge (description rich-text, comments, attachments). Not worth it for a single-user tracking app.
+
+### Effort
+~3–4 hours.
+
+---
+
+## Proposal — Link an existing local task to an ADO work item
+
+You already have a local task (maybe you created it before the ADO integration existed, or it started as a quick note that became real work). You want to attach an ADO ID to it without rebuilding the task from scratch.
+
+### Goals
+- Right-click a task → "Link to ADO Work Item…"
+- Dialog accepts a work item ID, fetches metadata, asks for confirmation, then writes `adoWorkItemId` onto the local task.
+- Same dialog from the floating window's overflow menu.
+- Unlink is just clearing the ID — no destructive prompt needed.
+
+### UI Mockup — Right-click context menu
+
+```
+  ┌────────────────────────────────┐
+  │  ▶  Login button misaligned    │ ← right-clicked
+  │     ⏱ 0:00:00                  │
+  └────────────────────────────────┘
+       │
+       └─┐
+         ▼
+   ┌─────────────────────────────┐
+   │  Rename…                    │
+   │  Set due date…              │
+   │  ─────────────────────────  │
+   │  Link to ADO Work Item…  ↗  │
+   │  ─────────────────────────  │
+   │  Delete                     │
+   └─────────────────────────────┘
+```
+
+### UI Mockup — Link dialog (similar to import, but doesn't create a new task)
+
+```
+┌─ Link Task to Azure DevOps ────────────────────────┐
+│                                                    │
+│  Local task:  "Login button misaligned on Safari"  │
+│                                                    │
+│  ADO Work Item ID:  ┌─────────────┐  [ Verify ]    │
+│                     │ 12345       │                │
+│                     └─────────────┘                │
+│                                                    │
+│   ✓ #12345 · Bug · Active                          │
+│     "Login bug — Safari rendering glitch"          │
+│                                                    │
+│   ⚠ The titles don't match exactly. Link anyway?   │
+│                                                    │
+│            [ Cancel ]      [ Link ]                │
+└────────────────────────────────────────────────────┘
+```
+
+The title-mismatch warning is friendly but not blocking — it's common for the local task to drift in name.
+
+### Effort
+~1–2 hours (mostly UI; the underlying fetch already exists from Phase 1).
+
+---
+
+## Proposal — Push subtask completion as an ADO comment (with confirmation)
+
+When a subtask is checked off, optionally drop a comment on the parent ADO work item like *"Subtask completed: Wire up retry button"*. This avoids polluting state changes (the parent isn't done yet) but gives ADO watchers a real-time activity feed.
+
+### Goals
+- After toggling a subtask to complete, show a small inline prompt: *"Push to ADO?"* with **Yes** / **No** / **Always for this task**.
+- The comment is posted to ADO via `POST /workitems/{id}/comments` (note: comments use `?api-version=7.1-preview.4`).
+- "Always" is sticky per task — stored in `TodoItem.adoAutoPushSubtasks: Bool`.
+- Never block the UI on the network call; the comment goes through the sync queue.
+
+### UI Mockup — Inline confirmation after subtask completion
+
+```
+  ▸  ┌──────────────────────────────────────────────┐
+     │ ▶  Login button misaligned on Safari         │
+     │    [ ADO #12345 ]                            │
+     │                                              │
+     │    ✓  Wire up retry button                   │ ← just completed
+     │       ┌──────────────────────────────────┐   │
+     │       │ Push to ADO as comment?          │   │
+     │       │  [ Yes ]  [ No ]  [ Always ]     │   │
+     │       └──────────────────────────────────┘   │
+     │    ☐  Add error toast                        │
+     │    ☐  Test on Safari TP                      │
+     └──────────────────────────────────────────────┘
+```
+
+### UI Mockup — What lands in ADO
+
+```
+  Comment from TimeControl • 2 minutes ago
+  ─────────────────────────────────────────
+  ✓ Subtask completed: Wire up retry button
+```
+
+### Effort
+~2 hours (1h queue op + comment endpoint, 1h UI prompt + per-task toggle).
+
+---
+
+## Proposal — Quick custom comment to current task's ADO
+
+A persistent text field (or keyboard shortcut–opened popup) on the floating window that pushes whatever you type as a comment to the running task's ADO. Friction-free progress notes.
+
+### Goals
+- Keyboard shortcut (e.g. `⌘⇧K`) opens a single-line comment input.
+- Disabled if the running task has no ADO link.
+- Empty input does nothing; non-empty queues a `POST /comments` op.
+- Inline confirmation: *"Sent to ADO #12345"* fades after 2s.
+
+### UI Mockup — Comment popup (anchored to floating window)
+
+```
+┌─ Current Task ───────────────────────────────────┐
+│   ▶  Login button misaligned on Safari           │
+│      [ ADO #12345 ]   ⏱ 0:42:11                  │
+│                                                  │
+│      💬 Comment to ADO:  ⌘⇧K to focus            │
+│      ┌─────────────────────────────────────────┐ │
+│      │ Reproduced on Safari 17.4 — issue is in │ │
+│      │ the flexbox shrink behavior, not pixel  │ │
+│      │ rounding. Filing follow-up.             │ │
+│      └─────────────────────────────────────────┘ │
+│                              [ Send to ADO ]     │
+└──────────────────────────────────────────────────┘
+```
+
+### UI Mockup — Confirmation toast
+
+```
+  ┌──────────────────────────────────────┐
+  │  ✓ Sent to ADO #12345                │
+  └──────────────────────────────────────┘
+```
+
+If the running task has no ADO link, the field is replaced with a hint:
+
+```
+  💬 Link this task to ADO to add comments.  [ Link… ]
+```
+
+### Effort
+~1–2 hours.
+
+---
+
+## Proposal — At-a-glance ADO indicator on every task
+
+Make ADO-linked tasks visually distinct in the main list and floating window without a full chip if space is tight. A single character / icon in the row gutter is enough.
+
+### Goals
+- A small ADO logo (or `◆`) in the leftmost gutter for every linked task.
+- Tooltip on hover: *"ADO #12345 · Active"*.
+- Right-click on the icon → "Open in ADO", "Unlink", "Refresh metadata".
+
+### UI Mockup — Main task list with mixed linked / unlinked
+
+```
+  ◆  ▶  Login button misaligned on Safari       ⏱ 0:42
+        Refactor auth middleware                ⏱ 1:03
+  ◆     Migrate Postgres to v16                 ⏱ 0:00
+        Quick fix: typo in login banner         ⏱ 0:05
+  ◆  ▸  Investigate flaky CI tests              ⏱ 2:14
+```
+
+The `◆` is colored (Azure blue or similar) so it pops without being loud. Tasks without ADO have a blank gutter — the absence is itself the signal.
+
+### UI Mockup — Hover tooltip
+
+```
+       ◆  ←─ hovering
+       │
+       ▼
+   ┌──────────────────────────┐
+   │ ADO #12345 · Bug · Active│
+   │ "Login bug — Safari …"   │
+   └──────────────────────────┘
+```
+
+### Effort
+~1 hour (just a gutter view + tooltip; no new networking).
+
+---
+
+## Proposal — Optionally notify ADO when you start working on a task
+
+Some teams want visibility into *who is actively working on what right now*. When you press play on a linked task, optionally flip the ADO state from `New` → `Active` and/or post a comment *"Started working — TimeControl"*.
+
+### Goals
+- Per-task setting: `adoNotifyOnStart: Bool` (default off, opt-in).
+- Global default in Settings: *"When I start a task linked to ADO, automatically …"* with three options:
+  - *Do nothing* (default)
+  - *Set state to Active*
+  - *Post a comment*
+  - *Both*
+- Only fires once per task per state-cycle (don't spam ADO every time you pause/resume).
+
+### UI Mockup — Per-task override (in task detail / context menu)
+
+```
+   ┌─────────────────────────────────────────────┐
+   │  ◆ Login button misaligned on Safari        │
+   │    [ ADO #12345 ]                           │
+   │                                             │
+   │    On start:                                │
+   │      ◉ Use global default (Do nothing)      │
+   │      ○ Set ADO state to Active              │
+   │      ○ Post "Started working" comment       │
+   │      ○ Both                                 │
+   │                                             │
+   │    On complete:                             │
+   │      ☑ Set ADO state to Done                │
+   │      ☐ Post completion comment              │
+   └─────────────────────────────────────────────┘
+```
+
+### UI Mockup — One-time confirmation on first start
+
+```
+┌────────────────────────────────────────────────────┐
+│  Notify ADO that you started this task?            │
+│                                                    │
+│  [ Yes, just this once ]                           │
+│  [ Yes, always for this task ]                     │
+│  [ No ]                                            │
+│  [ Never for any task ]  ← becomes the new default │
+└────────────────────────────────────────────────────┘
+```
+
+### Effort
+~2 hours.
+
+---
+
+## Proposal — Push elapsed time as a comment when a task completes
+
+Different from the `CompletedWork` field push (separate proposal). This one writes a human-readable *comment* like *"Completed in 2h 14m (TimeControl)"* — useful for teams that don't formally use the time-tracking field but appreciate context in the activity log.
+
+### Goals
+- On `TodoItem.isCompleted = true`, if the task has an ADO link and `adoPushTimeAsComment` is on (per-task or global default), enqueue a `POST /comments` op.
+- Comment format is configurable in Settings: include subtask breakdown? Include start/end timestamps? Default minimal.
+
+### UI Mockup — What lands in ADO
+
+```
+  Comment from TimeControl • just now
+  ───────────────────────────────────
+  ✓ Task completed
+  • Total time: 2h 14m
+  • Sessions: 4 (across 2 days)
+  • Subtasks completed: 3 of 3
+```
+
+### UI Mockup — Settings toggle
+
+```
+   ☑ Post completion summary to ADO as a comment
+       Include:  ☑ Total time   ☑ Session count
+                 ☑ Subtask summary   ☐ Per-session breakdown
+```
+
+### Effort
+~1–2 hours.
+
+---
+
+## Proposal — Notifications for new comments on your ADO items
+
+Pull-side feature, so it depends on the read-back proposal's polling infrastructure. When the poller sees a new comment on any linked work item where you're the assignee or the comment @-mentions you, surface it as a macOS notification.
+
+### Goals
+- Reuse the polling cadence from the read-back proposal (every N minutes).
+- Track `lastSeenCommentId` per linked work item.
+- Notification body: comment author + first ~120 chars. Click → opens the work item in browser.
+- In-app inbox: a small badge on the linked task shows unread count.
+
+### UI Mockup — macOS notification
+
+```
+  ┌──────────────────────────────────────────────────────┐
+  │  TimeControl                              now        │
+  │                                                      │
+  │  💬 New comment on ADO #12345                        │
+  │     Sarah Chen: "Confirmed the repro on Firefox      │
+  │     too — bumping severity to High."                 │
+  │                                                      │
+  │  [ Reply ]   [ View in ADO ]   [ Dismiss ]           │
+  └──────────────────────────────────────────────────────┘
+```
+
+`[ Reply ]` reuses the quick-comment popup from the proposal above, prefilled with `@SarahChen` if mentions are detected.
+
+### UI Mockup — In-app badge on a task with unread comments
+
+```
+  ◆²  ▶  Login button misaligned on Safari      ⏱ 0:42
+                                  └─ 2 unread comments
+```
+
+The superscript next to the `◆` is the unread count. Clicking it opens an inline drawer showing the comments inline (read-only).
+
+### UI Mockup — Inline comment drawer (expanded)
+
+```
+  ▸  ┌──────────────────────────────────────────────────┐
+     │ ◆² ▶  Login button misaligned on Safari          │
+     │       [ ADO #12345 ]   ⏱ 0:42                    │
+     │       ──────────────────────────────────────     │
+     │       💬 Sarah Chen · 14m ago                    │
+     │          "Confirmed the repro on Firefox too —   │
+     │           bumping severity to High."             │
+     │                                                  │
+     │       💬 Marco Diaz · 6m ago                     │
+     │          "Patch incoming, see PR #4921"          │
+     │                                                  │
+     │       [ Reply… ]    [ Mark all read ]            │
+     └──────────────────────────────────────────────────┘
+```
+
+### Considerations
+- Don't notify for comments *you* posted from TimeControl (filter by author).
+- Quiet-hours / Do Not Disturb: respect macOS Focus modes (already handled by `UNUserNotificationCenter`).
+- Polling cost: one `GET /comments` per linked task per cycle is fine for ~50 tasks; beyond that, batch via WIQL.
+
+### Effort
+~3–4 hours (depends on whether the read-back polling already exists).
+
+---
+
 ## Effort Estimate
 
-| Phase | Effort |
-|---|---|
-| ADOService networking layer | ~1–2 hours |
-| Sync queue + reachability (NWPathMonitor) | ~2–3 hours |
-| Model + persistence changes | ~30 min |
-| ViewModel hook-up | ~1 hour |
-| Keychain PAT storage | ~30 min |
-| Settings UI + Test Connection + status banner | ~2 hours |
-| **Total** | **~7–9 hours** |
+| Status | Proposal | Effort |
+|---|---|---|
+| ✅ Done | Phase 1 — auth + read-only fetch | ~2–3 hours |
+| Open | Import ADO item → local TodoItem | ~2–3 hours |
+| Open | Push completion state + sync queue | ~3–4 hours |
+| Open | Push due dates + create ADO items | ~3 hours |
+| Open | Push tracked time as `CompletedWork` field | ~2 hours |
+| Open | Read-back + conflict surfacing | ~3–4 hours |
+| Open | Link existing local task to ADO | ~1–2 hours |
+| Open | Subtask completion → ADO comment (with prompt) | ~2 hours |
+| Open | Quick custom comment to current task's ADO | ~1–2 hours |
+| Open | At-a-glance ADO indicator in lists | ~1 hour |
+| Open | Notify ADO on task start (state / comment) | ~2 hours |
+| Open | Push completion-time summary as ADO comment | ~1–2 hours |
+| Open | Notifications for new ADO comments | ~3–4 hours |
 
 ---
 
