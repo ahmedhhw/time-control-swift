@@ -42,6 +42,7 @@ struct ContentView: View {
     @AppStorage("timerOnTaskSwitch") private var timerOnTaskSwitch: Bool = false
     @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
     @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
+    @AppStorage("isAdvancedMode") private var isAdvancedMode: Bool = false
     
     var body: some View {
         ZStack {
@@ -262,6 +263,7 @@ struct ContentView: View {
             viewModel.timerOnTaskSwitch = timerOnTaskSwitch
             viewModel.defaultTimerMinutes = defaultTimerMinutes
             viewModel.dropdownSortOption = DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed
+            viewModel.isAdvancedMode = isAdvancedMode
         }
         .onChange(of: activateReminders) { viewModel.activateReminders = $0 }
         .onChange(of: confirmTaskDeletion) { viewModel.confirmTaskDeletion = $0 }
@@ -272,6 +274,8 @@ struct ContentView: View {
         .onChange(of: timerOnTaskSwitch) { viewModel.timerOnTaskSwitch = $0 }
         .onChange(of: defaultTimerMinutes) { viewModel.defaultTimerMinutes = $0 }
         .onChange(of: dropdownSortOptionRaw) { viewModel.dropdownSortOption = DropdownSortOption(rawValue: $0) ?? .recentlyPlayed }
+        .onChange(of: isAdvancedMode) { viewModel.isAdvancedMode = $0 }
+        .onChange(of: viewModel.isAdvancedMode) { isAdvancedMode = $0 }
         .sheet(item: $viewModel.editingTodo) { todoToEdit in
             if let index = viewModel.todos.firstIndex(where: { $0.id == todoToEdit.id }) {
                 EditTodoSheet(
@@ -427,7 +431,6 @@ struct ContentView: View {
             existing.orderFrontRegardless()
             return
         }
-        historyWindow?.close()
 
         let windowWidth: CGFloat = 1300
         let windowHeight: CGFloat = 700
@@ -454,6 +457,13 @@ struct ContentView: View {
         window.title = "History"
         window.contentView = hostingView
         window.minSize = NSSize(width: 600, height: 400)
+        window.isReleasedWhenClosed = false
+
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { [weak window] _ in
+            if self.historyWindow === window {
+                self.historyWindow = nil
+            }
+        }
 
         historyWindow = window
         window.orderFrontRegardless()
