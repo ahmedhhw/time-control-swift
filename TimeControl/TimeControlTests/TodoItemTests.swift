@@ -259,4 +259,38 @@ final class TodoItemTests: XCTestCase {
         let item = makeTodo()
         XCTAssertEqual(item.countdownElapsed, 0)
     }
+
+    // MARK: - ADO work item ID
+
+    func testAdoWorkItemId_defaultsToNil() {
+        let todo = TodoItem(text: "Test Todo")
+        XCTAssertNil(todo.adoWorkItemId)
+    }
+
+    func testAdoWorkItemId_canBeSetViaInit() {
+        let todo = TodoItem(text: "Test Todo", adoWorkItemId: "12345")
+        XCTAssertEqual(todo.adoWorkItemId, "12345")
+    }
+
+    func testAdoWorkItemId_encodeDecode_roundTrip() throws {
+        var todo = TodoItem(text: "Test Todo")
+        todo.adoWorkItemId = "98765"
+
+        let data = try JSONEncoder().encode(todo)
+        let decoded = try JSONDecoder().decode(TodoItem.self, from: data)
+        XCTAssertEqual(decoded.adoWorkItemId, "98765")
+    }
+
+    func testAdoWorkItemId_decodesAsNil_whenAbsentFromPersistedJson() throws {
+        // Simulate a legacy on-disk JSON record by encoding a TodoItem and stripping
+        // only the new field — proves an existing user's persisted file decodes as nil.
+        let original = TodoItem(text: "Legacy Task")
+        var dict = try JSONSerialization.jsonObject(with: JSONEncoder().encode(original)) as! [String: Any]
+        dict.removeValue(forKey: "adoWorkItemId")
+        let strippedData = try JSONSerialization.data(withJSONObject: dict)
+
+        let decoded = try JSONDecoder().decode(TodoItem.self, from: strippedData)
+        XCTAssertNil(decoded.adoWorkItemId)
+        XCTAssertEqual(decoded.text, "Legacy Task")
+    }
 }

@@ -2,17 +2,31 @@ import SwiftUI
 import AppKit
 import AVFoundation
 
+/// Bridges `NSButton` target/action (which requires an `NSObject`) into a closure
+/// callable from a SwiftUI struct. Used by the Notes window opacity button.
+final class NotesOpacityButtonTarget: NSObject {
+    static let shared = NotesOpacityButtonTarget()
+    var handler: ((NSButton) -> Void)?
+    @objc func handle(_ sender: NSButton) {
+        handler?(sender)
+    }
+}
+
 struct FloatingTaskWindowView: View {
     let task: TodoItem
     @ObservedObject var windowManager: FloatingWindowManager
     @ObservedObject var viewModel: TodoViewModel
+    @ObservedObject private var opacityBroadcaster: WindowOpacityBroadcaster
     @State private var localTask: TodoItem
     @State private var isCollapsed: Bool = false
     @State private var notesText: String = ""
     @State private var timerUpdateTrigger = 0
     @State private var notesWindow: NSWindow?
     private let notesFrameStore = NotesWindowFrameStore()
+    private let notesOpacityStore = WindowOpacityStore()
+    private let notesOpacityBroadcaster = WindowOpacityBroadcaster(initial: WindowOpacityStore().notesOpacity)
     @State private var notesWindowDelegate: NotesWindowDelegate?
+    @State private var notesOpacityPopover: NSPopover?
     @State private var reminderWindow: NSWindow?
     @State private var timerPickerWindow: NSWindow?
     @State private var newTaskPopupWindow: NSWindow?
@@ -66,6 +80,7 @@ struct FloatingTaskWindowView: View {
         self.task = task
         self.windowManager = windowManager
         self.viewModel = viewModel
+        self._opacityBroadcaster = ObservedObject(initialValue: windowManager.opacityBroadcaster)
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         self._descriptionText = State(initialValue: task.description)
@@ -941,6 +956,10 @@ struct FloatingTaskWindowView: View {
                         }
                     }
 
+                    if let adoId = localTask.adoWorkItemId, !adoId.isEmpty {
+                        ADOLinkRow(workItemId: adoId)
+                    }
+
                     Spacer()
 
                     // Pause/Resume and Complete buttons at the bottom
@@ -1085,6 +1104,7 @@ struct FloatingTaskWindowView: View {
                 .transition(.opacity)
             }
         }
+        .subtitleHalo(windowOpacity: opacityBroadcaster.opacity)
         .onReceive(timer) { _ in
             // Update UI every second for running timer
             timerUpdateTrigger += 1
@@ -1274,10 +1294,16 @@ struct FloatingTaskWindowView: View {
         let targetTask = task ?? localTask
         notesText = targetTask.notes
 
-        let contentView = NotesEditorView(notes: $notesText, taskId: targetTask.id, viewModel: viewModel, onClose: {
-            self.notesWindow?.close()
-            self.notesWindow = nil
-        })
+        let contentView = NotesEditorView(
+            notes: $notesText,
+            taskId: targetTask.id,
+            viewModel: viewModel,
+            opacityBroadcaster: notesOpacityBroadcaster,
+            onClose: {
+                self.notesWindow?.close()
+                self.notesWindow = nil
+            }
+        )
         let hostingView = NSHostingView(rootView: contentView)
 
         // If window already exists and is visible, update content in-place without moving it
@@ -1332,8 +1358,58 @@ struct FloatingTaskWindowView: View {
         window.delegate = delegate
         notesWindowDelegate = delegate
 
+        addNotesOpacityAccessory(to: window)
+        let storedNotesOpacity = notesOpacityStore.notesOpacity
+        WindowOpacityApplier.apply(opacity: storedNotesOpacity, to: window)
+        notesOpacityBroadcaster.opacity = storedNotesOpacity
+
         notesWindow = window
         window.orderFrontRegardless()
+    }
+
+    private func addNotesOpacityAccessory(to window: NSWindow) {
+        let accessoryVC = NSTitlebarAccessoryViewController()
+        accessoryVC.layoutAttribute = .right
+
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
+        let opacityButton = NSButton(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
+        opacityButton.image = NSImage(systemSymbolName: "circle.lefthalf.filled", accessibilityDescription: "Opacity")
+        opacityButton.bezelStyle = .texturedRounded
+        opacityButton.isBordered = false
+        opacityButton.toolTip = "Window Opacity"
+        opacityButton.target = NotesOpacityButtonTarget.shared
+        opacityButton.action = #selector(NotesOpacityButtonTarget.handle(_:))
+        NotesOpacityButtonTarget.shared.handler = { [weak window] sender in
+            self.toggleNotesOpacityPopover(from: sender, window: window)
+        }
+        container.addSubview(opacityButton)
+
+        accessoryVC.view = container
+        window.addTitlebarAccessoryViewController(accessoryVC)
+    }
+
+    private func toggleNotesOpacityPopover(from sender: NSButton, window: NSWindow?) {
+        if let existing = notesOpacityPopover, existing.isShown {
+            existing.performClose(nil)
+            return
+        }
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+
+        let view = OpacityPopoverView(
+            initialOpacity: notesOpacityStore.notesOpacity,
+            onChange: { value in
+                notesOpacityStore.notesOpacity = value
+                notesOpacityBroadcaster.opacity = value
+                if let w = window {
+                    WindowOpacityApplier.apply(opacity: value, to: w)
+                }
+            }
+        )
+        popover.contentViewController = NSHostingController(rootView: view)
+        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+        notesOpacityPopover = popover
     }
 
     private func openReminderWindow() {
@@ -1825,7 +1901,9 @@ struct FloatingTaskWindowView: View {
                     dueDate: updatedTask.dueDate,
                     isAdhoc: updatedTask.isAdhoc,
                     fromWho: updatedTask.fromWho,
-                    estimatedTime: updatedTask.estimatedTime
+                    estimatedTime: updatedTask.estimatedTime,
+                    adoWorkItemId: updatedTask.adoWorkItemId,
+                    updateAdoWorkItemId: true
                 )
                 self.editWindow?.close()
                 self.editWindow = nil

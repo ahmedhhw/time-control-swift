@@ -12,6 +12,9 @@ class FloatingWindowManager: ObservableObject {
     static let shared = FloatingWindowManager()
     private var floatingWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var opacityPopover: NSPopover?
+    private let opacityStore = WindowOpacityStore()
+    let opacityBroadcaster = WindowOpacityBroadcaster(initial: WindowOpacityStore().currentTaskOpacity)
     @Published var currentTask: TodoItem?
     @Published var allTodos: [TodoItem] = []
     private var windowDelegate: FloatingWindowDelegate?
@@ -66,11 +69,11 @@ class FloatingWindowManager: ObservableObject {
         window.delegate = delegate
         windowDelegate = delegate
 
-        // Title bar accessories: notes + gear
+        // Title bar accessories: notes + opacity + gear
         let accessoryVC = NSTitlebarAccessoryViewController()
         accessoryVC.layoutAttribute = .right
 
-        let containerWidth: CGFloat = 56
+        let containerWidth: CGFloat = 84
         let accessoryContainer = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 28))
 
         let notesButton = NSButton(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
@@ -82,7 +85,16 @@ class FloatingWindowManager: ObservableObject {
         notesButton.toolTip = "Notes"
         accessoryContainer.addSubview(notesButton)
 
-        let gearButton = NSButton(frame: NSRect(x: 28, y: 0, width: 28, height: 28))
+        let opacityButton = NSButton(frame: NSRect(x: 28, y: 0, width: 28, height: 28))
+        opacityButton.image = NSImage(systemSymbolName: "circle.lefthalf.filled", accessibilityDescription: "Opacity")
+        opacityButton.bezelStyle = .texturedRounded
+        opacityButton.isBordered = false
+        opacityButton.target = self
+        opacityButton.action = #selector(openOpacityPopover(_:))
+        opacityButton.toolTip = "Window Opacity"
+        accessoryContainer.addSubview(opacityButton)
+
+        let gearButton = NSButton(frame: NSRect(x: 56, y: 0, width: 28, height: 28))
         gearButton.image = NSImage(systemSymbolName: "gear", accessibilityDescription: "Settings")
         gearButton.bezelStyle = .texturedRounded
         gearButton.isBordered = false
@@ -93,6 +105,11 @@ class FloatingWindowManager: ObservableObject {
 
         accessoryVC.view = accessoryContainer
         window.addTitlebarAccessoryViewController(accessoryVC)
+
+        // Apply persisted opacity (translucent background only; text/controls stay fully opaque).
+        let storedOpacity = opacityStore.currentTaskOpacity
+        WindowOpacityApplier.apply(opacity: storedOpacity, to: window)
+        opacityBroadcaster.opacity = storedOpacity
 
         floatingWindow = window
         window.orderFrontRegardless()
@@ -129,6 +146,32 @@ class FloatingWindowManager: ObservableObject {
     
     @objc private func openNotes() {
         onOpenNotes?()
+    }
+
+    @objc private func openOpacityPopover(_ sender: NSButton) {
+        if let existing = opacityPopover, existing.isShown {
+            existing.performClose(nil)
+            return
+        }
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+
+        let view = OpacityPopoverView(
+            initialOpacity: opacityStore.currentTaskOpacity,
+            onChange: { [weak self] value in
+                guard let self else { return }
+                self.opacityStore.currentTaskOpacity = value
+                self.opacityBroadcaster.opacity = value
+                if let w = self.floatingWindow {
+                    WindowOpacityApplier.apply(opacity: value, to: w)
+                }
+            }
+        )
+        popover.contentViewController = NSHostingController(rootView: view)
+        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+        opacityPopover = popover
     }
 
     @objc private func openSettings() {

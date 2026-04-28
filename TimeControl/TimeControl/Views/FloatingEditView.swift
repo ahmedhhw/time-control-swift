@@ -15,12 +15,13 @@ struct FloatingEditView: View {
     @State private var estimateHours: Int
     @State private var estimateMinutes: Int
     @State private var notes: String
-    
+    @State private var adoWorkItemIdInput: String
+
     init(task: TodoItem, onSave: @escaping (TodoItem) -> Void, onCancel: @escaping () -> Void) {
         self.task = task
         self.onSave = onSave
         self.onCancel = onCancel
-        
+
         // Initialize state from task
         _title = State(initialValue: task.text)
         _description = State(initialValue: task.description)
@@ -29,6 +30,7 @@ struct FloatingEditView: View {
         _isAdhoc = State(initialValue: task.isAdhoc)
         _fromWho = State(initialValue: task.fromWho)
         _notes = State(initialValue: task.notes)
+        _adoWorkItemIdInput = State(initialValue: task.adoWorkItemId ?? "")
         
         // Convert estimated time from seconds to hours and minutes
         let totalMinutes = Int(task.estimatedTime / 60)
@@ -197,9 +199,17 @@ struct FloatingEditView: View {
                             .foregroundColor(.secondary)
                         
                         Toggle("Adhoc Task", isOn: $isAdhoc)
-                        
+
                         TextField("From Who?", text: $fromWho)
                             .textFieldStyle(.roundedBorder)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("ADO Work Item")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            TextField("ID number or paste full URL", text: $adoWorkItemIdInput)
+                                .textFieldStyle(.roundedBorder)
+                        }
                     }
                     .padding()
                     .background(Color(NSColor.controlBackgroundColor))
@@ -219,12 +229,19 @@ struct FloatingEditView: View {
         updatedTask.isAdhoc = isAdhoc
         updatedTask.fromWho = fromWho
         updatedTask.notes = notes
-        
+
+        let trimmedAdo = adoWorkItemIdInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedAdo.isEmpty {
+            updatedTask.adoWorkItemId = nil
+        } else {
+            updatedTask.adoWorkItemId = ADOURLBuilder.extractId(from: trimmedAdo) ?? trimmedAdo
+        }
+
         // Convert hours and minutes to seconds
         let clampedHours = max(0, estimateHours)
         let clampedMinutes = max(0, min(59, estimateMinutes))
         updatedTask.estimatedTime = TimeInterval((clampedHours * 3600) + (clampedMinutes * 60))
-        
+
         onSave(updatedTask)
     }
     

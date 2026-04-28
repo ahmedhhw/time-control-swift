@@ -407,6 +407,51 @@ final class TodoViewModelTests: XCTestCase {
         XCTAssertEqual(vm.todos[0].fromWho, "Bob")
     }
 
+    // MARK: - updateTaskFields — adoWorkItemId
+
+    func testUpdateTaskFields_setsAdoWorkItemId_whenFlagTrue() {
+        let (vm, _, _) = makeViewModel()
+        vm.todos = [makeTodo(text: "Task")]
+        let id = vm.todos[0].id
+
+        vm.updateTaskFields(
+            id: id, text: nil, description: nil, notes: nil,
+            dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil,
+            adoWorkItemId: "12345", updateAdoWorkItemId: true
+        )
+        XCTAssertEqual(vm.todos[0].adoWorkItemId, "12345")
+    }
+
+    func testUpdateTaskFields_clearsAdoWorkItemId_whenFlagTrueAndIdNil() {
+        let (vm, _, _) = makeViewModel()
+        var task = makeTodo(text: "Task")
+        task.adoWorkItemId = "999"
+        vm.todos = [task]
+        let id = vm.todos[0].id
+
+        vm.updateTaskFields(
+            id: id, text: nil, description: nil, notes: nil,
+            dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil,
+            adoWorkItemId: nil, updateAdoWorkItemId: true
+        )
+        XCTAssertNil(vm.todos[0].adoWorkItemId)
+    }
+
+    func testUpdateTaskFields_leavesAdoWorkItemIdAlone_whenFlagFalse() {
+        let (vm, _, _) = makeViewModel()
+        var task = makeTodo(text: "Task")
+        task.adoWorkItemId = "kept"
+        vm.todos = [task]
+        let id = vm.todos[0].id
+
+        // Default call (no ADO args) — must not touch adoWorkItemId
+        vm.updateTaskFields(
+            id: id, text: "Updated", description: nil, notes: nil,
+            dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil
+        )
+        XCTAssertEqual(vm.todos[0].adoWorkItemId, "kept")
+    }
+
     // MARK: - renameSubtask
 
     func testRenameSubtask_happyPath() {

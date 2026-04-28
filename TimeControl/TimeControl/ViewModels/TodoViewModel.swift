@@ -964,11 +964,11 @@ class TodoViewModel: ObservableObject {
         FloatingWindowManager.shared.updateTask(todos[todoIndex])
     }
 
-    func updateTaskFields(id: UUID, text: String?, description: String?, notes: String?, dueDate: Date?, isAdhoc: Bool?, fromWho: String?, estimatedTime: TimeInterval?) {
+    func updateTaskFields(id: UUID, text: String?, description: String?, notes: String?, dueDate: Date?, isAdhoc: Bool?, fromWho: String?, estimatedTime: TimeInterval?, adoWorkItemId: String? = nil, updateAdoWorkItemId: Bool = false) {
         guard let todoIndex = todos.firstIndex(where: { $0.id == id }) else {
             return
         }
-        
+
         if let text = text {
             todos[todoIndex].text = text
         }
@@ -991,6 +991,9 @@ class TodoViewModel: ObservableObject {
         }
         if let estimatedTime = estimatedTime {
             todos[todoIndex].estimatedTime = estimatedTime
+        }
+        if updateAdoWorkItemId {
+            todos[todoIndex].adoWorkItemId = adoWorkItemId
         }
         
         let index = todoIndex
