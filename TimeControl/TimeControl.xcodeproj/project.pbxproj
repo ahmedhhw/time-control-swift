@@ -30,7 +30,6 @@
 		ST000002000000000000001 /* SubtitleTextStrokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST000002000000000000000 /* SubtitleTextStrokeTests.swift */; };
 		AU000001000000000000001 /* ADOURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000001000000000000000 /* ADOURLBuilder.swift */; };
 		AU000002000000000000001 /* ADOURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000002000000000000000 /* ADOURLBuilderTests.swift */; };
-		OP000001000000000000001 /* OpacityPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OP000001000000000000000 /* OpacityPopoverView.swift */; };
 		AL000001000000000000001 /* ADOLinkRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AL000001000000000000000 /* ADOLinkRow.swift */; };
 		9D1052CE2F46DA0000B7B24D /* ExportAllTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */; };
 		9D1052CF2F46DA0000B7B24D /* FloatingWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */; };
@@ -134,7 +133,6 @@
 		ST000002000000000000000 /* SubtitleTextStrokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleTextStrokeTests.swift; sourceTree = "<group>"; };
 		AU000001000000000000000 /* ADOURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOURLBuilder.swift; sourceTree = "<group>"; };
 		AU000002000000000000000 /* ADOURLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOURLBuilderTests.swift; sourceTree = "<group>"; };
-		OP000001000000000000000 /* OpacityPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpacityPopoverView.swift; sourceTree = "<group>"; };
 		AL000001000000000000000 /* ADOLinkRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOLinkRow.swift; sourceTree = "<group>"; };
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
@@ -268,7 +266,6 @@
 				DD000003000000000000001 /* ReminderPickerPopover.swift */,
 				EE000005000000000000001 /* NotificationOverlayView.swift */,
 				EE000006000000000000001 /* NotificationHistoryView.swift */,
-				OP000001000000000000000 /* OpacityPopoverView.swift */,
 				AL000001000000000000000 /* ADOLinkRow.swift */,
 				ST000001000000000000000 /* SubtitleText.swift */,
 			);
@@ -548,7 +545,6 @@
 				A1000000000000000000143 /* ADOService.swift in Sources */,
 				A1000000000000000000145 /* ADOSettingsStore.swift in Sources */,
 				AU000001000000000000001 /* ADOURLBuilder.swift in Sources */,
-				OP000001000000000000001 /* OpacityPopoverView.swift in Sources */,
 				AL000001000000000000001 /* ADOLinkRow.swift in Sources */,
 				ST000001000000000000001 /* SubtitleText.swift in Sources */,
 				FF000005000000000000001 /* SQLiteStorage.swift in Sources */,

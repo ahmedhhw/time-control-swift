@@ -2,16 +2,6 @@ import SwiftUI
 import AppKit
 import AVFoundation
 
-/// Bridges `NSButton` target/action (which requires an `NSObject`) into a closure
-/// callable from a SwiftUI struct. Used by the Notes window opacity button.
-final class NotesOpacityButtonTarget: NSObject {
-    static let shared = NotesOpacityButtonTarget()
-    var handler: ((NSButton) -> Void)?
-    @objc func handle(_ sender: NSButton) {
-        handler?(sender)
-    }
-}
-
 struct FloatingTaskWindowView: View {
     let task: TodoItem
     @ObservedObject var windowManager: FloatingWindowManager
@@ -23,10 +13,7 @@ struct FloatingTaskWindowView: View {
     @State private var timerUpdateTrigger = 0
     @State private var notesWindow: NSWindow?
     private let notesFrameStore = NotesWindowFrameStore()
-    private let notesOpacityStore = WindowOpacityStore()
-    private let notesOpacityBroadcaster = WindowOpacityBroadcaster(initial: WindowOpacityStore().notesOpacity)
     @State private var notesWindowDelegate: NotesWindowDelegate?
-    @State private var notesOpacityPopover: NSPopover?
     @State private var reminderWindow: NSWindow?
     @State private var timerPickerWindow: NSWindow?
     @State private var newTaskPopupWindow: NSWindow?
@@ -1298,10 +1285,11 @@ struct FloatingTaskWindowView: View {
             notes: $notesText,
             taskId: targetTask.id,
             viewModel: viewModel,
-            opacityBroadcaster: notesOpacityBroadcaster,
+            opacityBroadcaster: FloatingWindowManager.shared.notesOpacityBroadcaster,
             onClose: {
                 self.notesWindow?.close()
                 self.notesWindow = nil
+                FloatingWindowManager.shared.notesWindowRef = nil
             }
         )
         let hostingView = NSHostingView(rootView: contentView)
@@ -1358,58 +1346,11 @@ struct FloatingTaskWindowView: View {
         window.delegate = delegate
         notesWindowDelegate = delegate
 
-        addNotesOpacityAccessory(to: window)
-        let storedNotesOpacity = notesOpacityStore.notesOpacity
-        WindowOpacityApplier.apply(opacity: storedNotesOpacity, to: window)
-        notesOpacityBroadcaster.opacity = storedNotesOpacity
+        WindowOpacityApplier.apply(opacity: FloatingWindowManager.shared.notesOpacity, to: window)
+        FloatingWindowManager.shared.notesWindowRef = window
 
         notesWindow = window
         window.orderFrontRegardless()
-    }
-
-    private func addNotesOpacityAccessory(to window: NSWindow) {
-        let accessoryVC = NSTitlebarAccessoryViewController()
-        accessoryVC.layoutAttribute = .right
-
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
-        let opacityButton = NSButton(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
-        opacityButton.image = NSImage(systemSymbolName: "circle.lefthalf.filled", accessibilityDescription: "Opacity")
-        opacityButton.bezelStyle = .texturedRounded
-        opacityButton.isBordered = false
-        opacityButton.toolTip = "Window Opacity"
-        opacityButton.target = NotesOpacityButtonTarget.shared
-        opacityButton.action = #selector(NotesOpacityButtonTarget.handle(_:))
-        NotesOpacityButtonTarget.shared.handler = { [weak window] sender in
-            self.toggleNotesOpacityPopover(from: sender, window: window)
-        }
-        container.addSubview(opacityButton)
-
-        accessoryVC.view = container
-        window.addTitlebarAccessoryViewController(accessoryVC)
-    }
-
-    private func toggleNotesOpacityPopover(from sender: NSButton, window: NSWindow?) {
-        if let existing = notesOpacityPopover, existing.isShown {
-            existing.performClose(nil)
-            return
-        }
-        let popover = NSPopover()
-        popover.behavior = .transient
-        popover.animates = true
-
-        let view = OpacityPopoverView(
-            initialOpacity: notesOpacityStore.notesOpacity,
-            onChange: { value in
-                notesOpacityStore.notesOpacity = value
-                notesOpacityBroadcaster.opacity = value
-                if let w = window {
-                    WindowOpacityApplier.apply(opacity: value, to: w)
-                }
-            }
-        )
-        popover.contentViewController = NSHostingController(rootView: view)
-        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
-        notesOpacityPopover = popover
     }
 
     private func openReminderWindow() {

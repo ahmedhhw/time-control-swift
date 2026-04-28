@@ -18,6 +18,11 @@ struct SettingsSheet: View {
     @Binding var timerOnTaskSwitch: Bool
     @Binding var defaultTimerMinutes: Int
     @Binding var dropdownSortOptionRaw: String
+    /// Both opacity bindings are optional. When non-nil the Appearance section appears
+    /// (used by the floating Settings panel). When nil — e.g. main-window Settings sheet —
+    /// the Appearance section is hidden because per-floating-window opacity isn't meaningful there.
+    var currentTaskOpacity: Binding<Double>? = nil
+    var notesOpacity: Binding<Double>? = nil
     var onClose: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     
@@ -171,6 +176,24 @@ struct SettingsSheet: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
+                    if let currentTaskBinding = currentTaskOpacity, let notesBinding = notesOpacity {
+                        Divider()
+                            .padding(.vertical, 8)
+
+                        Text("Appearance")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+
+                        OpacitySettingRow(label: "Current Task window opacity",
+                                          value: currentTaskBinding)
+                        OpacitySettingRow(label: "Notes window opacity",
+                                          value: notesBinding)
+
+                        Text("Drag toward the left to make the window background see-through. Text stays fully visible with a subtle white outline at low opacity.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
                     Divider()
                         .padding(.vertical, 8)
 
@@ -182,6 +205,28 @@ struct SettingsSheet: View {
             }
         }
         .frame(minWidth: 500, minHeight: 300)
+    }
+}
+
+/// Single inline opacity slider row used in the Appearance section.
+struct OpacitySettingRow: View {
+    let label: String
+    @Binding var value: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.title3)
+                Spacer()
+                Text("\(Int(value * 100))%")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
+            }
+            Slider(value: $value,
+                   in: WindowOpacityStore.minimum...WindowOpacityStore.maximum)
+        }
     }
 }
 
@@ -197,6 +242,9 @@ struct FloatingSettingsHostView: View {
     @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
     @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
 
+    @State private var currentTaskOpacity: Double = FloatingWindowManager.shared.currentTaskOpacity
+    @State private var notesOpacity: Double = FloatingWindowManager.shared.notesOpacity
+
     var onClose: () -> Void
 
     var body: some View {
@@ -210,6 +258,20 @@ struct FloatingSettingsHostView: View {
             timerOnTaskSwitch: $timerOnTaskSwitch,
             defaultTimerMinutes: $defaultTimerMinutes,
             dropdownSortOptionRaw: $dropdownSortOptionRaw,
+            currentTaskOpacity: Binding(
+                get: { currentTaskOpacity },
+                set: { newValue in
+                    currentTaskOpacity = newValue
+                    FloatingWindowManager.shared.setCurrentTaskOpacity(newValue)
+                }
+            ) as Binding<Double>?,
+            notesOpacity: Binding(
+                get: { notesOpacity },
+                set: { newValue in
+                    notesOpacity = newValue
+                    FloatingWindowManager.shared.setNotesOpacity(newValue)
+                }
+            ) as Binding<Double>?,
             onClose: onClose
         )
     }
