@@ -88,6 +88,9 @@
 		EE000006000000000000002 /* NotificationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000006000000000000001 /* NotificationHistoryView.swift */; };
 		FF00000A000000000000002 /* NewTaskStickyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00000A000000000000001 /* NewTaskStickyStore.swift */; };
 		FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00000B000000000000001 /* NewTaskStickyModeTests.swift */; };
+		TC000001000000000000001 /* TaskPauseConsistencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000001000000000000000 /* TaskPauseConsistencyTests.swift */; };
+		TC000002000000000000001 /* PauseBeforeDeleteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000002000000000000000 /* PauseBeforeDeleteTests.swift */; };
+		TC000003000000000000001 /* SessionDiscardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000003000000000000000 /* SessionDiscardTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -183,6 +186,9 @@
 		FF000008000000000000001 /* SQLiteStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStorageTests.swift; sourceTree = "<group>"; };
 		FF00000A000000000000001 /* NewTaskStickyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskStickyStore.swift; sourceTree = "<group>"; };
 		FF00000B000000000000001 /* NewTaskStickyModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskStickyModeTests.swift; sourceTree = "<group>"; };
+		TC000001000000000000000 /* TaskPauseConsistencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPauseConsistencyTests.swift; sourceTree = "<group>"; };
+		TC000002000000000000000 /* PauseBeforeDeleteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseBeforeDeleteTests.swift; sourceTree = "<group>"; };
+		TC000003000000000000000 /* SessionDiscardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDiscardTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -333,6 +339,9 @@
 				A1000000000000000000148 /* ADOServiceTests.swift */,
 				A1000000000000000000150 /* ADOSettingsStoreTests.swift */,
 				AU000002000000000000000 /* ADOURLBuilderTests.swift */,
+				TC000001000000000000000 /* TaskPauseConsistencyTests.swift */,
+				TC000002000000000000000 /* PauseBeforeDeleteTests.swift */,
+				TC000003000000000000000 /* SessionDiscardTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -508,6 +517,9 @@
 				A1000000000000000000149 /* ADOServiceTests.swift in Sources */,
 				A1000000000000000000151 /* ADOSettingsStoreTests.swift in Sources */,
 				AU000002000000000000001 /* ADOURLBuilderTests.swift in Sources */,
+				TC000001000000000000001 /* TaskPauseConsistencyTests.swift in Sources */,
+				TC000002000000000000001 /* PauseBeforeDeleteTests.swift in Sources */,
+				TC000003000000000000001 /* SessionDiscardTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

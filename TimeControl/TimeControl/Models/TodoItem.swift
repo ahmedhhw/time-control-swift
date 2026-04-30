@@ -7,13 +7,20 @@
 
 import Foundation
 
+enum SessionOutcome: String, Codable {
+    case completed
+    case discardedShort
+}
+
 struct TaskSession: Codable, Equatable {
     var startedAt: TimeInterval
     var stoppedAt: TimeInterval?
-    
-    init(startedAt: TimeInterval = Date().timeIntervalSince1970, stoppedAt: TimeInterval? = nil) {
+    var outcome: SessionOutcome = .completed
+
+    init(startedAt: TimeInterval = Date().timeIntervalSince1970, stoppedAt: TimeInterval? = nil, outcome: SessionOutcome = .completed) {
         self.startedAt = startedAt
         self.stoppedAt = stoppedAt
+        self.outcome = outcome
     }
 
     var isComplete: Bool { stoppedAt != nil }

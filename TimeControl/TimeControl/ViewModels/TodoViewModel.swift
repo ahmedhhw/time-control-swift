@@ -44,6 +44,25 @@ class TodoViewModel: ObservableObject {
     private var saveDebounceTimer: Timer?
     private(set) var sleepPausedTaskId: UUID? = nil
 
+    /// Last time the app was known to be alive, persisted across launches for crash-recovery.
+    /// Set to `nil` on clean shutdown; used by `sanitizeOrphanedRunningState` as the stop time.
+    var lastSeenAt: Date? {
+        get {
+            guard let interval = UserDefaults.standard.object(forKey: "lastSeenAt") as? TimeInterval else { return nil }
+            return Date(timeIntervalSince1970: interval)
+        }
+        set {
+            if let date = newValue {
+                UserDefaults.standard.set(date.timeIntervalSince1970, forKey: "lastSeenAt")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "lastSeenAt")
+            }
+        }
+    }
+
+    private var lastSeenAtWriteTick: Int = 0
+    private static let lastSeenAtWriteInterval = 30 // write every 30 ticks (seconds)
+
     init(storageURL: URL = TodoStorage.storageURL, dbURL: URL? = nil) {
         self.storageURL = storageURL
 
@@ -115,7 +134,22 @@ class TodoViewModel: ObservableObject {
             .autoconnect()
             .sink { [weak self] _ in
                 self?.timerUpdateTrigger += 1
+                self?.handleTimerTick()
             }
+    }
+
+    /// Called on every timer tick. Updates `lastSeenAt` periodically while a task is running.
+    func handleTimerTick() {
+        guard runningTaskId != nil else { return }
+        lastSeenAtWriteTick += 1
+        if lastSeenAtWriteTick >= TodoViewModel.lastSeenAtWriteInterval {
+            lastSeenAt = Date()
+            lastSeenAtWriteTick = 0
+        }
+        // Always update on the first tick after a task starts
+        if lastSeenAtWriteTick == 1 {
+            lastSeenAt = Date()
+        }
     }
     
     var incompleteTodos: [TodoItem] {
@@ -620,6 +654,40 @@ class TodoViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Internal pause helper
+
+    /// Pauses the task at `todoIndex` and all its running subtasks, mutating model state only.
+    /// Does NOT touch `runningTaskId`, FloatingWindowManager, or call save — those are the caller's responsibility.
+    private func pauseTaskInternal(todoIndex: Int) {
+        guard todoIndex >= 0, todoIndex < todos.count else { return }
+
+        // 1. Pause parent task
+        if todos[todoIndex].isRunning {
+            stopSession(todoIndex: todoIndex)
+            if let s = todos[todoIndex].lastStartTime {
+                todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(s)
+            }
+            todos[todoIndex].lastStartTime = nil
+        }
+
+        // 2. Countdown bookkeeping
+        if todos[todoIndex].countdownTime > 0,
+           let cs = todos[todoIndex].countdownStartTime {
+            todos[todoIndex].countdownElapsedAtPause += Date().timeIntervalSince(cs)
+            todos[todoIndex].countdownStartTime = nil
+        }
+
+        // 3. Cascade to subtasks
+        for i in todos[todoIndex].subtasks.indices {
+            guard todos[todoIndex].subtasks[i].isRunning else { continue }
+            stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
+            if let s = todos[todoIndex].subtasks[i].lastStartTime {
+                todos[todoIndex].subtasks[i].totalTimeSpent += Date().timeIntervalSince(s)
+            }
+            todos[todoIndex].subtasks[i].lastStartTime = nil
+        }
+    }
+
     // MARK: - Session helpers
 
     private func startSession(todoIndex: Int) {
@@ -628,13 +696,16 @@ class TodoViewModel: ObservableObject {
     }
 
     private func stopSession(todoIndex: Int) {
+        stopSession(todoIndex: todoIndex, at: Date())
+    }
+
+    private func stopSession(todoIndex: Int, at cutoff: Date) {
         guard let last = todos[todoIndex].sessions.indices.last,
               todos[todoIndex].sessions[last].stoppedAt == nil else { return }
-        let now = Date().timeIntervalSince1970
+        let now = cutoff.timeIntervalSince1970
+        todos[todoIndex].sessions[last].stoppedAt = now
         if now - todos[todoIndex].sessions[last].startedAt < 30 {
-            todos[todoIndex].sessions.removeLast()
-        } else {
-            todos[todoIndex].sessions[last].stoppedAt = now
+            todos[todoIndex].sessions[last].outcome = .discardedShort
         }
     }
 
@@ -644,13 +715,16 @@ class TodoViewModel: ObservableObject {
     }
 
     private func stopSubtaskSession(todoIndex: Int, subtaskIndex: Int) {
+        stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex, at: Date())
+    }
+
+    private func stopSubtaskSession(todoIndex: Int, subtaskIndex: Int, at cutoff: Date) {
         guard let last = todos[todoIndex].subtasks[subtaskIndex].sessions.indices.last,
               todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt == nil else { return }
-        let now = Date().timeIntervalSince1970
+        let now = cutoff.timeIntervalSince1970
+        todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt = now
         if now - todos[todoIndex].subtasks[subtaskIndex].sessions[last].startedAt < 30 {
-            todos[todoIndex].subtasks[subtaskIndex].sessions.removeLast()
-        } else {
-            todos[todoIndex].subtasks[subtaskIndex].sessions[last].stoppedAt = now
+            todos[todoIndex].subtasks[subtaskIndex].sessions[last].outcome = .discardedShort
         }
     }
 
@@ -900,6 +974,8 @@ class TodoViewModel: ObservableObject {
         }
 
         runningTaskId = nil
+        // Clear lastSeenAt: this is a clean shutdown, not a crash
+        lastSeenAt = nil
         // Sync write: must complete before the process exits
         try? sqliteStorage?.save(todos[index])
         if sqliteStorage == nil {
@@ -909,15 +985,15 @@ class TodoViewModel: ObservableObject {
 
     func sanitizeOrphanedRunningState() {
         var needsSave = false
-        let now = Date()
+        let cutoff = lastSeenAt ?? Date()
 
         for i in todos.indices {
             if let startTime = todos[i].lastStartTime {
-                stopSession(todoIndex: i)
-                todos[i].totalTimeSpent += now.timeIntervalSince(startTime)
+                stopSession(todoIndex: i, at: cutoff)
+                todos[i].totalTimeSpent += cutoff.timeIntervalSince(startTime)
                 todos[i].lastStartTime = nil
                 if todos[i].countdownTime > 0, let countdownStart = todos[i].countdownStartTime {
-                    todos[i].countdownElapsedAtPause += now.timeIntervalSince(countdownStart)
+                    todos[i].countdownElapsedAtPause += cutoff.timeIntervalSince(countdownStart)
                     todos[i].countdownStartTime = nil
                 }
                 needsSave = true
@@ -925,8 +1001,8 @@ class TodoViewModel: ObservableObject {
 
             for j in todos[i].subtasks.indices {
                 if let startTime = todos[i].subtasks[j].lastStartTime {
-                    stopSubtaskSession(todoIndex: i, subtaskIndex: j)
-                    todos[i].subtasks[j].totalTimeSpent += now.timeIntervalSince(startTime)
+                    stopSubtaskSession(todoIndex: i, subtaskIndex: j, at: cutoff)
+                    todos[i].subtasks[j].totalTimeSpent += cutoff.timeIntervalSince(startTime)
                     todos[i].subtasks[j].lastStartTime = nil
                     needsSave = true
                 }
@@ -936,6 +1012,9 @@ class TodoViewModel: ObservableObject {
         if needsSave {
             saveTodos()
         }
+
+        // Clear lastSeenAt after processing — a clean sanitize means we're running normally now
+        lastSeenAt = nil
     }
 
     func resumeTask(_ taskId: UUID) {
@@ -1090,17 +1169,7 @@ class TodoViewModel: ObservableObject {
         if switchToIt {
             if let currentRunningId = runningTaskId,
                let runningIndex = todos.firstIndex(where: { $0.id == currentRunningId }) {
-                stopSession(todoIndex: runningIndex)
-                if let startTime = todos[runningIndex].lastStartTime {
-                    todos[runningIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
-                }
-                todos[runningIndex].lastStartTime = nil
-                
-                if todos[runningIndex].countdownTime > 0, let countdownStart = todos[runningIndex].countdownStartTime {
-                    let sessionElapsed = Date().timeIntervalSince(countdownStart)
-                    todos[runningIndex].countdownElapsedAtPause += sessionElapsed
-                    todos[runningIndex].countdownStartTime = nil
-                }
+                pauseTaskInternal(todoIndex: runningIndex)
             }
             
             if let newTaskIndex = todos.firstIndex(where: { $0.id == newTodo.id }) {
@@ -1211,7 +1280,9 @@ class TodoViewModel: ObservableObject {
               let subtaskIndex = todos[todoIndex].subtasks.firstIndex(where: { $0.id == subtaskId }) else {
             return
         }
-        
+
+        guard todos[todoIndex].isRunning else { return }
+
         if todos[todoIndex].subtasks[subtaskIndex].isRunning {
             stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: subtaskIndex)
             if let startTime = todos[todoIndex].subtasks[subtaskIndex].lastStartTime {
