@@ -22,4 +22,15 @@ final class ADOSettingsStore {
         get { defaults.string(forKey: "ado.project") ?? "" }
         set { defaults.set(newValue, forKey: "ado.project") }
     }
+
+    var pat: String {
+        get { defaults.string(forKey: "ado.pat") ?? "" }
+        set {
+            if newValue.isEmpty {
+                defaults.removeObject(forKey: "ado.pat")
+            } else {
+                defaults.set(newValue, forKey: "ado.pat")
+            }
+        }
+    }
 }

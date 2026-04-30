@@ -25,6 +25,7 @@ final class ADOSettingsStoreTests: XCTestCase {
     func testDefaultsAreEmpty() {
         XCTAssertEqual(store.organization, "")
         XCTAssertEqual(store.project, "")
+        XCTAssertEqual(store.pat, "")
     }
 
     func testSaveAndLoadOrganization() {
@@ -35,6 +36,17 @@ final class ADOSettingsStoreTests: XCTestCase {
     func testSaveAndLoadProject() {
         store.project = "my-project"
         XCTAssertEqual(store.project, "my-project")
+    }
+
+    func testSaveAndLoadPAT() {
+        store.pat = "abc123token"
+        XCTAssertEqual(store.pat, "abc123token")
+    }
+
+    func testClearingPATRemovesIt() {
+        store.pat = "abc123token"
+        store.pat = ""
+        XCTAssertEqual(store.pat, "")
     }
 
     func testValuesPersistedAcrossInstances() {

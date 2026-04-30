@@ -93,13 +93,15 @@ class SQLiteStorage {
                 description, due_date, is_adhoc, from_who, estimated_time,
                 created_at, started_at, completed_at, notes,
                 countdown_time, countdown_start_time, countdown_elapsed_at_pause,
-                last_played_at, reminder_date, has_active_notification
+                last_played_at, reminder_date, has_active_notification,
+                ado_work_item_id
             ) VALUES (
                 ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?,
-                ?, ?, ?
+                ?, ?, ?,
+                ?
             )
             ON CONFLICT(id) DO UPDATE SET
                 text = excluded.text,
@@ -121,7 +123,8 @@ class SQLiteStorage {
                 countdown_elapsed_at_pause = excluded.countdown_elapsed_at_pause,
                 last_played_at = excluded.last_played_at,
                 reminder_date = excluded.reminder_date,
-                has_active_notification = excluded.has_active_notification
+                has_active_notification = excluded.has_active_notification,
+                ado_work_item_id = excluded.ado_work_item_id
             """,
             arguments: [
                 task.id.uuidString,
@@ -144,7 +147,8 @@ class SQLiteStorage {
                 task.countdownElapsedAtPause,
                 task.lastPlayedAt,
                 task.reminderDate?.timeIntervalSince1970,
-                task.hasActiveNotification ? 1 : 0
+                task.hasActiveNotification ? 1 : 0,
+                task.adoWorkItemId
             ]
         )
 
@@ -234,7 +238,8 @@ class SQLiteStorage {
             countdownElapsedAtPause: row["countdown_elapsed_at_pause"],
             lastPlayedAt: row["last_played_at"],
             sessions: sessions,
-            reminderDate: reminderInterval.map { Date(timeIntervalSince1970: $0) }
+            reminderDate: reminderInterval.map { Date(timeIntervalSince1970: $0) },
+            adoWorkItemId: row["ado_work_item_id"] as String?
         )
         task.hasActiveNotification = (row["has_active_notification"] as Int) != 0
         return task
@@ -329,6 +334,10 @@ class SQLiteStorage {
 
             // Enable cascading deletes via foreign keys
             try db.execute(sql: "PRAGMA foreign_keys = ON")
+        }
+
+        migrator.registerMigration("v2_ado_work_item_id") { db in
+            try db.execute(sql: "ALTER TABLE tasks ADD COLUMN ado_work_item_id TEXT")
         }
 
         try migrator.migrate(dbQueue)
