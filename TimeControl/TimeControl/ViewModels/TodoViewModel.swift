@@ -37,6 +37,9 @@ class TodoViewModel: ObservableObject {
     @Published var defaultTimerMinutes: Int = 0
     @Published var shouldAutoShowTimerPicker: Bool = false
     @Published var dropdownSortOption: DropdownSortOption = .recentlyPlayed
+    /// Incremented each time the idle prompt's "Start a Task" is tapped.
+    /// ContentView observes this to focus the new-task input field.
+    @Published var focusNewTaskInputToken: UUID = UUID()
     
     private var timer: AnyCancellable?
     var storageURL: URL = TodoStorage.storageURL
@@ -325,6 +328,12 @@ class TodoViewModel: ObservableObject {
 
     func saveTodos() {
         saveAllTasks()
+    }
+
+    /// Signals ContentView to focus the new-task input field.
+    /// Called by the idle prompt's "Start a Task" action.
+    func requestFocusNewTaskInput() {
+        focusNewTaskInputToken = UUID()
     }
     
     func editTodo(_ todo: TodoItem) {

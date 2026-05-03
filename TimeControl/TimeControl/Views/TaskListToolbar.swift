@@ -15,7 +15,8 @@ struct TaskListToolbar: View {
     @Binding var showingMassOperations: Bool
     @Binding var showingSettings: Bool
     @Binding var sortOption: TaskSortOption
-    
+    var newTaskInputFocused: FocusState<Bool>.Binding? = nil
+
     let onAddTodo: () -> Void
     let onToggleExpandAll: () -> Void
     let onExportAllTasks: () -> Void
@@ -27,11 +28,7 @@ struct TaskListToolbar: View {
             // Text fields and buttons in a single row
             HStack {
                 // Add new todo text field
-                TextField("Add a new todo...", text: $newTodoText)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit {
-                        onAddTodo()
-                    }
+                NewTaskTextField(text: $newTodoText, focused: newTaskInputFocused, onSubmit: onAddTodo)
                 
                 // Add new todo button
                 Button(action: onAddTodo) {
@@ -160,5 +157,24 @@ struct TaskListToolbar: View {
             
             Divider()
         }
+    }
+}
+
+// MARK: - NewTaskTextField
+// Separate view so we can conditionally wire a FocusState binding without
+// requiring an always-present binding in TaskListToolbar's caller sites.
+
+private struct NewTaskTextField: View {
+    @Binding var text: String
+    var focused: FocusState<Bool>.Binding?
+    let onSubmit: () -> Void
+
+    @FocusState private var localFocus: Bool
+
+    var body: some View {
+        TextField("Add a new todo...", text: $text)
+            .textFieldStyle(.roundedBorder)
+            .focused(focused ?? $localFocus)
+            .onSubmit(onSubmit)
     }
 }

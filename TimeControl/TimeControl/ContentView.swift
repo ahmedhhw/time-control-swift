@@ -19,6 +19,7 @@ private struct SubtaskToPromote: Identifiable {
 struct ContentView: View {
     @EnvironmentObject var viewModel: TodoViewModel
     @FocusState private var subtaskInputFocused: UUID?
+    @FocusState private var newTaskInputFocused: Bool
     @State private var notesViewerWindow: NSWindow?
     @State private var historyWindow: NSWindow?
 
@@ -55,6 +56,7 @@ struct ContentView: View {
                 showingMassOperations: $viewModel.showingMassOperations,
                 showingSettings: $viewModel.showingSettings,
                 sortOption: $viewModel.sortOption,
+                newTaskInputFocused: $newTaskInputFocused,
                 onAddTodo: { viewModel.addTodo() },
                 onToggleExpandAll: { toggleExpandAll() },
                 onExportAllTasks: {
@@ -68,6 +70,9 @@ struct ContentView: View {
                     openHistoryWindow()
                 }
             )
+            .onChange(of: viewModel.focusNewTaskInputToken) { _ in
+                newTaskInputFocused = true
+            }
             
             // Main content area with incomplete todos
             if viewModel.todos.isEmpty {

@@ -20,6 +20,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Rebuild pending reminders from persisted todos (skips past ones, fires recent missed ones)
         NotificationScheduler.shared.rescheduleAll(viewModel.todos)
 
+        // Start idle activity monitoring; show prompt when user is active with no task running
+        let monitor = IdleActivityMonitor.shared
+        monitor.onShowPrompt = { [weak self] in
+            guard let self else { return }
+            IdlePromptWindowManager.shared.show(viewModel: self.viewModel)
+        }
+        monitor.start(viewModel: viewModel)
+
         setupStatusBarItem()
         setupSleepWakePrompt()
     }

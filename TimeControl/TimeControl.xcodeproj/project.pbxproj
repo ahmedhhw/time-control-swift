@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		IA000001000000000000001 /* IdleActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000001000000000000000 /* IdleActivityMonitor.swift */; };
+		IA000002000000000000001 /* IdlePromptConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000002000000000000000 /* IdlePromptConfig.swift */; };
+		IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000003000000000000000 /* IdlePromptWindowManager.swift */; };
+		IA000004000000000000001 /* IdlePromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000004000000000000000 /* IdlePromptView.swift */; };
+		IA000005000000000000001 /* IdleActivityMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000005000000000000000 /* IdleActivityMonitorTests.swift */; };
 		FF000001000000000000001 /* GRDB in Frameworks (app) */ = {isa = PBXBuildFile; productRef = FF000003000000000000001 /* GRDB */; };
 		FF000002000000000000001 /* GRDB in Frameworks (tests) */ = {isa = PBXBuildFile; productRef = FF000004000000000000001 /* GRDB */; };
 		FF000005000000000000001 /* SQLiteStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000006000000000000001 /* SQLiteStorage.swift */; };
@@ -132,6 +137,11 @@
 		WO000002000000000000000 /* WindowOpacityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityStoreTests.swift; sourceTree = "<group>"; };
 		WO000003000000000000000 /* WindowOpacityApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityApplier.swift; sourceTree = "<group>"; };
 		WO000004000000000000000 /* WindowOpacityApplierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityApplierTests.swift; sourceTree = "<group>"; };
+		IA000001000000000000000 /* IdleActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleActivityMonitor.swift; sourceTree = "<group>"; };
+		IA000002000000000000000 /* IdlePromptConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptConfig.swift; sourceTree = "<group>"; };
+		IA000003000000000000000 /* IdlePromptWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptWindowManager.swift; sourceTree = "<group>"; };
+		IA000004000000000000000 /* IdlePromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptView.swift; sourceTree = "<group>"; };
+		IA000005000000000000000 /* IdleActivityMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleActivityMonitorTests.swift; sourceTree = "<group>"; };
 		ST000001000000000000000 /* SubtitleText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleText.swift; sourceTree = "<group>"; };
 		ST000002000000000000000 /* SubtitleTextStrokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleTextStrokeTests.swift; sourceTree = "<group>"; };
 		AU000001000000000000000 /* ADOURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOURLBuilder.swift; sourceTree = "<group>"; };
@@ -217,6 +227,7 @@
 				9D1052AD2F46DA0000B7B24D /* Enums.swift */,
 				9D1052AE2F46DA0000B7B24D /* TodoItem.swift */,
 				EE000001000000000000001 /* NotificationModels.swift */,
+				IA000002000000000000000 /* IdlePromptConfig.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -234,6 +245,7 @@
 				A1000000000000000000142 /* ADOService.swift */,
 				A1000000000000000000144 /* ADOSettingsStore.swift */,
 				AU000001000000000000000 /* ADOURLBuilder.swift */,
+				IA000001000000000000000 /* IdleActivityMonitor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -274,6 +286,7 @@
 				EE000006000000000000001 /* NotificationHistoryView.swift */,
 				AL000001000000000000000 /* ADOLinkRow.swift */,
 				ST000001000000000000000 /* SubtitleText.swift */,
+				IA000004000000000000000 /* IdlePromptView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -290,6 +303,7 @@
 				9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */,
 				DD000002000000000000001 /* AppDelegate.swift */,
 				EE000004000000000000001 /* NotificationWindowManager.swift */,
+				IA000003000000000000000 /* IdlePromptWindowManager.swift */,
 			);
 			path = WindowManagement;
 			sourceTree = "<group>";
@@ -339,6 +353,7 @@
 				A1000000000000000000148 /* ADOServiceTests.swift */,
 				A1000000000000000000150 /* ADOSettingsStoreTests.swift */,
 				AU000002000000000000000 /* ADOURLBuilderTests.swift */,
+				IA000005000000000000000 /* IdleActivityMonitorTests.swift */,
 				TC000001000000000000000 /* TaskPauseConsistencyTests.swift */,
 				TC000002000000000000000 /* PauseBeforeDeleteTests.swift */,
 				TC000003000000000000000 /* SessionDiscardTests.swift */,
@@ -520,6 +535,7 @@
 				TC000001000000000000001 /* TaskPauseConsistencyTests.swift in Sources */,
 				TC000002000000000000001 /* PauseBeforeDeleteTests.swift in Sources */,
 				TC000003000000000000001 /* SessionDiscardTests.swift in Sources */,
+				IA000005000000000000001 /* IdleActivityMonitorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -578,6 +594,10 @@
 				EE000005000000000000002 /* NotificationOverlayView.swift in Sources */,
 				EE000006000000000000002 /* NotificationHistoryView.swift in Sources */,
 				FF00000A000000000000002 /* NewTaskStickyStore.swift in Sources */,
+				IA000001000000000000001 /* IdleActivityMonitor.swift in Sources */,
+				IA000002000000000000001 /* IdlePromptConfig.swift in Sources */,
+				IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */,
+				IA000004000000000000001 /* IdlePromptView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
