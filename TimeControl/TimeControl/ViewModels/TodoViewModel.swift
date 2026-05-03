@@ -112,7 +112,10 @@ class TodoViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self, let taskId = self.runningTaskId else { return }
+            guard let self,
+                  let taskId = self.runningTaskId,
+                  let task = self.todos.first(where: { $0.id == taskId }),
+                  task.isRunning else { return }
             self.sleepPausedTaskId = taskId
             self.pauseTask(taskId, keepWindowOpen: true)
         }
