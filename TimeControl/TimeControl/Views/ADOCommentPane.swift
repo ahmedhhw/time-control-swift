@@ -261,35 +261,108 @@ private class MentionTextView: NSTextView {
     var mentionKeyHandler: ((NSEvent) -> Bool)?
     var imagePasteHandler: ((Data, String) -> Void)?
 
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        super.mouseDown(with: event)
+    }
+
     override func keyDown(with event: NSEvent) {
         if mentionKeyHandler?(event) == true { return }
         super.keyDown(with: event)
     }
 
-    // ⌘V paste — intercept image pastes before NSTextView handles them.
-    // paste(_:) is delivered on the main thread via the responder chain.
-    override func paste(_ sender: Any?) {
-        let pboard = NSPasteboard.general
-        if let handler = imagePasteHandler, let data = Self.extractImagePNG(from: pboard) {
-            handler(data, "")
-            return
+    /// Prefer handling ⌘V here so image paste works even when `paste(_:)` is not routed to this view.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.contains(.command),
+           Self.eventIsPasteShortcut(event),
+           tryConsumeImagePaste() {
+            return true
         }
+        return super.performKeyEquivalent(with: event)
+    }
+
+    /// Matches Edit ▸ Paste (⌘V) including layouts where the key does not produce `"v"`.
+    private static func eventIsPasteShortcut(_ event: NSEvent) -> Bool {
+        if event.charactersIgnoringModifiers?.lowercased() == "v" { return true }
+        return event.keyCode == 9 // physical V key on ANSI / similar keyboards
+    }
+
+    // ⌘V / Edit ▸ Paste — intercept image pastes before plain-text insertion.
+    override func paste(_ sender: Any?) {
+        if tryConsumeImagePaste() { return }
         super.paste(sender)
     }
 
+    /// Returns true if the pasteboard held an image and it was passed to the handler.
+    private func tryConsumeImagePaste() -> Bool {
+        guard let handler = imagePasteHandler,
+              let data = Self.extractImagePNG(from: NSPasteboard.general) else { return false }
+        handler(data, "")
+        return true
+    }
+
     private static func extractImagePNG(from pboard: NSPasteboard) -> Data? {
-        if let data = pboard.data(forType: .png) { return data }
-        if let data = pboard.data(forType: NSPasteboard.PasteboardType("public.png")) { return data }
-        if let data = pboard.data(forType: .tiff) ?? pboard.data(forType: NSPasteboard.PasteboardType("public.tiff")),
-           let bitmap = NSBitmapImageRep(data: data) {
-            return bitmap.representation(using: .png, properties: [:])
+        if let objects = pboard.readObjects(forClasses: [NSImage.self], options: nil),
+           let image = objects.first as? NSImage,
+           let png = pngData(from: image) {
+            return png
         }
-        if let image = NSImage(pasteboard: pboard),
-           let tiff = image.tiffRepresentation,
-           let bitmap = NSBitmapImageRep(data: tiff) {
-            return bitmap.representation(using: .png, properties: [:])
+
+        if let urls = pboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] {
+            for url in urls where url.isFileURL {
+                if let image = NSImage(contentsOf: url), let png = pngData(from: image) {
+                    return png
+                }
+            }
+        }
+
+        let rawTypes: [NSPasteboard.PasteboardType] = [
+            .png,
+            NSPasteboard.PasteboardType(UTType.png.identifier),
+            .tiff,
+            NSPasteboard.PasteboardType(UTType.tiff.identifier),
+            NSPasteboard.PasteboardType(UTType.gif.identifier),
+            NSPasteboard.PasteboardType(UTType.jpeg.identifier),
+            NSPasteboard.PasteboardType(UTType.heic.identifier),
+            NSPasteboard.PasteboardType(UTType.webP.identifier),
+        ]
+        for pbType in rawTypes {
+            if let data = pboard.data(forType: pbType) {
+                if pbType == .png || pbType.rawValue == UTType.png.identifier { return data }
+                if let png = pngFromBitmapOrImage(data: data) { return png }
+            }
+        }
+
+        if let item = pboard.pasteboardItems?.first {
+            for type in item.types {
+                guard let ut = UTType(type.rawValue), ut.conforms(to: .image),
+                      let data = item.data(forType: type) else { continue }
+                if ut == .png || ut.preferredMIMEType == "image/png" { return data }
+                if let png = pngFromBitmapOrImage(data: data) { return png }
+            }
+        }
+
+        if let image = NSImage(pasteboard: pboard), let png = pngData(from: image) {
+            return png
         }
         return nil
+    }
+
+    private static func pngFromBitmapOrImage(data: Data) -> Data? {
+        if let bitmap = NSBitmapImageRep(data: data),
+           let png = bitmap.representation(using: .png, properties: [:]) {
+            return png
+        }
+        if let image = NSImage(data: data), let png = pngData(from: image) {
+            return png
+        }
+        return nil
+    }
+
+    private static func pngData(from image: NSImage) -> Data? {
+        guard let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff) else { return nil }
+        return bitmap.representation(using: .png, properties: [:])
     }
 }
 
