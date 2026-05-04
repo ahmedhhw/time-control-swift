@@ -14,6 +14,7 @@ struct TaskListToolbar: View {
     @Binding var areAllTasksExpanded: Bool
     @Binding var showingMassOperations: Bool
     @Binding var showingSettings: Bool
+    @Binding var showingADOImport: Bool
     @Binding var sortOption: TaskSortOption
     var newTaskInputFocused: FocusState<Bool>.Binding? = nil
 
@@ -123,6 +124,15 @@ struct TaskListToolbar: View {
                         HStack {
                             Image(systemName: "calendar")
                             Text("History")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button(action: { showingADOImport = true }) {
+                        HStack {
+                            Image(systemName: "arrow.down.circle")
+                            Text("Import from ADO")
                         }
                         .font(.body)
                     }

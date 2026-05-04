@@ -24,6 +24,7 @@ class TodoViewModel: ObservableObject {
     @Published var sortOption: TaskSortOption = .creationDateNewest
     @Published var showingMassOperations: Bool = false
     @Published var showingSettings: Bool = false
+    @Published var showingADOImport: Bool = false
     @Published var todoToDelete: TodoItem?
     @Published var subtaskToDelete: (subtask: Subtask, parentTodo: TodoItem)?
     
@@ -228,11 +229,18 @@ class TodoViewModel: ObservableObject {
     func addTodo() {
         let trimmedText = newTodoText.trimmingCharacters(in: .whitespaces)
         guard !trimmedText.isEmpty else { return }
-        
+
         let newIndex = todos.count
         let newTodo = TodoItem(text: trimmedText, index: newIndex)
         todos.append(newTodo)
         newTodoText = ""
+        saveAllTasks()
+    }
+
+    func insertTodo(_ todo: TodoItem) {
+        var inserted = todo
+        inserted.index = todos.count
+        todos.append(inserted)
         saveAllTasks()
     }
     

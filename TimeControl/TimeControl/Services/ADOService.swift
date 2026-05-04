@@ -17,8 +17,10 @@ final class ADOService {
         case unauthorized
         case notFound
         case networkUnavailable
+        case tlsError
         case serverError(Int)
         case invalidResponse
+        case urlError(Int)
     }
 
     private let session: URLSession
@@ -41,14 +43,17 @@ final class ADOService {
         do {
             (data, response) = try await session.data(for: request)
         } catch let urlError as URLError {
-            if urlError.code == .notConnectedToInternet ||
-               urlError.code == .networkConnectionLost ||
-               urlError.code == .cannotFindHost ||
-               urlError.code == .cannotConnectToHost ||
-               urlError.code == .timedOut {
-                throw ADOError.networkUnavailable
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost,
+                 .cannotConnectToHost, .timedOut, .dnsLookupFailed:
+                throw ADOError.urlError(urlError.errorCode)
+            case .serverCertificateUntrusted, .serverCertificateHasBadDate,
+                 .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot,
+                 .clientCertificateRequired, .secureConnectionFailed:
+                throw ADOError.tlsError
+            default:
+                throw ADOError.urlError(urlError.errorCode)
             }
-            throw ADOError.networkUnavailable
         }
 
         guard let http = response as? HTTPURLResponse else { throw ADOError.invalidResponse }

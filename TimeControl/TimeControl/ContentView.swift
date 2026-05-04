@@ -55,6 +55,7 @@ struct ContentView: View {
                 areAllTasksExpanded: $viewModel.areAllTasksExpanded,
                 showingMassOperations: $viewModel.showingMassOperations,
                 showingSettings: $viewModel.showingSettings,
+                showingADOImport: $viewModel.showingADOImport,
                 sortOption: $viewModel.sortOption,
                 newTaskInputFocused: $newTaskInputFocused,
                 onAddTodo: { viewModel.addTodo() },
@@ -299,6 +300,15 @@ struct ContentView: View {
             MassOperationsSheet(todos: $viewModel.todos, onSave: {
                 viewModel.saveTodos()
             })
+        }
+        .sheet(isPresented: $viewModel.showingADOImport) {
+            ADOImportView(
+                onImport: { newTodo in
+                    viewModel.insertTodo(newTodo)
+                    viewModel.showingADOImport = false
+                },
+                onCancel: { viewModel.showingADOImport = false }
+            )
         }
         .sheet(isPresented: $viewModel.showingSettings) {
             SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes, dropdownSortOptionRaw: $dropdownSortOptionRaw)

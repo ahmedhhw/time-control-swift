@@ -257,6 +257,10 @@ struct TodoRow: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+
+                    if let adoId = todo.adoWorkItemId, !adoId.isEmpty {
+                        ADOChip(workItemId: adoId)
+                    }
                 }
                 
                 Spacer()
