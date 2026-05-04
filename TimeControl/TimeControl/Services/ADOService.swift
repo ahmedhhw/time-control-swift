@@ -236,6 +236,45 @@ final class ADOService {
         name.lowercased().contains(query) || mail.lowercased().contains(query)
     }
 
+    func uploadAttachment(org: String, project: String, filename: String, data: Data, pat: String) async throws -> URL {
+        let encodedName = filename.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filename
+        let urlString = "https://dev.azure.com/\(org)/\(project)/_apis/wit/attachments?fileName=\(encodedName)&api-version=7.1"
+        guard let url = URL(string: urlString) else { throw ADOError.invalidResponse }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60
+        let credentials = Data(":\(pat)".utf8).base64EncodedString()
+        request.setValue("Basic \(credentials)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+        request.httpBody = data
+
+        let responseData: Data
+        let response: URLResponse
+        do {
+            (responseData, response) = try await session.data(for: request)
+        } catch let urlError as URLError {
+            throw ADOError.urlError(urlError.errorCode)
+        }
+
+        guard let http = response as? HTTPURLResponse else { throw ADOError.invalidResponse }
+        switch http.statusCode {
+        case 200, 201:
+            break
+        case 401:
+            throw ADOError.unauthorized
+        default:
+            throw ADOError.serverError(http.statusCode)
+        }
+
+        struct AttachmentResponse: Decodable { let url: String }
+        guard let body = try? JSONDecoder().decode(AttachmentResponse.self, from: responseData),
+              let resultURL = URL(string: body.url) else {
+            throw ADOError.invalidResponse
+        }
+        return resultURL
+    }
+
     func postComment(org: String, project: String, id: Int, comment: String, pat: String) async throws {
         let urlString = "https://dev.azure.com/\(org)/\(project)/_apis/wit/workitems/\(id)/comments?api-version=7.1-preview.3"
         guard let url = URL(string: urlString) else { throw ADOError.invalidResponse }

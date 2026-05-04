@@ -403,4 +403,162 @@ final class ADOCommentViewModelTests: XCTestCase {
         XCTAssertTrue(text.contains("hello"), "Expected 'hello' preserved, got: \(text)")
         XCTAssertTrue(text.contains("world"), "Expected 'world' preserved, got: \(text)")
     }
+
+    // MARK: - Pasted images
+
+    func testPasteImageAppendsToList() {
+        let vm = makeVM()
+        vm.pasteImage(Data([0x89, 0x50, 0x4E, 0x47]), filename: "pasted-image-1.png")
+        XCTAssertEqual(vm.pastedImages.count, 1)
+        XCTAssertEqual(vm.pastedImages[0].filename, "pasted-image-1.png")
+        XCTAssertEqual(vm.pastedImages[0].uploadState, .pending)
+    }
+
+    func testRemoveImageDeletesEntry() {
+        let vm = makeVM()
+        vm.pasteImage(Data([0x01]), filename: "a.png")
+        vm.pasteImage(Data([0x02]), filename: "b.png")
+        XCTAssertEqual(vm.pastedImages.count, 2)
+
+        let idToRemove = vm.pastedImages[0].id
+        vm.removeImage(id: idToRemove)
+        XCTAssertEqual(vm.pastedImages.count, 1)
+        XCTAssertEqual(vm.pastedImages[0].filename, "b.png")
+    }
+
+    func testCancelClearsPastedImages() {
+        let vm = makeVM()
+        vm.open()
+        vm.pasteImage(Data([0x01]), filename: "a.png")
+        XCTAssertEqual(vm.pastedImages.count, 1)
+        vm.cancel()
+        XCTAssertTrue(vm.pastedImages.isEmpty)
+    }
+
+    func testSendUploadsImagesBeforePosting() async throws {
+        var requestURLs: [String] = []
+        MockURLProtocol.requestHandler = { request in
+            requestURLs.append(request.url?.absoluteString ?? "")
+            if request.url?.absoluteString.contains("attachments") == true {
+                let json = #"{"url":"https://dev.azure.com/myorg/myproj/_apis/wit/attachments/abc"}"#.data(using: .utf8)!
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, json)
+            } else {
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, "{}".data(using: .utf8)!)
+            }
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "see attached"
+        vm.pasteImage(Data([0x89, 0x50, 0x4E, 0x47]), filename: "pasted-image-1.png")
+        await vm.send()
+
+        // Upload request must come before the postComment request
+        let attachmentIndex = requestURLs.firstIndex(where: { $0.contains("attachments") })
+        let commentsIndex = requestURLs.firstIndex(where: { $0.contains("/comments") })
+        let ai = try XCTUnwrap(attachmentIndex, "Expected attachment upload request")
+        let ci = try XCTUnwrap(commentsIndex, "Expected post comment request")
+        XCTAssertLessThan(ai, ci, "Upload must happen before postComment")
+    }
+
+    func testSendAppendsImgTagsToComment() async throws {
+        let attachmentURL = "https://dev.azure.com/myorg/myproj/_apis/wit/attachments/img1"
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            if request.url?.absoluteString.contains("attachments") == true {
+                let json = "{\"url\":\"\(attachmentURL)\"}".data(using: .utf8)!
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, json)
+            } else {
+                capturedCommentText = Self.readCommentText(from: request)
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, "{}".data(using: .utf8)!)
+            }
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "look here"
+        vm.pasteImage(Data([0x89, 0x50, 0x4E, 0x47]), filename: "pasted-image-1.png")
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertTrue(
+            text.contains("<img src=\"\(attachmentURL)\""),
+            "Expected img tag with upload URL, got: \(text)"
+        )
+    }
+
+    func testSendClearsPastedImagesOnSuccess() async {
+        MockURLProtocol.requestHandler = { request in
+            if request.url?.absoluteString.contains("attachments") == true {
+                let json = #"{"url":"https://dev.azure.com/myorg/myproj/_apis/wit/attachments/abc"}"#.data(using: .utf8)!
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, json)
+            } else {
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, "{}".data(using: .utf8)!)
+            }
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "with image"
+        vm.pasteImage(Data([0x01]), filename: "pasted-image-1.png")
+        await vm.send()
+
+        XCTAssertTrue(vm.pastedImages.isEmpty, "Expected pastedImages cleared after successful send")
+    }
+
+    func testSendUploadsAndPostsImageOnlyComment() async throws {
+        let attachmentURL = "https://dev.azure.com/myorg/myproj/_apis/wit/attachments/only"
+        var capturedCommentText: String?
+        var sawAttachmentUpload = false
+        MockURLProtocol.requestHandler = { request in
+            if request.url?.absoluteString.contains("attachments") == true {
+                sawAttachmentUpload = true
+                let json = "{\"url\":\"\(attachmentURL)\"}".data(using: .utf8)!
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, json)
+            } else {
+                capturedCommentText = Self.readCommentText(from: request)
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, "{}".data(using: .utf8)!)
+            }
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = ""
+        vm.pasteImage(Data([0x89, 0x50, 0x4E, 0x47]), filename: "pasted-image-1.png")
+        await vm.send()
+
+        XCTAssertTrue(sawAttachmentUpload, "Expected image to be uploaded even with empty text")
+        let text = try XCTUnwrap(capturedCommentText, "Expected postComment to be called for image-only send")
+        XCTAssertTrue(text.contains("<img src=\"\(attachmentURL)\""), "Expected img tag in posted comment, got: \(text)")
+        XCTAssertEqual(vm.phase, .sent)
+    }
+
+    func testSendMarksImageFailedOnUploadError() async {
+        MockURLProtocol.requestHandler = { request in
+            if request.url?.absoluteString.contains("attachments") == true {
+                let response = HTTPURLResponse(url: request.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!
+                return (response, Data())
+            } else {
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, "{}".data(using: .utf8)!)
+            }
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "with broken image"
+        vm.pasteImage(Data([0x01]), filename: "pasted-image-1.png")
+        await vm.send()
+
+        XCTAssertEqual(vm.pastedImages.count, 1, "Expected failed image to remain in list")
+        XCTAssertEqual(vm.pastedImages[0].uploadState, .failed)
+    }
 }

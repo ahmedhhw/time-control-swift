@@ -2176,3 +2176,4 @@ func calculateDynamicHeight(snapshot s: ResizeSnapshot) -> CGFloat {
 
     return min(max(height, 380), 900)
 }
+

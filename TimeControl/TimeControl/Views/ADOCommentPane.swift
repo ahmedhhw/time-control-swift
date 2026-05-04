@@ -5,6 +5,7 @@
 
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct ADOCommentPane: View {
     @ObservedObject var vm: ADOCommentViewModel
@@ -35,7 +36,26 @@ struct ADOCommentPane: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Pasted image strip
+
+    private var pastedImageStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(vm.pastedImages) { img in
+                    PastedImageThumbnail(img: img) {
+                        vm.removeImage(id: img.id)
+                    }
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
     // MARK: - Compose
+
+    private var hasContent: Bool {
+        !vm.commentText.trimmingCharacters(in: .whitespaces).isEmpty || !vm.pastedImages.isEmpty
+    }
 
     private var composeView: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -43,6 +63,10 @@ struct ADOCommentPane: View {
                 .frame(minHeight: 48, maxHeight: 100)
                 .disabled(vm.phase == .sending)
                 .opacity(vm.phase == .sending ? 0.6 : 1)
+
+            if !vm.pastedImages.isEmpty {
+                pastedImageStrip
+            }
 
             if vm.mentionQuery != nil {
                 MentionDropdown(vm: vm)
@@ -74,8 +98,8 @@ struct ADOCommentPane: View {
                 .foregroundColor(.blue)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .disabled(vm.commentText.trimmingCharacters(in: .whitespaces).isEmpty || vm.phase == .sending || vm.mentionQuery != nil)
-                .opacity((vm.commentText.trimmingCharacters(in: .whitespaces).isEmpty || vm.phase == .sending || vm.mentionQuery != nil) ? 0.4 : 1)
+                .disabled(!hasContent || vm.phase == .sending || vm.mentionQuery != nil)
+                .opacity((!hasContent || vm.phase == .sending || vm.mentionQuery != nil) ? 0.4 : 1)
             }
         }
     }
@@ -156,6 +180,7 @@ private struct MentionAwareEditor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let textView = MentionTextView()
         textView.mentionKeyHandler = context.coordinator.handleKey(event:)
+        textView.imagePasteHandler = context.coordinator.handleImagePaste(data:rawFilename:)
         textView.delegate = context.coordinator
         textView.isRichText = false
         textView.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
@@ -200,6 +225,14 @@ private struct MentionAwareEditor: NSViewRepresentable {
             parent.vm.handleTextChange(newText)
         }
 
+        func handleImagePaste(data: Data, rawFilename: String) {
+            MainActor.assumeIsolated {
+                let n = parent.vm.pastedImages.count + 1
+                let filename = "pasted-image-\(n).png"
+                parent.vm.pasteImage(data, filename: filename)
+            }
+        }
+
         // keyDown is always called on the main thread, so MainActor.assumeIsolated is safe here.
         func handleKey(event: NSEvent) -> Bool {
             MainActor.assumeIsolated {
@@ -226,10 +259,100 @@ private struct MentionAwareEditor: NSViewRepresentable {
 
 private class MentionTextView: NSTextView {
     var mentionKeyHandler: ((NSEvent) -> Bool)?
+    var imagePasteHandler: ((Data, String) -> Void)?
 
     override func keyDown(with event: NSEvent) {
         if mentionKeyHandler?(event) == true { return }
         super.keyDown(with: event)
+    }
+
+    // ⌘V paste — intercept image pastes before NSTextView handles them.
+    // paste(_:) is delivered on the main thread via the responder chain.
+    override func paste(_ sender: Any?) {
+        let pboard = NSPasteboard.general
+        if let handler = imagePasteHandler, let data = Self.extractImagePNG(from: pboard) {
+            handler(data, "")
+            return
+        }
+        super.paste(sender)
+    }
+
+    private static func extractImagePNG(from pboard: NSPasteboard) -> Data? {
+        if let data = pboard.data(forType: .png) { return data }
+        if let data = pboard.data(forType: NSPasteboard.PasteboardType("public.png")) { return data }
+        if let data = pboard.data(forType: .tiff) ?? pboard.data(forType: NSPasteboard.PasteboardType("public.tiff")),
+           let bitmap = NSBitmapImageRep(data: data) {
+            return bitmap.representation(using: .png, properties: [:])
+        }
+        if let image = NSImage(pasteboard: pboard),
+           let tiff = image.tiffRepresentation,
+           let bitmap = NSBitmapImageRep(data: tiff) {
+            return bitmap.representation(using: .png, properties: [:])
+        }
+        return nil
+    }
+}
+
+// MARK: - Pasted image thumbnail
+
+private struct PastedImageThumbnail: View {
+    let img: PastedImage
+    let onRemove: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            thumbnailImage
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            overlayBadge
+        }
+    }
+
+    @ViewBuilder
+    private var thumbnailImage: some View {
+        if let nsImage = NSImage(data: img.data) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.2))
+        }
+    }
+
+    @ViewBuilder
+    private var overlayBadge: some View {
+        switch img.uploadState {
+        case .pending:
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .shadow(radius: 1)
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .offset(x: 4, y: -4)
+        case .uploading:
+            ProgressView()
+                .controlSize(.mini)
+                .padding(4)
+                .background(Color.black.opacity(0.4))
+                .clipShape(Circle())
+                .offset(x: 4, y: -4)
+        case .uploaded:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.caption)
+                .shadow(radius: 1)
+                .offset(x: 4, y: -4)
+        case .failed:
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundColor(.red)
+                .font(.caption)
+                .shadow(radius: 1)
+                .offset(x: 4, y: -4)
+        }
     }
 }
 

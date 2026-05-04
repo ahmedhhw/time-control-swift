@@ -19,6 +19,7 @@ final class ADOCommentViewModel: ObservableObject {
 
     @Published var phase: Phase = .idle
     @Published var commentText: String = ""
+    @Published var pastedImages: [PastedImage] = []
 
     // Mention state
     @Published var mentionQuery: String? = nil
@@ -44,17 +45,37 @@ final class ADOCommentViewModel: ObservableObject {
 
     func cancel() {
         commentText = ""
+        pastedImages = []
         clearMentionState()
         phase = .idle
     }
 
     func send() async {
-        guard !commentText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let hasText = !commentText.trimmingCharacters(in: .whitespaces).isEmpty
+        guard hasText || !pastedImages.isEmpty else { return }
         guard let id = Int(workItemId) else { return }
         phase = .sending
         if mentionTokens.contains(where: { $0.storageKey == nil }) {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
         }
+        // Upload each pending image sequentially
+        for index in pastedImages.indices {
+            guard pastedImages[index].uploadState == .pending else { continue }
+            pastedImages[index].uploadState = .uploading
+            do {
+                let url = try await service.uploadAttachment(
+                    org: settings.organization,
+                    project: settings.project,
+                    filename: pastedImages[index].filename,
+                    data: pastedImages[index].data,
+                    pat: settings.pat
+                )
+                pastedImages[index].uploadState = .uploaded(url)
+            } catch {
+                pastedImages[index].uploadState = .failed
+            }
+        }
+        let anyFailed = pastedImages.contains { $0.uploadState == .failed }
         do {
             try await service.postComment(
                 org: settings.organization,
@@ -65,6 +86,9 @@ final class ADOCommentViewModel: ObservableObject {
             )
             commentText = ""
             mentionTokens = []
+            if !anyFailed {
+                pastedImages = []
+            }
             phase = .sent
         } catch ADOService.ADOError.urlError, ADOService.ADOError.networkUnavailable, ADOService.ADOError.tlsError {
             phase = .queued
@@ -73,12 +97,21 @@ final class ADOCommentViewModel: ObservableObject {
         }
     }
 
+    func pasteImage(_ data: Data, filename: String) {
+        pastedImages.append(PastedImage(id: UUID(), filename: filename, data: data, uploadState: .pending))
+    }
+
+    func removeImage(id: UUID) {
+        pastedImages.removeAll { $0.id == id }
+    }
+
     func retry() async {
         await send()
     }
 
     func dismiss() {
         commentText = ""
+        pastedImages = []
         clearMentionState()
         phase = .idle
     }
@@ -196,7 +229,14 @@ final class ADOCommentViewModel: ObservableObject {
             }
         }
         result = result.replacingOccurrences(of: "\n", with: "<br>")
-        return linkify(result)
+        result = linkify(result)
+        // Append img tags for successfully uploaded images
+        for img in pastedImages {
+            if case .uploaded(let url) = img.uploadState {
+                result += "<img src=\"\(url.absoluteString)\" alt=\"\(img.filename)\"/>"
+            }
+        }
+        return result
     }
 
     private func linkify(_ text: String) -> String {

@@ -115,6 +115,8 @@
 		CF000004000000000000001 /* ADOFetchCommentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000004000000000000000 /* ADOFetchCommentsTests.swift */; };
 		CF000005000000000000001 /* ADOUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000005000000000000000 /* ADOUser.swift */; };
 		CF000006000000000000001 /* MentionDropdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000006000000000000000 /* MentionDropdown.swift */; };
+		IM000001000000000000001 /* PastedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000001000000000000000 /* PastedImage.swift */; };
+		IM000002000000000000001 /* ADOServiceAttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000002000000000000000 /* ADOServiceAttachmentTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -185,6 +187,8 @@
 		CF000004000000000000000 /* ADOFetchCommentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOFetchCommentsTests.swift; sourceTree = "<group>"; };
 		CF000005000000000000000 /* ADOUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOUser.swift; sourceTree = "<group>"; };
 		CF000006000000000000000 /* MentionDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionDropdown.swift; sourceTree = "<group>"; };
+		IM000001000000000000000 /* PastedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastedImage.swift; sourceTree = "<group>"; };
+		IM000002000000000000000 /* ADOServiceAttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceAttachmentTests.swift; sourceTree = "<group>"; };
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
 		9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
@@ -268,6 +272,7 @@
 				IA000002000000000000000 /* IdlePromptConfig.swift */,
 				CF000001000000000000000 /* ADOComment.swift */,
 				CF000005000000000000000 /* ADOUser.swift */,
+				IM000001000000000000000 /* PastedImage.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -407,6 +412,7 @@
 				AI000003000000000000000 /* ADOImportViewModelTests.swift */,
 				AC000003000000000000000 /* ADOCommentServiceTests.swift */,
 				AC000004000000000000000 /* ADOCommentViewModelTests.swift */,
+				IM000002000000000000000 /* ADOServiceAttachmentTests.swift */,
 				AC000005000000000000000 /* ADOSubtaskCommentTests.swift */,
 				AC000099000000000000000 /* LinkParserTests.swift */,
 				CF000004000000000000000 /* ADOFetchCommentsTests.swift */,
@@ -592,6 +598,7 @@
 				AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */,
 				AC000003000000000000001 /* ADOCommentServiceTests.swift in Sources */,
 				AC000004000000000000001 /* ADOCommentViewModelTests.swift in Sources */,
+				IM000002000000000000001 /* ADOServiceAttachmentTests.swift in Sources */,
 				AC000005000000000000001 /* ADOSubtaskCommentTests.swift in Sources */,
 				AC000099000000000000001 /* LinkParserTests.swift in Sources */,
 				CF000004000000000000001 /* ADOFetchCommentsTests.swift in Sources */,
@@ -644,6 +651,7 @@
 				AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */,
 				AC000006000000000000001 /* ADOCommentPane.swift in Sources */,
 				AC000007000000000000001 /* ADOSubtaskCommentPrompt.swift in Sources */,
+				IM000001000000000000001 /* PastedImage.swift in Sources */,
 				CF000001000000000000001 /* ADOComment.swift in Sources */,
 				CF000002000000000000001 /* ADOCommentsViewModel.swift in Sources */,
 				CF000003000000000000001 /* ADOCommentsSection.swift in Sources */,
