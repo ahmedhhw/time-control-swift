@@ -44,6 +44,7 @@ struct ContentView: View {
     @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
     @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
     @AppStorage("isAdvancedMode") private var isAdvancedMode: Bool = false
+    @AppStorage("idlePromptEnabled") private var idlePromptEnabled: Bool = true
     
     var body: some View {
         ZStack {
@@ -311,7 +312,7 @@ struct ContentView: View {
             )
         }
         .sheet(isPresented: $viewModel.showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes, dropdownSortOptionRaw: $dropdownSortOptionRaw)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes, dropdownSortOptionRaw: $dropdownSortOptionRaw, idlePromptEnabled: $idlePromptEnabled)
         }
         .confirmationDialog(
             "Delete Task",

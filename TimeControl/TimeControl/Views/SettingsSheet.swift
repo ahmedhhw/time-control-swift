@@ -18,6 +18,7 @@ struct SettingsSheet: View {
     @Binding var timerOnTaskSwitch: Bool
     @Binding var defaultTimerMinutes: Int
     @Binding var dropdownSortOptionRaw: String
+    @Binding var idlePromptEnabled: Bool
     /// Both opacity bindings are optional. When non-nil the Appearance section appears
     /// (used by the floating Settings panel). When nil — e.g. main-window Settings sheet —
     /// the Appearance section is hidden because per-floating-window opacity isn't meaningful there.
@@ -197,6 +198,17 @@ struct SettingsSheet: View {
                     Divider()
                         .padding(.vertical, 8)
 
+                    Toggle("Show idle prompt when no task is running", isOn: $idlePromptEnabled)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+
+                    Text("When enabled, a prompt will appear if you're active on your computer but haven't started a task.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+                        .padding(.vertical, 8)
+
                     ADOSettingsSection()
 
                 }
@@ -241,6 +253,7 @@ struct FloatingSettingsHostView: View {
     @AppStorage("timerOnTaskSwitch") private var timerOnTaskSwitch: Bool = false
     @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
     @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
+    @AppStorage("idlePromptEnabled") private var idlePromptEnabled: Bool = true
 
     @State private var currentTaskOpacity: Double = FloatingWindowManager.shared.currentTaskOpacity
     @State private var notesOpacity: Double = FloatingWindowManager.shared.notesOpacity
@@ -258,6 +271,7 @@ struct FloatingSettingsHostView: View {
             timerOnTaskSwitch: $timerOnTaskSwitch,
             defaultTimerMinutes: $defaultTimerMinutes,
             dropdownSortOptionRaw: $dropdownSortOptionRaw,
+            idlePromptEnabled: $idlePromptEnabled,
             currentTaskOpacity: Binding(
                 get: { currentTaskOpacity },
                 set: { newValue in

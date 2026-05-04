@@ -17,6 +17,7 @@ struct IdlePromptConfig: Codable {
     )
 
     private static let userDefaultsKey = "idlePromptConfig"
+    static let enabledKey = "idlePromptEnabled"
 
     static func load() -> IdlePromptConfig {
         guard let data = UserDefaults.standard.data(forKey: userDefaultsKey),

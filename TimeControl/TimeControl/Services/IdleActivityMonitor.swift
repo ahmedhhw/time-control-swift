@@ -230,7 +230,13 @@ final class IdleActivityMonitor: ObservableObject {
 
         // Only consider showing a prompt when idle or active
         guard state == .active || state == .idle else { return }
-        guard config.enabled else { return }
+        let enabled: Bool = {
+            if userDefaults.object(forKey: IdlePromptConfig.enabledKey) != nil {
+                return userDefaults.bool(forKey: IdlePromptConfig.enabledKey)
+            }
+            return config.enabled
+        }()
+        guard enabled else { return }
 
         // Check if activity streak is long enough.
         // `activeStartedAt` is set when we first transition idle→active.
