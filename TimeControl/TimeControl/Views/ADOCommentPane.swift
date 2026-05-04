@@ -36,21 +36,6 @@ struct ADOCommentPane: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Pasted image strip
-
-    private var pastedImageStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(vm.pastedImages) { img in
-                    PastedImageThumbnail(img: img) {
-                        vm.removeImage(id: img.id)
-                    }
-                }
-            }
-            .padding(.vertical, 2)
-        }
-    }
-
     // MARK: - Compose
 
     private var hasContent: Bool {
@@ -59,14 +44,10 @@ struct ADOCommentPane: View {
 
     private var composeView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            MentionAwareEditor(text: $vm.commentText, vm: vm)
+            MentionAwareEditor(vm: vm)
                 .frame(minHeight: 48, maxHeight: 100)
                 .disabled(vm.phase == .sending)
                 .opacity(vm.phase == .sending ? 0.6 : 1)
-
-            if !vm.pastedImages.isEmpty {
-                pastedImageStrip
-            }
 
             if vm.mentionQuery != nil {
                 MentionDropdown(vm: vm)
@@ -172,7 +153,6 @@ struct ADOCommentPane: View {
 // MARK: - NSViewRepresentable text editor with mention key interception
 
 private struct MentionAwareEditor: NSViewRepresentable {
-    @Binding var text: String
     @ObservedObject var vm: ADOCommentViewModel
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -180,9 +160,10 @@ private struct MentionAwareEditor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let textView = MentionTextView()
         textView.mentionKeyHandler = context.coordinator.handleKey(event:)
-        textView.imagePasteHandler = context.coordinator.handleImagePaste(data:rawFilename:)
+        textView.imagePasteHandler = context.coordinator.handleImagePaste(data:rawFilename:textView:)
         textView.delegate = context.coordinator
-        textView.isRichText = false
+        textView.isRichText = true
+        textView.typingAttributes = ADOCommentViewModel.defaultTypingAttributes
         textView.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         textView.backgroundColor = NSColor.controlBackgroundColor
         textView.drawsBackground = true
@@ -200,15 +181,17 @@ private struct MentionAwareEditor: NSViewRepresentable {
         scrollView.layer?.cornerRadius = 6
         scrollView.layer?.borderWidth = 0.5
         scrollView.layer?.borderColor = NSColor.separatorColor.cgColor
+
+        textView.textStorage?.setAttributedString(NSMutableAttributedString(attributedString: vm.commentBody))
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? MentionTextView else { return }
-        if textView.string != text {
-            textView.string = text
+        if !textView.attributedString().isEqual(to: vm.commentBody) {
+            textView.textStorage?.setAttributedString(NSMutableAttributedString(attributedString: vm.commentBody))
         }
-        textView.isEditable = !context.coordinator.parent.vm.phase.isSending
+        textView.isEditable = !vm.phase.isSending
     }
 
     class Coordinator: NSObject, NSTextViewDelegate {
@@ -220,16 +203,19 @@ private struct MentionAwareEditor: NSViewRepresentable {
 
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? NSTextView else { return }
-            let newText = tv.string
-            parent.text = newText
-            parent.vm.handleTextChange(newText)
+            let newBody = NSMutableAttributedString(attributedString: tv.attributedString())
+            parent.vm.commentBody = newBody
+            parent.vm.handleTextChange(tv.string)
         }
 
-        func handleImagePaste(data: Data, rawFilename: String) {
+        func handleImagePaste(data: Data, rawFilename: String, textView: MentionTextView) {
             MainActor.assumeIsolated {
-                let n = parent.vm.pastedImages.count + 1
-                let filename = "pasted-image-\(n).png"
-                parent.vm.pasteImage(data, filename: filename)
+                let nextIndex = parent.vm.pastedImages.count + 1
+                let filename = "pasted-image-\(nextIndex).png"
+                let id = parent.vm.pasteImage(data, filename: filename)
+                let attachment = InlineImageAttachment(imageData: data, pastedImageId: id)
+                let attr = NSAttributedString(attachment: attachment)
+                textView.insertText(attr, replacementRange: textView.selectedRange())
             }
         }
 
@@ -259,7 +245,7 @@ private struct MentionAwareEditor: NSViewRepresentable {
 
 private class MentionTextView: NSTextView {
     var mentionKeyHandler: ((NSEvent) -> Bool)?
-    var imagePasteHandler: ((Data, String) -> Void)?
+    var imagePasteHandler: ((Data, String, MentionTextView) -> Void)?
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
@@ -287,17 +273,17 @@ private class MentionTextView: NSTextView {
         return event.keyCode == 9 // physical V key on ANSI / similar keyboards
     }
 
-    // ⌘V / Edit ▸ Paste — intercept image pastes before plain-text insertion.
+    // ⌘V / Edit ▸ Paste — images inline at caret; other content as plain text (no RTF styling).
     override func paste(_ sender: Any?) {
         if tryConsumeImagePaste() { return }
-        super.paste(sender)
+        pasteAsPlainText(sender)
     }
 
     /// Returns true if the pasteboard held an image and it was passed to the handler.
     private func tryConsumeImagePaste() -> Bool {
         guard let handler = imagePasteHandler,
               let data = Self.extractImagePNG(from: NSPasteboard.general) else { return false }
-        handler(data, "")
+        handler(data, "", self)
         return true
     }
 
@@ -363,69 +349,6 @@ private class MentionTextView: NSTextView {
         guard let tiff = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff) else { return nil }
         return bitmap.representation(using: .png, properties: [:])
-    }
-}
-
-// MARK: - Pasted image thumbnail
-
-private struct PastedImageThumbnail: View {
-    let img: PastedImage
-    let onRemove: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            thumbnailImage
-                .frame(width: 60, height: 60)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-
-            overlayBadge
-        }
-    }
-
-    @ViewBuilder
-    private var thumbnailImage: some View {
-        if let nsImage = NSImage(data: img.data) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFill()
-        } else {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.2))
-        }
-    }
-
-    @ViewBuilder
-    private var overlayBadge: some View {
-        switch img.uploadState {
-        case .pending:
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.white)
-                    .shadow(radius: 1)
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            .offset(x: 4, y: -4)
-        case .uploading:
-            ProgressView()
-                .controlSize(.mini)
-                .padding(4)
-                .background(Color.black.opacity(0.4))
-                .clipShape(Circle())
-                .offset(x: 4, y: -4)
-        case .uploaded:
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-                .font(.caption)
-                .shadow(radius: 1)
-                .offset(x: 4, y: -4)
-        case .failed:
-            Image(systemName: "exclamationmark.circle.fill")
-                .foregroundColor(.red)
-                .font(.caption)
-                .shadow(radius: 1)
-                .offset(x: 4, y: -4)
-        }
     }
 }
 

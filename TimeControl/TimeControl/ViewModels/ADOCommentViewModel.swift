@@ -3,6 +3,7 @@
 //  TimeControl
 //
 
+import AppKit
 import Foundation
 
 @MainActor
@@ -17,9 +18,22 @@ final class ADOCommentViewModel: ObservableObject {
         case error
     }
 
+    static let defaultTypingAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
+        .foregroundColor: NSColor.textColor,
+    ]
+
     @Published var phase: Phase = .idle
-    @Published var commentText: String = ""
+    @Published var commentBody = NSMutableAttributedString()
     @Published var pastedImages: [PastedImage] = []
+
+    /// Plain-text projection for tests and prefilled sends (setting replaces `commentBody` with attributed plain text).
+    var commentText: String {
+        get { commentBody.string }
+        set {
+            commentBody = NSMutableAttributedString(string: newValue, attributes: Self.defaultTypingAttributes)
+        }
+    }
 
     // Mention state
     @Published var mentionQuery: String? = nil
@@ -44,14 +58,14 @@ final class ADOCommentViewModel: ObservableObject {
     }
 
     func cancel() {
-        commentText = ""
+        commentBody = NSMutableAttributedString()
         pastedImages = []
         clearMentionState()
         phase = .idle
     }
 
     func send() async {
-        let hasText = !commentText.trimmingCharacters(in: .whitespaces).isEmpty
+        let hasText = !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         guard hasText || !pastedImages.isEmpty else { return }
         guard let id = Int(workItemId) else { return }
         phase = .sending
@@ -84,7 +98,7 @@ final class ADOCommentViewModel: ObservableObject {
                 comment: serialiseComment(),
                 pat: settings.pat
             )
-            commentText = ""
+            commentBody = NSMutableAttributedString()
             mentionTokens = []
             if !anyFailed {
                 pastedImages = []
@@ -97,12 +111,26 @@ final class ADOCommentViewModel: ObservableObject {
         }
     }
 
-    func pasteImage(_ data: Data, filename: String) {
-        pastedImages.append(PastedImage(id: UUID(), filename: filename, data: data, uploadState: .pending))
+    @discardableResult
+    func pasteImage(_ data: Data, filename: String) -> UUID {
+        let id = UUID()
+        pastedImages.append(PastedImage(id: id, filename: filename, data: data, uploadState: .pending))
+        return id
     }
 
     func removeImage(id: UUID) {
         pastedImages.removeAll { $0.id == id }
+        let ms = NSMutableAttributedString(attributedString: commentBody)
+        var ranges: [NSRange] = []
+        ms.enumerateAttribute(.attachment, in: NSRange(location: 0, length: ms.length), options: [.reverse]) { value, range, _ in
+            if let att = value as? InlineImageAttachment, att.pastedImageId == id {
+                ranges.append(range)
+            }
+        }
+        for r in ranges {
+            ms.deleteCharacters(in: r)
+        }
+        commentBody = ms
     }
 
     func retry() async {
@@ -110,7 +138,7 @@ final class ADOCommentViewModel: ObservableObject {
     }
 
     func dismiss() {
-        commentText = ""
+        commentBody = NSMutableAttributedString()
         pastedImages = []
         clearMentionState()
         phase = .idle
@@ -135,9 +163,19 @@ final class ADOCommentViewModel: ObservableObject {
         guard let query = mentionQuery else { return }
         let token = "@\(query)"
         let replacement = "@{\(user.displayName)} "
-        if let range = commentText.range(of: token, options: .backwards) {
-            commentText.replaceSubrange(range, with: replacement)
+        let full = commentBody.string
+        guard let range = full.range(of: token, options: .backwards) else {
+            clearMentionState()
+            return
         }
+        let nsRange = NSRange(range, in: full)
+        let ms = NSMutableAttributedString(attributedString: commentBody)
+        var eff = NSRange()
+        let attrs = ms.attributes(at: nsRange.location, longestEffectiveRange: &eff, in: NSRange(location: 0, length: ms.length))
+        let base = attrs.isEmpty ? Self.defaultTypingAttributes : attrs
+        let rep = NSAttributedString(string: replacement, attributes: base)
+        ms.replaceCharacters(in: nsRange, with: rep)
+        commentBody = ms
         mentionTokens.append(MentionToken(displayName: user.displayName, descriptor: user.id, storageKey: nil))
         clearMentionState()
         Task { await resolveStorageKey(for: user) }
@@ -219,7 +257,67 @@ final class ADOCommentViewModel: ObservableObject {
     }
 
     private func serialiseComment() -> String {
-        var result = commentText
+        let ns = commentBody.string as NSString
+        let len = ns.length
+        var i = 0
+        var html = ""
+        var referencedAttachmentIds = Set<UUID>()
+        while i < len {
+            if ns.character(at: i) == Self.objectReplacementUTF16 {
+                var eff = NSRange(location: i, length: 1)
+                let attrs = commentBody.attributes(at: i, effectiveRange: &eff)
+                if let att = attrs[.attachment] as? InlineImageAttachment {
+                    referencedAttachmentIds.insert(att.pastedImageId)
+                    html += htmlForUploadedImage(id: att.pastedImageId)
+                }
+                i = eff.upperBound
+            } else {
+                let start = i
+                i += 1
+                while i < len && ns.character(at: i) != Self.objectReplacementUTF16 {
+                    i += 1
+                }
+                let chunk = ns.substring(with: NSRange(location: start, length: i - start))
+                html += serialisePlainTextChunk(chunk)
+            }
+        }
+        // Pasted images without an inline attachment (e.g. unit tests) still append at the end.
+        for img in pastedImages {
+            guard case .uploaded(let url) = img.uploadState else { continue }
+            if referencedAttachmentIds.contains(img.id) { continue }
+            html += imgTag(url: url, filename: img.filename)
+        }
+        return html
+    }
+
+    /// UTF-16 for Unicode object replacement / attachment placeholder.
+    private static let objectReplacementUTF16: unichar = 0xFFFC
+
+    private func htmlForUploadedImage(id: UUID) -> String {
+        guard let img = pastedImages.first(where: { $0.id == id }) else { return "" }
+        switch img.uploadState {
+        case .uploaded(let url):
+            return imgTag(url: url, filename: img.filename)
+        case .failed, .pending, .uploading:
+            return ""
+        }
+    }
+
+    private func imgTag(url: URL, filename: String) -> String {
+        let src = escapeHtmlAttribute(url.absoluteString)
+        let alt = escapeHtmlAttribute(filename)
+        return "<img src=\"\(src)\" alt=\"\(alt)\"/>"
+    }
+
+    private func escapeHtmlAttribute(_ s: String) -> String {
+        s.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+    }
+
+    private func serialisePlainTextChunk(_ chunk: String) -> String {
+        var result = chunk
         for token in mentionTokens {
             let placeholder = "@{\(token.displayName)}"
             let id = token.storageKey ?? token.descriptor
@@ -230,12 +328,6 @@ final class ADOCommentViewModel: ObservableObject {
         }
         result = result.replacingOccurrences(of: "\n", with: "<br>")
         result = linkify(result)
-        // Append img tags for successfully uploaded images
-        for img in pastedImages {
-            if case .uploaded(let url) = img.uploadState {
-                result += "<img src=\"\(url.absoluteString)\" alt=\"\(img.filename)\"/>"
-            }
-        }
         return result
     }
 

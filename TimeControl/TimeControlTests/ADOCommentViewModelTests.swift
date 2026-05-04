@@ -3,6 +3,7 @@
 //  TimeControlTests
 //
 
+import AppKit
 import XCTest
 @testable import TimeControl
 
@@ -489,6 +490,46 @@ final class ADOCommentViewModelTests: XCTestCase {
             text.contains("<img src=\"\(attachmentURL)\""),
             "Expected img tag with upload URL, got: \(text)"
         )
+    }
+
+    func testSendSerialisesInlineImageBetweenTextSegments() async throws {
+        let attachmentURL = "https://dev.azure.com/myorg/myproj/_apis/wit/attachments/mid"
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            if request.url?.absoluteString.contains("attachments") == true {
+                let json = "{\"url\":\"\(attachmentURL)\"}".data(using: .utf8)!
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, json)
+            } else {
+                capturedCommentText = Self.readCommentText(from: request)
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, "{}".data(using: .utf8)!)
+            }
+        }
+
+        let vm = makeVM()
+        vm.open()
+        let png = Data([0x89, 0x50, 0x4E, 0x47])
+        let id = vm.pasteImage(png, filename: "pasted-image-1.png")
+        let before = NSAttributedString(string: "before ", attributes: ADOCommentViewModel.defaultTypingAttributes)
+        let attach = NSAttributedString(attachment: InlineImageAttachment(imageData: png, pastedImageId: id))
+        let after = NSAttributedString(string: " after", attributes: ADOCommentViewModel.defaultTypingAttributes)
+        let body = NSMutableAttributedString(attributedString: before)
+        body.append(attach)
+        body.append(after)
+        vm.commentBody = body
+
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        let beforeRange = text.range(of: "before")
+        let imgRange = text.range(of: "<img ")
+        let afterRange = text.range(of: " after")
+        XCTAssertNotNil(beforeRange)
+        XCTAssertNotNil(imgRange)
+        XCTAssertNotNil(afterRange)
+        XCTAssertLessThan(beforeRange!.upperBound, imgRange!.lowerBound)
+        XCTAssertLessThan(imgRange!.upperBound, afterRange!.lowerBound)
     }
 
     func testSendClearsPastedImagesOnSuccess() async {

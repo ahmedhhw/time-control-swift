@@ -116,6 +116,7 @@
 		CF000005000000000000001 /* ADOUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000005000000000000000 /* ADOUser.swift */; };
 		CF000006000000000000001 /* MentionDropdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000006000000000000000 /* MentionDropdown.swift */; };
 		IM000001000000000000001 /* PastedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000001000000000000000 /* PastedImage.swift */; };
+		IM000003000000000000001 /* InlineImageAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000003000000000000000 /* InlineImageAttachment.swift */; };
 		IM000002000000000000001 /* ADOServiceAttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000002000000000000000 /* ADOServiceAttachmentTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -188,6 +189,7 @@
 		CF000005000000000000000 /* ADOUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOUser.swift; sourceTree = "<group>"; };
 		CF000006000000000000000 /* MentionDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionDropdown.swift; sourceTree = "<group>"; };
 		IM000001000000000000000 /* PastedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastedImage.swift; sourceTree = "<group>"; };
+		IM000003000000000000000 /* InlineImageAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineImageAttachment.swift; sourceTree = "<group>"; };
 		IM000002000000000000000 /* ADOServiceAttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceAttachmentTests.swift; sourceTree = "<group>"; };
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
@@ -273,6 +275,7 @@
 				CF000001000000000000000 /* ADOComment.swift */,
 				CF000005000000000000000 /* ADOUser.swift */,
 				IM000001000000000000000 /* PastedImage.swift */,
+				IM000003000000000000000 /* InlineImageAttachment.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -650,6 +653,7 @@
 				AC000001000000000000001 /* ADOCommentStore.swift in Sources */,
 				AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */,
 				AC000006000000000000001 /* ADOCommentPane.swift in Sources */,
+				IM000003000000000000001 /* InlineImageAttachment.swift in Sources */,
 				AC000007000000000000001 /* ADOSubtaskCommentPrompt.swift in Sources */,
 				IM000001000000000000001 /* PastedImage.swift in Sources */,
 				CF000001000000000000001 /* ADOComment.swift in Sources */,
