@@ -62,6 +62,7 @@ struct FloatingTaskWindowView: View {
     @FocusState private var descriptionFocused: Bool
 
     @StateObject private var commentVM: ADOCommentViewModel
+    @StateObject private var commentsVM: ADOCommentsViewModel
     private let subtaskCommentStore = SubtaskCommentPromptStore()
     @State private var pendingSubtaskCommentTitle: String? = nil
 
@@ -76,6 +77,7 @@ struct FloatingTaskWindowView: View {
         self._notesText = State(initialValue: task.notes)
         self._descriptionText = State(initialValue: task.description)
         self._commentVM = StateObject(wrappedValue: ADOCommentViewModel(workItemId: task.adoWorkItemId ?? ""))
+        self._commentsVM = StateObject(wrappedValue: ADOCommentsViewModel(workItemId: task.adoWorkItemId ?? ""))
 
         if task.countdownTime > 0 {
             let totalMinutes = Int(task.countdownTime / 60)
@@ -975,6 +977,7 @@ struct FloatingTaskWindowView: View {
 
                     if let adoId = localTask.adoWorkItemId, !adoId.isEmpty {
                         ADOLinkRow(workItemId: adoId)
+                        ADOCommentsSection(vm: commentsVM)
                         ADOCommentPane(vm: commentVM)
                             .padding(.horizontal, 8)
                     }
