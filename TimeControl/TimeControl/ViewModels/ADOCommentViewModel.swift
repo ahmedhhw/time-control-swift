@@ -195,6 +195,7 @@ final class ADOCommentViewModel: ObservableObject {
                 result.replaceSubrange(range, with: html)
             }
         }
+        result = result.replacingOccurrences(of: "\n", with: "<br>")
         return linkify(result)
     }
 

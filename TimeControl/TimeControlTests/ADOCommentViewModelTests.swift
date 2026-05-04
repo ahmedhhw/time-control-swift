@@ -345,4 +345,62 @@ final class ADOCommentViewModelTests: XCTestCase {
               let dict = try? JSONDecoder().decode([String: String].self, from: data) else { return nil }
         return dict["text"]
     }
+
+    // MARK: - Newline → <br> serialisation
+
+    func testSendConvertsNewlineToBreakTag() async throws {
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            capturedCommentText = Self.readCommentText(from: request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                           httpVersion: nil, headerFields: nil)!
+            return (response, "{}".data(using: .utf8)!)
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "line one\nline two"
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertTrue(text.contains("<br>"), "Expected \\n converted to <br>, got: \(text)")
+        XCTAssertFalse(text.contains("\n"), "Expected no raw newlines in serialised output, got: \(text)")
+    }
+
+    func testSendConvertsMultipleNewlinesToBreakTags() async throws {
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            capturedCommentText = Self.readCommentText(from: request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                           httpVersion: nil, headerFields: nil)!
+            return (response, "{}".data(using: .utf8)!)
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "a\nb\nc"
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertEqual(text.components(separatedBy: "<br>").count, 3, "Expected 2 <br> tags for 2 newlines, got: \(text)")
+    }
+
+    func testSendPreservesTextAroundNewlines() async throws {
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            capturedCommentText = Self.readCommentText(from: request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                           httpVersion: nil, headerFields: nil)!
+            return (response, "{}".data(using: .utf8)!)
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "hello\nworld"
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertTrue(text.contains("hello"), "Expected 'hello' preserved, got: \(text)")
+        XCTAssertTrue(text.contains("world"), "Expected 'world' preserved, got: \(text)")
+    }
 }
