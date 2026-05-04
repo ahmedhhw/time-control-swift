@@ -31,6 +31,8 @@ final class ADOService {
 
     func fetchWorkItem(org: String, project: String, id: Int, pat: String) async throws -> ADOWorkItem {
         let urlString = "https://dev.azure.com/\(org)/\(project)/_apis/wit/workitems/\(id)?fields=System.Title,System.Description&api-version=7.1"
+        print("[ADOService] org='\(org)' project='\(project)' id=\(id) pat='\(pat.prefix(6))…'")
+        print("[ADOService] url='\(urlString)'")
         guard let url = URL(string: urlString) else { throw ADOError.invalidResponse }
 
         var request = URLRequest(url: url)
@@ -43,6 +45,7 @@ final class ADOService {
         do {
             (data, response) = try await session.data(for: request)
         } catch let urlError as URLError {
+            print("[ADOService] URLError code=\(urlError.errorCode) description=\(urlError.localizedDescription) failingURL=\(urlError.failingURL?.absoluteString ?? "nil")")
             switch urlError.code {
             case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost,
                  .cannotConnectToHost, .timedOut, .dnsLookupFailed:
