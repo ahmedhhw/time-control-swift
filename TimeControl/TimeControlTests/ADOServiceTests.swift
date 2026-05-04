@@ -149,8 +149,8 @@ final class ADOServiceTests: XCTestCase {
         do {
             _ = try await service.fetchWorkItem(org: "o", project: "p", id: 1, pat: "t")
             XCTFail("Expected error")
-        } catch ADOService.ADOError.networkUnavailable {
-            // correct
+        } catch ADOService.ADOError.urlError {
+            // correct — maps to urlError(Int) with the URLError code
         }
     }
 }

@@ -61,6 +61,10 @@ struct FloatingTaskWindowView: View {
     @State private var descriptionText: String = ""
     @FocusState private var descriptionFocused: Bool
 
+    @StateObject private var commentVM: ADOCommentViewModel
+    private let subtaskCommentStore = SubtaskCommentPromptStore()
+    @State private var pendingSubtaskCommentTitle: String? = nil
+
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     init(task: TodoItem, windowManager: FloatingWindowManager, viewModel: TodoViewModel) {
@@ -71,7 +75,8 @@ struct FloatingTaskWindowView: View {
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         self._descriptionText = State(initialValue: task.description)
-        
+        self._commentVM = StateObject(wrappedValue: ADOCommentViewModel(workItemId: task.adoWorkItemId ?? ""))
+
         if task.countdownTime > 0 {
             let totalMinutes = Int(task.countdownTime / 60)
             self._timerHours = State(initialValue: totalMinutes / 60)
@@ -279,6 +284,31 @@ struct FloatingTaskWindowView: View {
             }
             .padding(.top, 4)
             .id("subtaskInput")
+
+            // Phase 8: prompt to push subtask completion as ADO comment
+            if let title = pendingSubtaskCommentTitle,
+               localTask.adoWorkItemId != nil {
+                ADOSubtaskCommentPrompt(
+                    subtaskTitle: title,
+                    onYes: {
+                        let body = SubtaskCompletionCommentBody.text(for: title)
+                        commentVM.commentText = body
+                        pendingSubtaskCommentTitle = nil
+                        Task { await commentVM.send() }
+                    },
+                    onNo: {
+                        pendingSubtaskCommentTitle = nil
+                    },
+                    onAlways: {
+                        subtaskCommentStore.setAlwaysPost(true, for: localTask.id)
+                        let body = SubtaskCompletionCommentBody.text(for: title)
+                        commentVM.commentText = body
+                        pendingSubtaskCommentTitle = nil
+                        Task { await commentVM.send() }
+                    }
+                )
+                .padding(.top, 4)
+            }
         }
     }
 
@@ -945,6 +975,8 @@ struct FloatingTaskWindowView: View {
 
                     if let adoId = localTask.adoWorkItemId, !adoId.isEmpty {
                         ADOLinkRow(workItemId: adoId)
+                        ADOCommentPane(vm: commentVM)
+                            .padding(.horizontal, 8)
                     }
 
                     Spacer()
@@ -1633,13 +1665,13 @@ struct FloatingTaskWindowView: View {
         // Find the subtask and toggle it
         if let subtaskIndex = localTask.subtasks.firstIndex(where: { $0.id == subtask.id }) {
             localTask.subtasks[subtaskIndex].isCompleted.toggle()
-            
+
             // If the subtask was just completed, move it above all non-completed subtasks
             let wasCompleted = localTask.subtasks[subtaskIndex].isCompleted
             if wasCompleted {
                 let completedSubtask = localTask.subtasks[subtaskIndex]
                 localTask.subtasks.remove(at: subtaskIndex)
-                
+
                 // Find the position of the first non-completed subtask
                 if let firstIncompleteIndex = localTask.subtasks.firstIndex(where: { !$0.isCompleted }) {
                     localTask.subtasks.insert(completedSubtask, at: firstIncompleteIndex)
@@ -1647,8 +1679,21 @@ struct FloatingTaskWindowView: View {
                     // All subtasks are completed, add at the beginning
                     localTask.subtasks.insert(completedSubtask, at: 0)
                 }
+
+                // Phase 8: prompt to post ADO comment when subtask is completed on an ADO-linked task
+                if let adoId = localTask.adoWorkItemId, !adoId.isEmpty {
+                    if subtaskCommentStore.alwaysPost(for: localTask.id) {
+                        Task { @MainActor in
+                            let body = SubtaskCompletionCommentBody.text(for: subtask.title)
+                            commentVM.commentText = body
+                            await commentVM.send()
+                        }
+                    } else {
+                        pendingSubtaskCommentTitle = subtask.title
+                    }
+                }
             }
-            
+
             viewModel.toggleSubtaskFromFloatingWindow(subtask.id, in: localTask.id)
         }
     }

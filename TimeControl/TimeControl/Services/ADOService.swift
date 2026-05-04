@@ -31,8 +31,6 @@ final class ADOService {
 
     func fetchWorkItem(org: String, project: String, id: Int, pat: String) async throws -> ADOWorkItem {
         let urlString = "https://dev.azure.com/\(org)/\(project)/_apis/wit/workitems/\(id)?fields=System.Title,System.Description&api-version=7.1"
-        print("[ADOService] org='\(org)' project='\(project)' id=\(id) pat='\(pat.prefix(6))…'")
-        print("[ADOService] url='\(urlString)'")
         guard let url = URL(string: urlString) else { throw ADOError.invalidResponse }
 
         var request = URLRequest(url: url)
@@ -45,7 +43,6 @@ final class ADOService {
         do {
             (data, response) = try await session.data(for: request)
         } catch let urlError as URLError {
-            print("[ADOService] URLError code=\(urlError.errorCode) description=\(urlError.localizedDescription) failingURL=\(urlError.failingURL?.absoluteString ?? "nil")")
             switch urlError.code {
             case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost,
                  .cannotConnectToHost, .timedOut, .dnsLookupFailed:
@@ -89,5 +86,42 @@ final class ADOService {
             throw ADOError.invalidResponse
         }
         return ADOWorkItem(id: body.id, title: body.fields.title, description: body.fields.description)
+    }
+
+    func postComment(org: String, project: String, id: Int, comment: String, pat: String) async throws {
+        let urlString = "https://dev.azure.com/\(org)/\(project)/_apis/wit/workitems/\(id)/comments?api-version=7.1-preview.3"
+        guard let url = URL(string: urlString) else { throw ADOError.invalidResponse }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        let credentials = Data(":\(pat)".utf8).base64EncodedString()
+        request.setValue("Basic \(credentials)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONEncoder().encode(["text": comment])
+
+        let response: URLResponse
+        do {
+            (_, response) = try await session.data(for: request)
+        } catch let urlError as URLError {
+            switch urlError.code {
+            case .serverCertificateUntrusted, .serverCertificateHasBadDate,
+                 .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot,
+                 .clientCertificateRequired, .secureConnectionFailed:
+                throw ADOError.tlsError
+            default:
+                throw ADOError.urlError(urlError.errorCode)
+            }
+        }
+
+        guard let http = response as? HTTPURLResponse else { throw ADOError.invalidResponse }
+        switch http.statusCode {
+        case 200, 201:
+            return
+        case 401:
+            throw ADOError.unauthorized
+        default:
+            throw ADOError.serverError(http.statusCode)
+        }
     }
 }

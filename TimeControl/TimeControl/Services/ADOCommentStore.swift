@@ -1,0 +1,36 @@
+//
+//  ADOCommentStore.swift
+//  TimeControl
+//
+
+import Foundation
+
+final class SubtaskCommentPromptStore {
+    private let defaults: UserDefaults
+    private let key = "ado.subtask.alwaysPost"
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func alwaysPost(for taskId: UUID) -> Bool {
+        let dict = defaults.dictionary(forKey: key) as? [String: Bool] ?? [:]
+        return dict[taskId.uuidString] ?? false
+    }
+
+    func setAlwaysPost(_ value: Bool, for taskId: UUID) {
+        var dict = defaults.dictionary(forKey: key) as? [String: Bool] ?? [:]
+        if value {
+            dict[taskId.uuidString] = true
+        } else {
+            dict.removeValue(forKey: taskId.uuidString)
+        }
+        defaults.set(dict, forKey: key)
+    }
+}
+
+enum SubtaskCompletionCommentBody {
+    static func text(for subtaskTitle: String) -> String {
+        "✓ Subtask completed: \(subtaskTitle)"
+    }
+}
