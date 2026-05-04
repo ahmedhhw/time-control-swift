@@ -143,6 +143,75 @@ final class ADOService {
             .sorted { $0.createdDate > $1.createdDate }
     }
 
+    func searchUsers(org: String, query: String, pat: String) async throws -> [ADOUser] {
+        var components = URLComponents(string: "https://vssps.dev.azure.com/\(org)/_apis/identities")!
+        components.queryItems = [
+            URLQueryItem(name: "searchFilter", value: "General"),
+            URLQueryItem(name: "filterValue", value: query),
+            URLQueryItem(name: "api-version", value: "7.1")
+        ]
+        guard let url = components.url else { throw ADOError.invalidResponse }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        let credentials = Data(":\(pat)".utf8).base64EncodedString()
+        request.setValue("Basic \(credentials)", forHTTPHeaderField: "Authorization")
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let urlError as URLError {
+            switch urlError.code {
+            case .serverCertificateUntrusted, .serverCertificateHasBadDate,
+                 .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot,
+                 .clientCertificateRequired, .secureConnectionFailed:
+                throw ADOError.tlsError
+            default:
+                throw ADOError.urlError(urlError.errorCode)
+            }
+        }
+
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            return []
+        }
+
+        struct IdentityResponse: Decodable {
+            struct Identity: Decodable {
+                struct Property: Decodable {
+                    let value: String
+                    enum CodingKeys: String, CodingKey { case value = "$value" }
+                }
+                struct Properties: Decodable {
+                    let mail: Property?
+                    enum CodingKeys: String, CodingKey { case mail = "Mail" }
+                }
+                let subjectDescriptor: String?
+                let id: String
+                let providerDisplayName: String
+                let properties: Properties?
+            }
+            let value: [Identity]
+        }
+
+        guard let body = try? JSONDecoder().decode(IdentityResponse.self, from: data) else {
+            return []
+        }
+
+        let lowercasedQuery = query.lowercased()
+        return body.value
+            .compactMap { identity -> ADOUser? in
+                let mail = identity.properties?.mail?.value ?? ""
+                guard !mail.isEmpty,
+                      mail.lowercased().hasPrefix(lowercasedQuery) || identity.providerDisplayName.lowercased().hasPrefix(lowercasedQuery)
+                else { return nil }
+                let descriptor = identity.subjectDescriptor ?? identity.id
+                return ADOUser(id: descriptor, displayName: identity.providerDisplayName, mailAddress: mail)
+            }
+            .prefix(8)
+            .map { $0 }
+    }
+
     func postComment(org: String, project: String, id: Int, comment: String, pat: String) async throws {
         let urlString = "https://dev.azure.com/\(org)/\(project)/_apis/wit/workitems/\(id)/comments?api-version=7.1-preview.3"
         guard let url = URL(string: urlString) else { throw ADOError.invalidResponse }

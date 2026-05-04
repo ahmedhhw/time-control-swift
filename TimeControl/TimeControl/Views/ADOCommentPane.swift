@@ -46,6 +46,29 @@ struct ADOCommentPane: View {
                 .cornerRadius(6)
                 .disabled(vm.phase == .sending)
                 .opacity(vm.phase == .sending ? 0.6 : 1)
+                .onChange(of: vm.commentText) { newValue in
+                    vm.handleTextChange(newValue)
+                }
+                .onKeyPress(.upArrow) {
+                    guard vm.mentionQuery != nil else { return .ignored }
+                    vm.mentionMoveUp()
+                    return .handled
+                }
+                .onKeyPress(.downArrow) {
+                    guard vm.mentionQuery != nil else { return .ignored }
+                    vm.mentionMoveDown()
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    guard vm.mentionQuery != nil,
+                          vm.mentionSelectedIndex < vm.mentionResults.count else { return .ignored }
+                    vm.selectMention(vm.mentionResults[vm.mentionSelectedIndex])
+                    return .handled
+                }
+
+            if vm.mentionQuery != nil {
+                MentionDropdown(vm: vm)
+            }
 
             HStack {
                 Button("Cancel", action: vm.cancel)
@@ -73,8 +96,8 @@ struct ADOCommentPane: View {
                 .foregroundColor(.blue)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .disabled(vm.commentText.trimmingCharacters(in: .whitespaces).isEmpty || vm.phase == .sending)
-                .opacity((vm.commentText.trimmingCharacters(in: .whitespaces).isEmpty || vm.phase == .sending) ? 0.4 : 1)
+                .disabled(vm.commentText.trimmingCharacters(in: .whitespaces).isEmpty || vm.phase == .sending || vm.mentionQuery != nil)
+                .opacity((vm.commentText.trimmingCharacters(in: .whitespaces).isEmpty || vm.phase == .sending || vm.mentionQuery != nil) ? 0.4 : 1)
             }
         }
     }
