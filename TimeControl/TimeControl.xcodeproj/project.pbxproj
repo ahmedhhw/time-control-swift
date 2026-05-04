@@ -34,6 +34,7 @@
 		ST000001000000000000001 /* SubtitleText.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST000001000000000000000 /* SubtitleText.swift */; };
 		ST000002000000000000001 /* SubtitleTextStrokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST000002000000000000000 /* SubtitleTextStrokeTests.swift */; };
 		AU000001000000000000001 /* ADOURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000001000000000000000 /* ADOURLBuilder.swift */; };
+		LP000001000000000000001 /* LinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = LP000001000000000000000 /* LinkParser.swift */; };
 		AU000002000000000000001 /* ADOURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000002000000000000000 /* ADOURLBuilderTests.swift */; };
 		AL000001000000000000001 /* ADOLinkRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AL000001000000000000000 /* ADOLinkRow.swift */; };
 		9D1052CE2F46DA0000B7B24D /* ExportAllTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */; };
@@ -104,11 +105,13 @@
 		AC000003000000000000001 /* ADOCommentServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000003000000000000000 /* ADOCommentServiceTests.swift */; };
 		AC000004000000000000001 /* ADOCommentViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000004000000000000000 /* ADOCommentViewModelTests.swift */; };
 		AC000005000000000000001 /* ADOSubtaskCommentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000005000000000000000 /* ADOSubtaskCommentTests.swift */; };
+		AC000099000000000000001 /* LinkParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000099000000000000000 /* LinkParserTests.swift */; };
 		AC000006000000000000001 /* ADOCommentPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000006000000000000000 /* ADOCommentPane.swift */; };
 		AC000007000000000000001 /* ADOSubtaskCommentPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000007000000000000000 /* ADOSubtaskCommentPrompt.swift */; };
 		CF000001000000000000001 /* ADOComment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000001000000000000000 /* ADOComment.swift */; };
 		CF000002000000000000001 /* ADOCommentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000002000000000000000 /* ADOCommentsViewModel.swift */; };
 		CF000003000000000000001 /* ADOCommentsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000003000000000000000 /* ADOCommentsSection.swift */; };
+		CV000001000000000000001 /* CommentTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CV000001000000000000000 /* CommentTextView.swift */; };
 		CF000004000000000000001 /* ADOFetchCommentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000004000000000000000 /* ADOFetchCommentsTests.swift */; };
 		CF000005000000000000001 /* ADOUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000005000000000000000 /* ADOUser.swift */; };
 		CF000006000000000000001 /* MentionDropdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000006000000000000000 /* MentionDropdown.swift */; };
@@ -161,6 +164,7 @@
 		ST000001000000000000000 /* SubtitleText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleText.swift; sourceTree = "<group>"; };
 		ST000002000000000000000 /* SubtitleTextStrokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleTextStrokeTests.swift; sourceTree = "<group>"; };
 		AU000001000000000000000 /* ADOURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOURLBuilder.swift; sourceTree = "<group>"; };
+		LP000001000000000000000 /* LinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkParser.swift; sourceTree = "<group>"; };
 		AU000002000000000000000 /* ADOURLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOURLBuilderTests.swift; sourceTree = "<group>"; };
 		AL000001000000000000000 /* ADOLinkRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOLinkRow.swift; sourceTree = "<group>"; };
 		AI000001000000000000000 /* ADOImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportView.swift; sourceTree = "<group>"; };
@@ -171,11 +175,13 @@
 		AC000003000000000000000 /* ADOCommentServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentServiceTests.swift; sourceTree = "<group>"; };
 		AC000004000000000000000 /* ADOCommentViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModelTests.swift; sourceTree = "<group>"; };
 		AC000005000000000000000 /* ADOSubtaskCommentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSubtaskCommentTests.swift; sourceTree = "<group>"; };
+		AC000099000000000000000 /* LinkParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkParserTests.swift; sourceTree = "<group>"; };
 		AC000006000000000000000 /* ADOCommentPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentPane.swift; sourceTree = "<group>"; };
 		AC000007000000000000000 /* ADOSubtaskCommentPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSubtaskCommentPrompt.swift; sourceTree = "<group>"; };
 		CF000001000000000000000 /* ADOComment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOComment.swift; sourceTree = "<group>"; };
 		CF000002000000000000000 /* ADOCommentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentsViewModel.swift; sourceTree = "<group>"; };
 		CF000003000000000000000 /* ADOCommentsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentsSection.swift; sourceTree = "<group>"; };
+		CV000001000000000000000 /* CommentTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentTextView.swift; sourceTree = "<group>"; };
 		CF000004000000000000000 /* ADOFetchCommentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOFetchCommentsTests.swift; sourceTree = "<group>"; };
 		CF000005000000000000000 /* ADOUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOUser.swift; sourceTree = "<group>"; };
 		CF000006000000000000000 /* MentionDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionDropdown.swift; sourceTree = "<group>"; };
@@ -279,6 +285,7 @@
 				A1000000000000000000142 /* ADOService.swift */,
 				A1000000000000000000144 /* ADOSettingsStore.swift */,
 				AU000001000000000000000 /* ADOURLBuilder.swift */,
+				LP000001000000000000000 /* LinkParser.swift */,
 				AC000001000000000000000 /* ADOCommentStore.swift */,
 				IA000001000000000000000 /* IdleActivityMonitor.swift */,
 			);
@@ -324,6 +331,7 @@
 				AC000006000000000000000 /* ADOCommentPane.swift */,
 				AC000007000000000000000 /* ADOSubtaskCommentPrompt.swift */,
 				CF000003000000000000000 /* ADOCommentsSection.swift */,
+				CV000001000000000000000 /* CommentTextView.swift */,
 				CF000006000000000000000 /* MentionDropdown.swift */,
 				ST000001000000000000000 /* SubtitleText.swift */,
 				IA000004000000000000000 /* IdlePromptView.swift */,
@@ -400,6 +408,7 @@
 				AC000003000000000000000 /* ADOCommentServiceTests.swift */,
 				AC000004000000000000000 /* ADOCommentViewModelTests.swift */,
 				AC000005000000000000000 /* ADOSubtaskCommentTests.swift */,
+				AC000099000000000000000 /* LinkParserTests.swift */,
 				CF000004000000000000000 /* ADOFetchCommentsTests.swift */,
 				IA000005000000000000000 /* IdleActivityMonitorTests.swift */,
 				TC000001000000000000000 /* TaskPauseConsistencyTests.swift */,
@@ -584,6 +593,7 @@
 				AC000003000000000000001 /* ADOCommentServiceTests.swift in Sources */,
 				AC000004000000000000001 /* ADOCommentViewModelTests.swift in Sources */,
 				AC000005000000000000001 /* ADOSubtaskCommentTests.swift in Sources */,
+				AC000099000000000000001 /* LinkParserTests.swift in Sources */,
 				CF000004000000000000001 /* ADOFetchCommentsTests.swift in Sources */,
 				TC000001000000000000001 /* TaskPauseConsistencyTests.swift in Sources */,
 				TC000002000000000000001 /* PauseBeforeDeleteTests.swift in Sources */,
@@ -626,6 +636,7 @@
 				A1000000000000000000143 /* ADOService.swift in Sources */,
 				A1000000000000000000145 /* ADOSettingsStore.swift in Sources */,
 				AU000001000000000000001 /* ADOURLBuilder.swift in Sources */,
+				LP000001000000000000001 /* LinkParser.swift in Sources */,
 				AL000001000000000000001 /* ADOLinkRow.swift in Sources */,
 				AI000001000000000000001 /* ADOImportView.swift in Sources */,
 				AI000002000000000000001 /* ADOImportViewModel.swift in Sources */,
@@ -636,6 +647,7 @@
 				CF000001000000000000001 /* ADOComment.swift in Sources */,
 				CF000002000000000000001 /* ADOCommentsViewModel.swift in Sources */,
 				CF000003000000000000001 /* ADOCommentsSection.swift in Sources */,
+				CV000001000000000000001 /* CommentTextView.swift in Sources */,
 				CF000005000000000000001 /* ADOUser.swift in Sources */,
 				CF000006000000000000001 /* MentionDropdown.swift in Sources */,
 				ST000001000000000000001 /* SubtitleText.swift in Sources */,

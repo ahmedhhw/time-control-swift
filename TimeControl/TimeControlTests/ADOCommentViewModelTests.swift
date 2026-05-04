@@ -249,4 +249,100 @@ final class ADOCommentViewModelTests: XCTestCase {
         let url = try XCTUnwrap(capturedURL?.absoluteString)
         XCTAssertTrue(url.contains("/workitems/99/comments"))
     }
+
+    // MARK: - URL → hyperlink serialisation
+
+    func testSendConvertsBareLinkToAnchor() async throws {
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            capturedCommentText = Self.readCommentText(from: request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                           httpVersion: nil, headerFields: nil)!
+            return (response, "{}".data(using: .utf8)!)
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "See https://example.com for details"
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertTrue(text.contains("<a href=\"https://example.com\">https://example.com</a>"), "Expected URL wrapped in anchor tag, got: \(text)")
+    }
+
+    func testSendConvertsHttpLinkToAnchor() async throws {
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            capturedCommentText = Self.readCommentText(from: request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                           httpVersion: nil, headerFields: nil)!
+            return (response, "{}".data(using: .utf8)!)
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "Visit http://example.com/path?q=1"
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertTrue(text.contains("<a href=\"http://example.com/path?q=1\">http://example.com/path?q=1</a>"), "Expected URL wrapped in anchor tag, got: \(text)")
+    }
+
+    func testSendPreservesTextAroundLink() async throws {
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            capturedCommentText = Self.readCommentText(from: request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                           httpVersion: nil, headerFields: nil)!
+            return (response, "{}".data(using: .utf8)!)
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "See https://example.com for details"
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertTrue(text.contains("See"), "Expected surrounding text preserved, got: \(text)")
+        XCTAssertTrue(text.contains("for details"), "Expected surrounding text preserved, got: \(text)")
+    }
+
+    func testSendDoesNotWrapPlainText() async throws {
+        var capturedCommentText: String?
+        MockURLProtocol.requestHandler = { request in
+            capturedCommentText = Self.readCommentText(from: request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200,
+                                           httpVersion: nil, headerFields: nil)!
+            return (response, "{}".data(using: .utf8)!)
+        }
+
+        let vm = makeVM()
+        vm.open()
+        vm.commentText = "plain text no links"
+        await vm.send()
+
+        let text = try XCTUnwrap(capturedCommentText)
+        XCTAssertFalse(text.contains("<a href"), "Expected no anchor tags for plain text, got: \(text)")
+    }
+
+    private static func readCommentText(from request: URLRequest) -> String? {
+        let data: Data?
+        if let stream = request.httpBodyStream {
+            stream.open()
+            var collected = Data()
+            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1024)
+            while stream.hasBytesAvailable {
+                let read = stream.read(buffer, maxLength: 1024)
+                if read > 0 { collected.append(buffer, count: read) }
+            }
+            buffer.deallocate()
+            stream.close()
+            data = collected
+        } else {
+            data = request.httpBody
+        }
+        guard let data,
+              let dict = try? JSONDecoder().decode([String: String].self, from: data) else { return nil }
+        return dict["text"]
+    }
 }

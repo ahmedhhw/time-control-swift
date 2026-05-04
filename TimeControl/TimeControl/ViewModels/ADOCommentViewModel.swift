@@ -195,6 +195,18 @@ final class ADOCommentViewModel: ObservableObject {
                 result.replaceSubrange(range, with: html)
             }
         }
-        return result
+        return linkify(result)
+    }
+
+    private func linkify(_ text: String) -> String {
+        let segments = LinkParser.parse(text)
+        return segments.map { segment in
+            switch segment {
+            case .text(let s): return s
+            case .link(let url):
+                let urlStr = url.absoluteString
+                return "<a href=\"\(urlStr)\">\(urlStr)</a>"
+            }
+        }.joined()
     }
 }

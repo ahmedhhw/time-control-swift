@@ -99,7 +99,7 @@ struct ADOCommentsSection: View {
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            Text(comment.text)
+                            CommentTextView(text: comment.text)
                                 .font(.caption)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
