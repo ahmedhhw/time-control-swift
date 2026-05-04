@@ -52,6 +52,9 @@ final class ADOCommentViewModel: ObservableObject {
         guard !commentText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         guard let id = Int(workItemId) else { return }
         phase = .sending
+        if mentionTokens.contains(where: { $0.storageKey == nil }) {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+        }
         do {
             try await service.postComment(
                 org: settings.organization,
@@ -102,8 +105,16 @@ final class ADOCommentViewModel: ObservableObject {
         if let range = commentText.range(of: token, options: .backwards) {
             commentText.replaceSubrange(range, with: replacement)
         }
-        mentionTokens.append(MentionToken(displayName: user.displayName, descriptor: user.id))
+        mentionTokens.append(MentionToken(displayName: user.displayName, descriptor: user.id, storageKey: nil))
         clearMentionState()
+        Task { await resolveStorageKey(for: user) }
+    }
+
+    private func resolveStorageKey(for user: ADOUser) async {
+        guard let key = try? await service.fetchStorageKey(org: settings.organization, descriptor: user.id, pat: settings.pat) else { return }
+        if let idx = mentionTokens.firstIndex(where: { $0.descriptor == user.id }) {
+            mentionTokens[idx].storageKey = key
+        }
     }
 
     func mentionMoveUp() {
@@ -178,7 +189,8 @@ final class ADOCommentViewModel: ObservableObject {
         var result = commentText
         for token in mentionTokens {
             let placeholder = "@{\(token.displayName)}"
-            let html = "<@mention user-id=\"\(token.descriptor)\">\(token.displayName)</@mention>"
+            let id = token.storageKey ?? token.descriptor
+            let html = "<a href=\"#\" data-vss-mention=\"version:2.0,\(id)\">@\(token.displayName)</a>"
             if let range = result.range(of: placeholder) {
                 result.replaceSubrange(range, with: html)
             }

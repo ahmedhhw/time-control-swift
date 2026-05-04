@@ -14,4 +14,5 @@ struct ADOUser: Identifiable, Equatable {
 struct MentionToken: Equatable {
     let displayName: String
     let descriptor: String
+    var storageKey: String?
 }

@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct ADOCommentPane: View {
     @ObservedObject var vm: ADOCommentViewModel
@@ -38,33 +39,10 @@ struct ADOCommentPane: View {
 
     private var composeView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextEditor(text: $vm.commentText)
-                .font(.body)
+            MentionAwareEditor(text: $vm.commentText, vm: vm)
                 .frame(minHeight: 48, maxHeight: 100)
-                .scrollContentBackground(.hidden)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
                 .disabled(vm.phase == .sending)
                 .opacity(vm.phase == .sending ? 0.6 : 1)
-                .onChange(of: vm.commentText) { newValue in
-                    vm.handleTextChange(newValue)
-                }
-                .onKeyPress(.upArrow) {
-                    guard vm.mentionQuery != nil else { return .ignored }
-                    vm.mentionMoveUp()
-                    return .handled
-                }
-                .onKeyPress(.downArrow) {
-                    guard vm.mentionQuery != nil else { return .ignored }
-                    vm.mentionMoveDown()
-                    return .handled
-                }
-                .onKeyPress(.return) {
-                    guard vm.mentionQuery != nil,
-                          vm.mentionSelectedIndex < vm.mentionResults.count else { return .ignored }
-                    vm.selectMention(vm.mentionResults[vm.mentionSelectedIndex])
-                    return .handled
-                }
 
             if vm.mentionQuery != nil {
                 MentionDropdown(vm: vm)
@@ -165,4 +143,96 @@ struct ADOCommentPane: View {
             .buttonStyle(.plain)
         }
     }
+}
+
+// MARK: - NSViewRepresentable text editor with mention key interception
+
+private struct MentionAwareEditor: NSViewRepresentable {
+    @Binding var text: String
+    @ObservedObject var vm: ADOCommentViewModel
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let textView = MentionTextView()
+        textView.mentionKeyHandler = context.coordinator.handleKey(event:)
+        textView.delegate = context.coordinator
+        textView.isRichText = false
+        textView.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        textView.backgroundColor = NSColor.controlBackgroundColor
+        textView.drawsBackground = true
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.textContainerInset = NSSize(width: 4, height: 4)
+        textView.autoresizingMask = [.width]
+
+        let scrollView = NSScrollView()
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .lineBorder
+        scrollView.wantsLayer = true
+        scrollView.layer?.cornerRadius = 6
+        scrollView.layer?.borderWidth = 0.5
+        scrollView.layer?.borderColor = NSColor.separatorColor.cgColor
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? MentionTextView else { return }
+        if textView.string != text {
+            textView.string = text
+        }
+        textView.isEditable = !context.coordinator.parent.vm.phase.isSending
+    }
+
+    class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: MentionAwareEditor
+
+        init(_ parent: MentionAwareEditor) {
+            self.parent = parent
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let tv = notification.object as? NSTextView else { return }
+            let newText = tv.string
+            parent.text = newText
+            parent.vm.handleTextChange(newText)
+        }
+
+        // keyDown is always called on the main thread, so MainActor.assumeIsolated is safe here.
+        func handleKey(event: NSEvent) -> Bool {
+            MainActor.assumeIsolated {
+                guard parent.vm.mentionQuery != nil else { return false }
+                switch event.keyCode {
+                case 125: // down arrow
+                    parent.vm.mentionMoveDown()
+                    return true
+                case 126: // up arrow
+                    parent.vm.mentionMoveUp()
+                    return true
+                case 36, 76: // return / numpad enter
+                    let idx = parent.vm.mentionSelectedIndex
+                    guard idx < parent.vm.mentionResults.count else { return false }
+                    parent.vm.selectMention(parent.vm.mentionResults[idx])
+                    return true
+                default:
+                    return false
+                }
+            }
+        }
+    }
+}
+
+private class MentionTextView: NSTextView {
+    var mentionKeyHandler: ((NSEvent) -> Bool)?
+
+    override func keyDown(with event: NSEvent) {
+        if mentionKeyHandler?(event) == true { return }
+        super.keyDown(with: event)
+    }
+}
+
+private extension ADOCommentViewModel.Phase {
+    var isSending: Bool { self == .sending }
 }

@@ -110,6 +110,8 @@
 		CF000002000000000000001 /* ADOCommentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000002000000000000000 /* ADOCommentsViewModel.swift */; };
 		CF000003000000000000001 /* ADOCommentsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000003000000000000000 /* ADOCommentsSection.swift */; };
 		CF000004000000000000001 /* ADOFetchCommentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000004000000000000000 /* ADOFetchCommentsTests.swift */; };
+		CF000005000000000000001 /* ADOUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000005000000000000000 /* ADOUser.swift */; };
+		CF000006000000000000001 /* MentionDropdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000006000000000000000 /* MentionDropdown.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -175,6 +177,8 @@
 		CF000002000000000000000 /* ADOCommentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentsViewModel.swift; sourceTree = "<group>"; };
 		CF000003000000000000000 /* ADOCommentsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentsSection.swift; sourceTree = "<group>"; };
 		CF000004000000000000000 /* ADOFetchCommentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOFetchCommentsTests.swift; sourceTree = "<group>"; };
+		CF000005000000000000000 /* ADOUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOUser.swift; sourceTree = "<group>"; };
+		CF000006000000000000000 /* MentionDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionDropdown.swift; sourceTree = "<group>"; };
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
 		9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
@@ -257,6 +261,7 @@
 				EE000001000000000000001 /* NotificationModels.swift */,
 				IA000002000000000000000 /* IdlePromptConfig.swift */,
 				CF000001000000000000000 /* ADOComment.swift */,
+				CF000005000000000000000 /* ADOUser.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -319,6 +324,7 @@
 				AC000006000000000000000 /* ADOCommentPane.swift */,
 				AC000007000000000000000 /* ADOSubtaskCommentPrompt.swift */,
 				CF000003000000000000000 /* ADOCommentsSection.swift */,
+				CF000006000000000000000 /* MentionDropdown.swift */,
 				ST000001000000000000000 /* SubtitleText.swift */,
 				IA000004000000000000000 /* IdlePromptView.swift */,
 			);
@@ -630,6 +636,8 @@
 				CF000001000000000000001 /* ADOComment.swift in Sources */,
 				CF000002000000000000001 /* ADOCommentsViewModel.swift in Sources */,
 				CF000003000000000000001 /* ADOCommentsSection.swift in Sources */,
+				CF000005000000000000001 /* ADOUser.swift in Sources */,
+				CF000006000000000000001 /* MentionDropdown.swift in Sources */,
 				ST000001000000000000001 /* SubtitleText.swift in Sources */,
 				FF000005000000000000001 /* SQLiteStorage.swift in Sources */,
 				9D1052D52F46DA0000B7B24D /* NewTaskPopupView.swift in Sources */,
