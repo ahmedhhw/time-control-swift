@@ -50,7 +50,6 @@ struct ContentView: View {
         ZStack {
         VStack(spacing: 0) {
             TaskListToolbar(
-                newTodoText: $viewModel.newTodoText,
                 filterText: $viewModel.filterText,
                 isAdvancedMode: $viewModel.isAdvancedMode,
                 areAllTasksExpanded: $viewModel.areAllTasksExpanded,

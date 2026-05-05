@@ -12,23 +12,23 @@ final class TodoViewModelTests: XCTestCase {
 
     func testAddTodo_appendsToTodos() {
         let (vm, _, _) = makeViewModel()
-        vm.newTodoText = "Write report"
+        vm.filterText = "Write report"
         vm.addTodo()
         XCTAssertEqual(vm.todos.count, 1)
         XCTAssertEqual(vm.todos[0].text, "Write report")
-        XCTAssertTrue(vm.newTodoText.isEmpty)
+        XCTAssertTrue(vm.filterText.isEmpty)
     }
 
     func testAddTodo_emptyText_doesNotAdd() {
         let (vm, _, _) = makeViewModel()
-        vm.newTodoText = "   "
+        vm.filterText = "   "
         vm.addTodo()
         XCTAssertTrue(vm.todos.isEmpty)
     }
 
     func testToggleTodo_completesTask_andStopsTimer() {
         let (vm, _, _) = makeViewModel()
-        vm.newTodoText = "Task"
+        vm.filterText = "Task"
         vm.addTodo()
         vm.toggleTimer(vm.todos[0])
         vm.toggleTodo(vm.todos[0])
@@ -204,7 +204,7 @@ final class TodoViewModelTests: XCTestCase {
 
     func testSaveTodos_persistsAndLoadsCorrectly() {
         let (vm, url, dbURL) = makeViewModel()
-        vm.newTodoText = "Persisted task"
+        vm.filterText = "Persisted task"
         vm.addTodo()
         vm.sqliteStorage?.drainWrites()
 
@@ -737,7 +737,7 @@ final class TodoViewModelTests: XCTestCase {
             TodoItem(text: "Task B", index: 1),
             TodoItem(text: "Task C", index: 2)
         ]
-        vm.newTodoText = "Task D"
+        vm.filterText = "Task D"
         vm.addTodo()  // triggers saveAllTasks (adds task, reindexes)
         vm.sqliteStorage?.drainWrites()
 

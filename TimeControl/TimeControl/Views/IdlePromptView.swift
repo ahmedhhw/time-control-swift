@@ -98,7 +98,7 @@ struct IdlePromptView: View {
             }
             .padding(14)
         }
-        .frame(width: 360, height: 180)
+        .frame(width: 360)
         .offset(y: slideOffset)
         .opacity(opacity)
         .onAppear {

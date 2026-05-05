@@ -11,7 +11,6 @@ import AppKit
 
 class TodoViewModel: ObservableObject {
     @Published var todos: [TodoItem] = []
-    @Published var newTodoText: String = ""
     @Published var filterText: String = ""
     @Published var timerUpdateTrigger = 0
     @Published var editingTodo: TodoItem?
@@ -227,13 +226,13 @@ class TodoViewModel: ObservableObject {
     }
     
     func addTodo() {
-        let trimmedText = newTodoText.trimmingCharacters(in: .whitespaces)
+        let trimmedText = filterText.trimmingCharacters(in: .whitespaces)
         guard !trimmedText.isEmpty else { return }
 
         let newIndex = todos.count
         let newTodo = TodoItem(text: trimmedText, index: newIndex)
         todos.append(newTodo)
-        newTodoText = ""
+        filterText = ""
         saveAllTasks()
     }
 

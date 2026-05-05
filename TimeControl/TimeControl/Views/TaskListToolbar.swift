@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct TaskListToolbar: View {
-    @Binding var newTodoText: String
     @Binding var filterText: String
     @Binding var isAdvancedMode: Bool
     @Binding var areAllTasksExpanded: Bool
@@ -28,36 +27,15 @@ struct TaskListToolbar: View {
         VStack(spacing: 0) {
             // Text fields and buttons in a single row
             HStack {
-                // Add new todo text field
-                NewTaskTextField(text: $newTodoText, focused: newTaskInputFocused, onSubmit: onAddTodo)
-                
-                // Add new todo button
+                NewTaskTextField(text: $filterText, focused: newTaskInputFocused, onSubmit: onAddTodo)
+
                 Button(action: onAddTodo) {
                     Image(systemName: "plus.circle.fill")
                         .font(.title)
                 }
                 .buttonStyle(.plain)
-                .disabled(newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
-                
-                // Filter text field
-                TextField("Filter tasks...", text: $filterText)
-                    .textFieldStyle(.roundedBorder)
-                
-                // Filter button/icon
-                if !filterText.isEmpty {
-                    Button(action: {
-                        filterText = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                            .font(.title)
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                        .font(.title)
-                }
+                .disabled(filterText.trimmingCharacters(in: .whitespaces).isEmpty)
+
             }
             .padding()
             .padding(.bottom, -8)
@@ -182,7 +160,7 @@ private struct NewTaskTextField: View {
     @FocusState private var localFocus: Bool
 
     var body: some View {
-        TextField("Add a new todo...", text: $text)
+        TextField("Add or filter tasks...", text: $text)
             .textFieldStyle(.roundedBorder)
             .focused(focused ?? $localFocus)
             .onSubmit(onSubmit)
