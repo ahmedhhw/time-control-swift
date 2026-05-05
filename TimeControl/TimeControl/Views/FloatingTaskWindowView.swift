@@ -63,7 +63,7 @@ struct FloatingTaskWindowView: View {
         case timers = "Timers"
         case subtasks = "Subtasks"
         case notes = "Notes"
-        case comments = "Comments"
+        case comments = "ADO"
     }
     @AppStorage("floatingWindow.selectedTab") private var selectedTabRaw: String = FloatingTab.focus.rawValue
     private var selectedTab: FloatingTab {
@@ -730,72 +730,43 @@ struct FloatingTaskWindowView: View {
                             .buttonStyle(.plain)
                         }
                     } else {
-                        // Expanded: show all toolbar icons inline
-                        Button(action: { openMainWindow() }) {
-                            Image(systemName: "macwindow")
-                                .foregroundColor(.blue)
-                                .font(.caption)
-                                .frame(width: 20, height: 20)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip("Open task list")
-
-                        Button(action: { showingTimerPicker = true }) {
-                            Image(systemName: "timer")
+                        // Expanded: book icon + inline tab strip fills the middle
+                        Button(action: { showCollapsedMenu.toggle() }) {
+                            Image(systemName: "books.vertical")
                                 .font(.subheadline)
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(.plain)
-                        .floatingTooltip("Set a countdown timer")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-
-                        Button(action: { editTask() }) {
-                            Image(systemName: "pencil")
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
+                        .floatingTooltip("More actions")
+                        .popover(isPresented: $showCollapsedMenu, arrowEdge: .bottom) {
+                            collapsedMenuContent
                         }
-                        .buttonStyle(.plain)
-                        .floatingTooltip("Edit task")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
 
-                        // Bell icon
-                        if localTask.hasActiveNotification {
-                            Button(action: { viewModel.dismissBell(for: localTask.id) }) {
-                                Image(systemName: "bell.fill")
-                                    .font(.subheadline)
-                                    .foregroundColor(.orange)
-                            }
-                            .buttonStyle(.plain)
-                            .floatingTooltip("Notification active — tap to dismiss")
-                            .disabled(taskMarkedComplete)
-                            .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                        } else {
-                            Button(action: { showingReminderPopover = true }) {
-                                let hasReminder = localTask.reminderDate.map { $0 > Date() } ?? false
-                                Image(systemName: hasReminder ? "bell.fill" : "bell")
-                                    .font(.subheadline)
-                                    .foregroundColor(hasReminder ? .orange.opacity(0.5) : .blue)
-                            }
-                            .buttonStyle(.plain)
-                            .floatingTooltip(localTask.reminderDate.map { $0 > Date() } ?? false ? "Reminder set" : "Set a reminder")
-                            .disabled(taskMarkedComplete)
-                            .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                            .popover(isPresented: $showingReminderPopover) {
-                                ReminderPickerPopover(
-                                    currentReminder: localTask.reminderDate,
-                                    onSelect: { date in
-                                        viewModel.setReminder(date, for: localTask.id)
-                                        showingReminderPopover = false
-                                    },
-                                    onClear: {
-                                        viewModel.setReminder(nil, for: localTask.id)
-                                        showingReminderPopover = false
+                        let visibleTabsToolbar: [FloatingTab] = {
+                            var tabs: [FloatingTab] = [.focus, .timers, .subtasks, .notes]
+                            if let adoId = localTask.adoWorkItemId, !adoId.isEmpty { tabs.append(.comments) }
+                            return tabs
+                        }()
+
+                        HStack(spacing: 0) {
+                            ForEach(visibleTabsToolbar, id: \.self) { tab in
+                                Button(action: { selectedTabRaw = tab.rawValue }) {
+                                    VStack(spacing: 2) {
+                                        Text(tab.rawValue)
+                                            .font(.caption)
+                                            .foregroundColor(selectedTab == tab ? .primary : .secondary)
+                                            .padding(.horizontal, 6)
+                                            .padding(.top, 2)
+                                        Rectangle()
+                                            .fill(selectedTab == tab ? Color.accentColor : Color.clear)
+                                            .frame(height: 2)
                                     }
-                                )
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
+
+                        Spacer()
 
                     }
                 }
@@ -875,33 +846,6 @@ struct FloatingTaskWindowView: View {
                     .padding(.horizontal, 12)
                     .padding(.top, 4)
                     .padding(.bottom, 6)
-
-                    // Underline tab bar
-                    let visibleTabs: [FloatingTab] = {
-                        var tabs: [FloatingTab] = [.focus, .timers, .subtasks, .notes]
-                        if let adoId = localTask.adoWorkItemId, !adoId.isEmpty { tabs.append(.comments) }
-                        return tabs
-                    }()
-
-                    HStack(spacing: 0) {
-                        ForEach(visibleTabs, id: \.self) { tab in
-                            Button(action: { selectedTabRaw = tab.rawValue }) {
-                                VStack(spacing: 3) {
-                                    Text(tab.rawValue)
-                                        .font(.subheadline)
-                                        .foregroundColor(selectedTab == tab ? .primary : .secondary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.top, 4)
-                                    Rectangle()
-                                        .fill(selectedTab == tab ? Color.accentColor : Color.clear)
-                                        .frame(height: 2)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, 4)
 
                     Divider()
 
