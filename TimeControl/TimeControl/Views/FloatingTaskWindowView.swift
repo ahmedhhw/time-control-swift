@@ -57,6 +57,19 @@ struct FloatingTaskWindowView: View {
     @AppStorage("floatingWindow.showSubtasks") private var showSubtasks: Bool = true
     @State private var showVisibilityPopover: Bool = false
     @State private var showCollapsedMenu: Bool = false
+
+    enum FloatingTab: String, CaseIterable {
+        case focus = "Focus"
+        case timers = "Timers"
+        case subtasks = "Subtasks"
+        case notes = "Notes"
+        case comments = "Comments"
+    }
+    @AppStorage("floatingWindow.selectedTab") private var selectedTabRaw: String = FloatingTab.focus.rawValue
+    private var selectedTab: FloatingTab {
+        get { FloatingTab(rawValue: selectedTabRaw) ?? .focus }
+        set { selectedTabRaw = newValue.rawValue }
+    }
     @State private var isViewActive: Bool = true
     @State private var descriptionText: String = ""
     @FocusState private var descriptionFocused: Bool
@@ -314,6 +327,298 @@ struct FloatingTaskWindowView: View {
         }
     }
 
+    // MARK: - Tab content views
+
+    @ViewBuilder
+    private var focusTabContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if viewModel.activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
+                HStack {
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Attention Check")
+                            .font(.caption).foregroundColor(.secondary).textCase(.uppercase)
+                        if let lastReminder = lastReminderTime {
+                            let remaining = max(0, 120 - Date().timeIntervalSince(lastReminder))
+                            Text(TimeFormatter.formatTime(remaining))
+                                .font(.title2).fontWeight(.semibold)
+                                .foregroundColor(remaining < 30 ? .orange : .purple)
+                                .monospacedDigit().id(timerUpdateTrigger)
+                        } else {
+                            Text(TimeFormatter.formatTime(120))
+                                .font(.title2).fontWeight(.semibold).foregroundColor(.purple)
+                                .monospacedDigit().id(timerUpdateTrigger)
+                        }
+                    }
+                }
+            }
+
+            if taskMarkedComplete {
+                Text("Task complete!")
+                    .font(.headline).foregroundColor(.green)
+            } else if !localTask.isRunning {
+                Text("Task paused")
+                    .font(.subheadline).foregroundColor(.secondary)
+            } else {
+                Text("Running…")
+                    .font(.subheadline).foregroundColor(.blue)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var timersTabContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if localTask.countdownTime > 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Button(action: { withAnimation { showTimerBar.toggle() } }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: showTimerBar ? "chevron.down" : "chevron.right")
+                                    .font(.caption2).foregroundColor(.secondary)
+                                Text("Countdown Timer")
+                                    .font(.subheadline).foregroundColor(.secondary).textCase(.uppercase)
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        if showTimerBar {
+                            HStack {
+                                Text(TimeFormatter.formatTime(localTask.countdownElapsed))
+                                    .font(.title).fontWeight(.semibold)
+                                    .foregroundColor(localTask.countdownElapsed >= localTask.countdownTime ? .red : .orange)
+                                    .monospacedDigit().id(timerUpdateTrigger)
+                                Text("/").font(.title2).foregroundColor(.secondary)
+                                Text(TimeFormatter.formatTime(localTask.countdownTime))
+                                    .font(.title2).foregroundColor(.secondary).monospacedDigit()
+                                Spacer()
+                                if localTask.countdownElapsed >= localTask.countdownTime {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "bell.fill").font(.subheadline).foregroundColor(.red)
+                                        Text("Time's up!").font(.subheadline).foregroundColor(.red)
+                                    }
+                                }
+                                Button {
+                                    localTask.countdownTime = 0
+                                    localTask.countdownStartTime = nil
+                                    localTask.countdownElapsedAtPause = 0
+                                    viewModel.clearCountdown(taskId: localTask.id)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
+                                }
+                                .buttonStyle(.plain).help("Cancel timer")
+                            }
+                            .opacity(taskMarkedComplete ? 0.5 : 1.0)
+
+                            GeometryReader { geometry in
+                                ZStack(alignment: .leading) {
+                                    Rectangle().fill(Color.gray.opacity(0.2)).frame(height: 12).cornerRadius(6)
+                                    let progress = localTask.countdownTime > 0 ? min(localTask.countdownElapsed / localTask.countdownTime, 1.0) : 0
+                                    Rectangle()
+                                        .fill(progress >= 1.0 ? Color.red : Color.orange)
+                                        .frame(width: geometry.size.width * progress, height: 12)
+                                        .cornerRadius(6).id(timerUpdateTrigger)
+                                }
+                            }
+                            .frame(height: 12).opacity(taskMarkedComplete ? 0.5 : 1.0)
+                        }
+                    }
+                }
+
+                if showTimerCompletedMessage && !taskMarkedComplete {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Image(systemName: "bell.badge.fill").font(.system(size: 60)).foregroundColor(.red)
+                            Text("Timer's up!").font(.title).fontWeight(.bold).foregroundColor(.red)
+                            Button(action: { withAnimation { showTimerCompletedMessage = false } }) {
+                                Text("Dismiss").font(.subheadline).foregroundColor(.blue)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 8).background(Color.red.opacity(0.1)).cornerRadius(8)
+                }
+
+                if localTask.estimatedTime > 0 {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 6) {
+                        Button(action: { withAnimation { showEstimateBar.toggle() } }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: showEstimateBar ? "chevron.down" : "chevron.right")
+                                    .font(.caption2).foregroundColor(.secondary)
+                                Text("Estimate").font(.subheadline).foregroundColor(.secondary).textCase(.uppercase)
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        if showEstimateBar {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("ELAPSED").font(.caption2).foregroundColor(.secondary)
+                                    Text(TimeFormatter.formatTimeNoSeconds(localTask.currentTimeSpent))
+                                        .font(.headline).fontWeight(.semibold).monospacedDigit().id(timerUpdateTrigger)
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    Text("ESTIMATED").font(.caption2).foregroundColor(.secondary)
+                                    Text(TimeFormatter.formatTimeNoSeconds(localTask.estimatedTime))
+                                        .font(.headline).monospacedDigit()
+                                }
+                            }
+                            let estProgress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 6).fill(Color.gray.opacity(0.2)).frame(height: 12)
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(estProgress >= 1.0 ? Color.red : Color.green)
+                                        .frame(width: geo.size.width * estProgress, height: 12)
+                                }
+                            }
+                            .frame(height: 12)
+                            let estRemaining = localTask.estimatedTime - localTask.currentTimeSpent
+                            HStack(spacing: 4) {
+                                if estRemaining >= 0 {
+                                    Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundColor(.green)
+                                    Text("Remaining \(TimeFormatter.formatTimeNoSeconds(estRemaining))")
+                                        .font(.caption).foregroundColor(.secondary).id(timerUpdateTrigger)
+                                } else {
+                                    Image(systemName: "exclamationmark.triangle.fill").font(.caption2).foregroundColor(.orange)
+                                    Text("Over by \(TimeFormatter.formatTimeNoSeconds(-estRemaining))")
+                                        .font(.caption).foregroundColor(.orange).id(timerUpdateTrigger)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if let dueDate = localTask.dueDate {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 6) {
+                        Button(action: { withAnimation { showDueDateBar.toggle() } }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: showDueDateBar ? "chevron.down" : "chevron.right")
+                                    .font(.caption2).foregroundColor(.secondary)
+                                Text("Due Date").font(.subheadline).foregroundColor(.secondary).textCase(.uppercase)
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        if showDueDateBar {
+                            let now = Date()
+                            let created = Date(timeIntervalSince1970: localTask.createdAt)
+                            let totalDuration = dueDate.timeIntervalSince(created)
+                            let elapsedSinceCreated = now.timeIntervalSince(created)
+                            let dueProgress = totalDuration > 0 ? min(max(elapsedSinceCreated / totalDuration, 0), 1.0) : 1.0
+                            let isOverdue = now > dueDate
+
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("CREATED").font(.caption2).foregroundColor(.secondary)
+                                    Text(formatShortDate(created)).font(.headline).fontWeight(.semibold)
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    Text("DUE").font(.caption2).foregroundColor(.secondary)
+                                    Text(formatShortDate(dueDate)).font(.headline).foregroundColor(isOverdue ? .red : .primary)
+                                }
+                            }
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 6).fill(Color.gray.opacity(0.2)).frame(height: 12)
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(isOverdue ? Color.red : Color.blue)
+                                        .frame(width: geo.size.width * dueProgress, height: 12)
+                                }
+                            }
+                            .frame(height: 12)
+                            HStack(spacing: 4) {
+                                if isOverdue {
+                                    Image(systemName: "exclamationmark.triangle.fill").font(.caption2).foregroundColor(.red)
+                                    Text("Overdue by \(formatDuration(now.timeIntervalSince(dueDate)))")
+                                        .font(.caption).foregroundColor(.red).id(timerUpdateTrigger)
+                                } else {
+                                    Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundColor(.green)
+                                    Text("Due in \(formatDuration(dueDate.timeIntervalSince(now)))")
+                                        .font(.caption).foregroundColor(.secondary).id(timerUpdateTrigger)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if localTask.countdownTime == 0 && localTask.estimatedTime == 0 && localTask.dueDate == nil {
+                    Text("No timers set").font(.subheadline).foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var subtasksTabContent: some View {
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                subtaskSectionContent
+                    .overlay(
+                        GeometryReader { geo in
+                            Color.clear.preference(key: SubtaskContentHeightKey.self, value: geo.size.height)
+                        }
+                    )
+            }
+            .onPreferenceChange(SubtaskContentHeightKey.self) { newHeight in
+                if newHeight != subtaskContentHeight { subtaskContentHeight = newHeight }
+            }
+            .frame(height: min(max(subtaskContentHeight, 80), 380))
+            .onChange(of: shouldScrollToBottom) { _ in
+                if shouldScrollToBottom {
+                    withAnimation { scrollProxy.scrollTo("subtaskInput", anchor: .bottom) }
+                    shouldScrollToBottom = false
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var notesTabContent: some View {
+        ZStack(alignment: .topLeading) {
+            if descriptionText.isEmpty && !descriptionFocused {
+                Text("Add description…")
+                    .font(.body).foregroundColor(.secondary.opacity(0.5))
+                    .allowsHitTesting(false).padding(.top, 2)
+            }
+            TextEditor(text: $descriptionText)
+                .font(.body).foregroundColor(.secondary)
+                .scrollContentBackground(.hidden).background(.clear)
+                .frame(minHeight: 80, maxHeight: 300)
+                .focused($descriptionFocused)
+                .opacity(taskMarkedComplete ? 0.5 : 1.0)
+                .onChange(of: descriptionText) { newValue in
+                    if newValue != localTask.description {
+                        viewModel.updateTaskFields(id: localTask.id, text: nil, description: newValue, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
+                    }
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var commentsTabContent: some View {
+        if let adoId = localTask.adoWorkItemId, !adoId.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                ADOLinkRow(workItemId: adoId)
+                ScrollView {
+                    ADOCommentsSection(vm: commentsVM)
+                        .padding(.bottom, 4)
+                }
+                .frame(maxHeight: 280)
+                ADOCommentPane(vm: commentVM)
+            }
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             // Track window width passively so the collapsed picker can adapt when user resizes
@@ -492,20 +797,6 @@ struct FloatingTaskWindowView: View {
                             }
                         }
 
-                        Button(action: { showVisibilityPopover.toggle() }) {
-                            Image(systemName: "eye")
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip("Show/hide sections")
-                        .popover(isPresented: $showVisibilityPopover) {
-                            VisibilityPopoverView(
-                                showDescription: $showDescription,
-                                showTimers: $showTimers,
-                                showSubtasks: $showSubtasks
-                            )
-                        }
                     }
                 }
                 .padding(.horizontal, 8)
@@ -513,25 +804,17 @@ struct FloatingTaskWindowView: View {
             
             // Content (hidden when collapsed)
             if !isCollapsed {
-                VStack(alignment: .leading, spacing: 8) {
-                    // Task title dropdown with new task button
+                VStack(alignment: .leading, spacing: 0) {
+                    // Task title row
                     HStack(spacing: 8) {
                         Picker("Current Task", selection: Binding(
                             get: { localTask.id },
                             set: { newTaskId in
                                 if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
-                                    // Store if the current task was marked complete
                                     let wasComplete = taskMarkedComplete
-                                    
-                                    // Switch to the new task
                                     windowManager.switchToTask(selectedTask)
-                                    
-                                    // Reset completion state when switching tasks
                                     taskMarkedComplete = false
-                                    
-                                    // If switching from a complete task to a non-complete task and auto-play is enabled
                                     if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
-                                        // Resume the new task
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
                                             guard isViewActive else { return }
                                             resumeTask()
@@ -551,490 +834,95 @@ struct FloatingTaskWindowView: View {
                         .labelsHidden()
                         .floatingTooltip(localTask.text)
 
-                        Button(action: {
-                            showingNewTaskPopup = true
-                        }) {
+                        Button(action: { showingNewTaskPopup = true }) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(.plain)
                         .floatingTooltip("Create new task")
-                    }
-                    
-                    // Task description
-                    if showDescription {
-                        ZStack(alignment: .topLeading) {
-                            if descriptionText.isEmpty && !descriptionFocused {
-                                Text("Add description…")
-                                    .font(.body)
-                                    .foregroundColor(.secondary.opacity(0.5))
-                                    .allowsHitTesting(false)
-                                    .padding(.top, 2)
-                            }
-                            TextEditor(text: $descriptionText)
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .scrollContentBackground(.hidden)
-                                .background(.clear)
-                                .frame(minHeight: 20, maxHeight: {
-                                    guard !descriptionText.isEmpty else { return 20 }
-                                    let natural = CGFloat(descriptionLineCount()) * 20 + 4
-                                    return min(natural, 120)
-                                }())
-                                .focused($descriptionFocused)
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                                .onChange(of: descriptionText) { newValue in
-                                    if newValue != localTask.description {
-                                        viewModel.updateTaskFields(id: localTask.id, text: nil, description: newValue, notes: nil, dueDate: nil, isAdhoc: nil, fromWho: nil, estimatedTime: nil)
-                                    }
-                                }
-                        }
-                    }
-                    
-                    // Time tracking section
-                    if showTimers {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Divider()
 
-                            HStack(alignment: .top, spacing: 16) {
-                                // Time elapsed
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Time Elapsed")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .textCase(.uppercase)
-                                    Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
-                                        .font(.title)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.blue)
-                                        .monospacedDigit()
-                                        .id(timerUpdateTrigger)
-                                }
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-
-                                Spacer()
-
-                                // Attention Check countdown (only shown when reminders are active and task is running)
-                                if viewModel.activateReminders && localTask.isRunning && !showingReminder && !taskMarkedComplete {
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        Text("Attention Check")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                            .textCase(.uppercase)
-
-                                        if let lastReminder = lastReminderTime {
-                                            let elapsed = Date().timeIntervalSince(lastReminder)
-                                            let remaining = max(0, 120 - elapsed)
-
-                                            Text(TimeFormatter.formatTime(remaining))
-                                                .font(.title)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(remaining < 30 ? .orange : .purple)
-                                                .monospacedDigit()
-                                                .id(timerUpdateTrigger)
-                                        } else {
-                                            Text(TimeFormatter.formatTime(120))
-                                                .font(.title)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.purple)
-                                                .monospacedDigit()
-                                                .id(timerUpdateTrigger)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Subtasks section
-                    if showSubtasks {
-                        Divider()
-
-                        ScrollViewReader { scrollProxy in
-                            ScrollView {
-                                subtaskSectionContent
-                                    .overlay(
-                                        GeometryReader { geo in
-                                            Color.clear.preference(key: SubtaskContentHeightKey.self, value: geo.size.height)
-                                        }
-                                    )
-                            }
-                            .onPreferenceChange(SubtaskContentHeightKey.self) { newHeight in
-                                if newHeight != subtaskContentHeight {
-                                    subtaskContentHeight = newHeight
-                                }
-                            }
-                            .frame(height: min(max(subtaskContentHeight, 80), 400))
-                            .onChange(of: shouldScrollToBottom) { _ in
-                                if shouldScrollToBottom {
-                                    withAnimation {
-                                        scrollProxy.scrollTo("subtaskInput", anchor: .bottom)
-                                    }
-                                    shouldScrollToBottom = false
-                                }
-                            }
-                        } // ScrollViewReader
-                    }
-
-                    // Countdown Timer section (if set)
-                    if showTimers && localTask.countdownTime > 0 {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Divider()
-
-                            Button(action: {
-                                withAnimation { showTimerBar.toggle() }
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: showTimerBar ? "chevron.down" : "chevron.right")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    Text("Timer")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .textCase(.uppercase)
-                                }
-                            }
-                            .buttonStyle(.plain)
-
-                            if showTimerBar {
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack {
-                                    // Show elapsed time
-                                    Text(TimeFormatter.formatTime(localTask.countdownElapsed))
-                                        .font(.title)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(localTask.countdownElapsed >= localTask.countdownTime ? .red : .orange)
-                                        .monospacedDigit()
-                                        .id(timerUpdateTrigger)
-
-                                    Text("/")
-                                        .font(.title2)
-                                        .foregroundColor(.secondary)
-
-                                    Text(TimeFormatter.formatTime(localTask.countdownTime))
-                                        .font(.title2)
-                                        .foregroundColor(.secondary)
-                                        .monospacedDigit()
-
-                                    Spacer()
-
-                                    if localTask.countdownElapsed >= localTask.countdownTime {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "bell.fill")
-                                                .font(.subheadline)
-                                                .foregroundColor(.red)
-                                            Text("Time's up!")
-                                                .font(.subheadline)
-                                                .foregroundColor(.red)
-                                        }
-                                    }
-
-                                    Button {
-                                        localTask.countdownTime = 0
-                                        localTask.countdownStartTime = nil
-                                        localTask.countdownElapsedAtPause = 0
-                                        viewModel.clearCountdown(taskId: localTask.id)
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("Cancel timer")
-                                }
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-
-                                // Progress bar for countdown (fills up as time progresses)
-                                GeometryReader { geometry in
-                                    ZStack(alignment: .leading) {
-                                        // Background
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.2))
-                                            .frame(height: 12)
-                                            .cornerRadius(6)
-
-                                        // Progress (fills up as time elapses)
-                                        let progress = localTask.countdownTime > 0 ? min(localTask.countdownElapsed / localTask.countdownTime, 1.0) : 0
-                                        Rectangle()
-                                            .fill(progress >= 1.0 ? Color.red : Color.orange)
-                                            .frame(width: geometry.size.width * progress, height: 12)
-                                            .cornerRadius(6)
-                                            .id(timerUpdateTrigger)
-
-                                    }
-                                }
-                                .frame(height: 12)
-                                .opacity(taskMarkedComplete ? 0.5 : 1.0)
-                            }
-                            } // if showTimerBar
-                        }
-                    }
-
-                    // Timer's up! message (shown after timer completes and is cleared)
-                    if showTimers && showTimerCompletedMessage && !taskMarkedComplete {
-                        VStack(spacing: 8) {
-                            Divider()
-
-                            HStack {
-                                Spacer()
-                                VStack(spacing: 8) {
-                                    Image(systemName: "bell.badge.fill")
-                                        .font(.system(size: 80))
-                                        .foregroundColor(.red)
-
-                                    Text("Timer's up!")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.red)
-
-                                    Button(action: {
-                                        withAnimation {
-                                            showTimerCompletedMessage = false
-                                        }
-                                    }) {
-                                        Text("Dismiss")
-                                            .font(.subheadline)
-                                            .foregroundColor(.blue)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                    }
-
-                    // Estimate progress bar
-                    if showTimers && localTask.estimatedTime > 0 {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Divider()
-
-                            Button(action: {
-                                withAnimation { showEstimateBar.toggle() }
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: showEstimateBar ? "chevron.down" : "chevron.right")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    Text("Estimate")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .textCase(.uppercase)
-                                }
-                            }
-                            .buttonStyle(.plain)
-
-                            if showEstimateBar {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 1) {
-                                            Text("ELAPSED")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text(TimeFormatter.formatTimeNoSeconds(localTask.currentTimeSpent))
-                                                .font(.headline)
-                                                .fontWeight(.semibold)
-                                                .monospacedDigit()
-                                                .id(timerUpdateTrigger)
-                                        }
-                                        Spacer()
-                                        VStack(alignment: .trailing, spacing: 1) {
-                                            Text("ESTIMATED")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text(TimeFormatter.formatTimeNoSeconds(localTask.estimatedTime))
-                                                .font(.headline)
-                                                .monospacedDigit()
-                                        }
-                                    }
-
-                                    let estProgress = min(localTask.currentTimeSpent / localTask.estimatedTime, 1.0)
-                                    GeometryReader { geo in
-                                        ZStack(alignment: .leading) {
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(height: 12)
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(estProgress >= 1.0 ? Color.red : Color.green)
-                                                .frame(width: geo.size.width * estProgress, height: 12)
-
-                                        }
-                                    }
-                                    .frame(height: 12)
-
-                                    let estRemaining = localTask.estimatedTime - localTask.currentTimeSpent
-                                    HStack(spacing: 4) {
-                                        if estRemaining >= 0 {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .font(.caption2)
-                                                .foregroundColor(.green)
-                                            Text("Remaining \(TimeFormatter.formatTimeNoSeconds(estRemaining))")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                                .id(timerUpdateTrigger)
-                                        } else {
-                                            Image(systemName: "exclamationmark.triangle.fill")
-                                                .font(.caption2)
-                                                .foregroundColor(.orange)
-                                            Text("Over by \(TimeFormatter.formatTimeNoSeconds(-estRemaining))")
-                                                .font(.caption)
-                                                .foregroundColor(.orange)
-                                                .id(timerUpdateTrigger)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Due date progress bar
-                    if showTimers, let dueDate = localTask.dueDate {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Divider()
-
-                            Button(action: {
-                                withAnimation { showDueDateBar.toggle() }
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: showDueDateBar ? "chevron.down" : "chevron.right")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    Text("Due Date")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .textCase(.uppercase)
-                                }
-                            }
-                            .buttonStyle(.plain)
-
-                            if showDueDateBar {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    let now = Date()
-                                    let created = Date(timeIntervalSince1970: localTask.createdAt)
-                                    let totalDuration = dueDate.timeIntervalSince(created)
-                                    let elapsedSinceCreated = now.timeIntervalSince(created)
-                                    let dueProgress = totalDuration > 0 ? min(max(elapsedSinceCreated / totalDuration, 0), 1.0) : 1.0
-                                    let isOverdue = now > dueDate
-
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 1) {
-                                            Text("CREATED")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text(formatShortDate(created))
-                                                .font(.headline)
-                                                .fontWeight(.semibold)
-                                        }
-                                        Spacer()
-                                        VStack(alignment: .trailing, spacing: 1) {
-                                            Text("DUE")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text(formatShortDate(dueDate))
-                                                .font(.headline)
-                                                .foregroundColor(isOverdue ? .red : .primary)
-                                        }
-                                    }
-
-                                    GeometryReader { geo in
-                                        ZStack(alignment: .leading) {
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(height: 12)
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(isOverdue ? Color.red : Color.blue)
-                                                .frame(width: geo.size.width * dueProgress, height: 12)
-
-                                        }
-                                    }
-                                    .frame(height: 12)
-
-                                    HStack(spacing: 4) {
-                                        if isOverdue {
-                                            Image(systemName: "exclamationmark.triangle.fill")
-                                                .font(.caption2)
-                                                .foregroundColor(.red)
-                                            Text("Overdue by \(formatDuration(now.timeIntervalSince(dueDate)))")
-                                                .font(.caption)
-                                                .foregroundColor(.red)
-                                                .id(timerUpdateTrigger)
-                                        } else {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .font(.caption2)
-                                                .foregroundColor(.green)
-                                            Text("Due in \(formatDuration(dueDate.timeIntervalSince(now)))")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                                .id(timerUpdateTrigger)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if let adoId = localTask.adoWorkItemId, !adoId.isEmpty {
-                        ADOLinkRow(workItemId: adoId)
-                        ADOCommentsSection(vm: commentsVM)
-                        ADOCommentPane(vm: commentVM)
-                            .padding(.horizontal, 8)
-                    }
-
-                    Spacer()
-
-                    // Pause/Resume and Complete buttons at the bottom
-                    HStack(spacing: 12) {
-                        Spacer()
-                        
+                        // Inline play/pause + time
                         Button(action: {
-                            if localTask.isRunning {
-                                pauseTask()
-                            } else {
-                                resumeTask()
-                            }
+                            guard !taskMarkedComplete else { return }
+                            if localTask.isRunning { pauseTask() } else { resumeTask() }
                         }) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 4) {
                                 Image(systemName: localTask.isRunning ? "pause.circle.fill" : "play.circle.fill")
                                     .font(.title3)
-                                Text(localTask.isRunning ? "Pause" : "Resume")
-                                    .font(.title3)
-                                    .fontWeight(.medium)
+                                    .foregroundColor(localTask.isRunning ? .orange : .blue)
+                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(localTask.isRunning ? .blue : .secondary)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
                             }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(localTask.isRunning ? Color.orange : Color.blue)
-                            .cornerRadius(8)
                         }
                         .buttonStyle(.plain)
                         .floatingTooltip(localTask.isRunning ? "Pause this task" : "Resume this task")
                         .disabled(taskMarkedComplete)
                         .opacity(taskMarkedComplete ? 0.3 : 1.0)
-                        
-                        Button(action: {
-                            completeTask()
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
-                                    .font(.title3)
-                                Text(taskMarkedComplete ? "Close" : "Complete")
-                                    .font(.title3)
-                                    .fontWeight(.medium)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(taskMarkedComplete ? Color.gray : Color.green)
-                            .cornerRadius(8)
+
+                        Button(action: { completeTask() }) {
+                            Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(taskMarkedComplete ? .secondary : .green)
                         }
                         .buttonStyle(.plain)
-                        .floatingTooltip(taskMarkedComplete ? "Close this task view" : "Mark this task as complete")
+                        .floatingTooltip(taskMarkedComplete ? "Close this task view" : "Mark task complete")
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 4)
+                    .padding(.bottom, 6)
+
+                    // Underline tab bar
+                    let visibleTabs: [FloatingTab] = {
+                        var tabs: [FloatingTab] = [.focus, .timers, .subtasks, .notes]
+                        if let adoId = localTask.adoWorkItemId, !adoId.isEmpty { tabs.append(.comments) }
+                        return tabs
+                    }()
+
+                    HStack(spacing: 0) {
+                        ForEach(visibleTabs, id: \.self) { tab in
+                            Button(action: { selectedTabRaw = tab.rawValue }) {
+                                VStack(spacing: 3) {
+                                    Text(tab.rawValue)
+                                        .font(.subheadline)
+                                        .foregroundColor(selectedTab == tab ? .primary : .secondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.top, 4)
+                                    Rectangle()
+                                        .fill(selectedTab == tab ? Color.accentColor : Color.clear)
+                                        .frame(height: 2)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 4)
+
+                    Divider()
+
+                    // Tab content
+                    Group {
+                        switch selectedTab {
+                        case .focus:
+                            focusTabContent
+                        case .timers:
+                            timersTabContent
+                        case .subtasks:
+                            subtasksTabContent
+                        case .notes:
+                            notesTabContent
+                        case .comments:
+                            commentsTabContent
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
             }
@@ -1620,6 +1508,7 @@ struct FloatingTaskWindowView: View {
     private var currentSnapshot: ResizeSnapshot {
         ResizeSnapshot(
             isCollapsed: isCollapsed,
+            isFocusTab: selectedTab == .focus,
             subtaskContentHeight: subtaskContentHeight,
             descriptionText: descriptionText,
             windowWidth: (windowWidth / 10).rounded() * 10,
@@ -1630,9 +1519,9 @@ struct FloatingTaskWindowView: View {
             dueDate: localTask.dueDate,
             showEstimateBar: showEstimateBar,
             showDueDateBar: showDueDateBar,
-            showDescription: showDescription,
-            showTimers: showTimers,
-            showSubtasks: showSubtasks
+            showDescription: selectedTab == .notes,
+            showTimers: selectedTab == .timers,
+            showSubtasks: selectedTab == .subtasks
         )
     }
 
@@ -2067,6 +1956,7 @@ private struct SubtaskContentHeightKey: PreferenceKey {
 
 struct ResizeSnapshot: Equatable {
     var isCollapsed: Bool = false
+    var isFocusTab: Bool = false
     var subtaskContentHeight: CGFloat = 0
     var descriptionText: String = ""
     var windowWidth: CGFloat = 350
@@ -2083,6 +1973,7 @@ struct ResizeSnapshot: Equatable {
 
     static func fixture(
         isCollapsed: Bool = false,
+        isFocusTab: Bool = false,
         subtaskContentHeight: CGFloat = 0,
         descriptionText: String = "",
         windowWidth: CGFloat = 350,
@@ -2099,6 +1990,7 @@ struct ResizeSnapshot: Equatable {
     ) -> ResizeSnapshot {
         ResizeSnapshot(
             isCollapsed: isCollapsed,
+            isFocusTab: isFocusTab,
             subtaskContentHeight: subtaskContentHeight,
             descriptionText: descriptionText,
             windowWidth: windowWidth,
@@ -2118,6 +2010,7 @@ struct ResizeSnapshot: Equatable {
 
 func calculateDynamicHeight(snapshot s: ResizeSnapshot) -> CGFloat {
     if s.isCollapsed { return 50 }
+    if s.isFocusTab { return 140 }  // toolbar + title row + tab bar only
 
     var height: CGFloat = 0
 
