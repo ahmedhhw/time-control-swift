@@ -57,6 +57,9 @@ struct FloatingTaskWindowView: View {
     @AppStorage("floatingWindow.showSubtasks") private var showSubtasks: Bool = true
     @State private var showVisibilityPopover: Bool = false
     @State private var showCollapsedMenu: Bool = false
+    @State private var showTaskPalette: Bool = false
+    @State private var paletteSearch: String = ""
+    @State private var paletteSelectedIndex: Int = 0
 
     enum FloatingTab: String, CaseIterable {
         case focus = "Focus"
@@ -133,6 +136,11 @@ struct FloatingTaskWindowView: View {
         }
     }
     
+    private var filteredPaletteTasks: [TodoItem] {
+        guard !paletteSearch.isEmpty else { return availableTasks }
+        return availableTasks.filter { $0.text.localizedCaseInsensitiveContains(paletteSearch) }
+    }
+
     // The base window width is 350pt. For every extra 50pt the user has resized,
     // allow the collapsed picker to grow proportionally, capped so icons always fit.
     private var collapsedPickerMaxWidth: CGFloat {
@@ -191,6 +199,56 @@ struct FloatingTaskWindowView: View {
         }
         .padding(12)
         .frame(width: 220)
+    }
+
+    @ViewBuilder
+    private func taskSwitcherButton(font: Font) -> some View {
+        Button(action: { showTaskPalette = true }) {
+            HStack(spacing: 4) {
+                Text(localTask.text)
+                    .font(font)
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .floatingTooltip(localTask.text)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .popover(isPresented: $showTaskPalette, arrowEdge: .bottom) {
+            TaskPaletteView(
+                tasks: filteredPaletteTasks,
+                searchText: $paletteSearch,
+                selectedIndex: $paletteSelectedIndex,
+                currentTaskId: localTask.id,
+                onSelect: { selectedTask in
+                    let wasComplete = taskMarkedComplete
+                    windowManager.switchToTask(selectedTask)
+                    taskMarkedComplete = false
+                    showTaskPalette = false
+                    if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+                            guard isViewActive else { return }
+                            resumeTask()
+                        }
+                    }
+                },
+                onCreate: { title in
+                    showTaskPalette = false
+                    newTaskTitle = title
+                    showingNewTaskPopup = true
+                },
+                onDismiss: { showTaskPalette = false }
+            )
+        }
+        .onChange(of: showTaskPalette) { isShowing in
+            if isShowing {
+                paletteSearch = ""
+                paletteSelectedIndex = 0
+            }
+        }
     }
 
     @ViewBuilder
@@ -656,32 +714,7 @@ struct FloatingTaskWindowView: View {
                         .buttonStyle(.plain)
                         .floatingTooltip("Collapse")
 
-                        Picker("Current Task", selection: Binding(
-                            get: { localTask.id },
-                            set: { newTaskId in
-                                if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
-                                    let wasComplete = taskMarkedComplete
-                                    windowManager.switchToTask(selectedTask)
-                                    taskMarkedComplete = false
-                                    if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
-                                            guard isViewActive else { return }
-                                            resumeTask()
-                                        }
-                                    }
-                                }
-                            }
-                        )) {
-                            ForEach(availableTasks) { task in
-                                Text(task.text)
-                                    .lineLimit(1)
-                                    .tag(task.id)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .font(.title2)
-                        .labelsHidden()
-                        .floatingTooltip(localTask.text)
+                        taskSwitcherButton(font: .headline)
 
                         Button(action: { showingNewTaskPopup = true }) {
                             Image(systemName: "plus.circle.fill")
@@ -757,33 +790,8 @@ struct FloatingTaskWindowView: View {
                             collapsedMenuContent
                         }
 
-                        Picker("Current Task", selection: Binding(
-                            get: { localTask.id },
-                            set: { newTaskId in
-                                if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
-                                    let wasComplete = taskMarkedComplete
-                                    windowManager.switchToTask(selectedTask)
-                                    taskMarkedComplete = false
-                                    if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
-                                            guard isViewActive else { return }
-                                            resumeTask()
-                                        }
-                                    }
-                                }
-                            }
-                        )) {
-                            ForEach(availableTasks) { task in
-                                Text(task.text)
-                                    .lineLimit(1)
-                                    .tag(task.id)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .font(.subheadline)
-                        .labelsHidden()
-                        .frame(maxWidth: .infinity)
-                        .floatingTooltip(localTask.text)
+                        taskSwitcherButton(font: .subheadline)
+                            .frame(maxWidth: .infinity)
 
                         Button(action: { showingNewTaskPopup = true }) {
                             Image(systemName: "plus.circle.fill")
@@ -1374,9 +1382,8 @@ struct FloatingTaskWindowView: View {
         // Close existing new task popup window if any
         newTaskPopupWindow?.close()
 
-        // Reset title every time; for other fields apply sticky values when enabled.
-        // When called via promoteSubtask, title is already pre-filled — preserve it.
-        if subtaskBeingPromoted == nil {
+        // Reset title unless pre-filled by promoteSubtask or the task palette.
+        if subtaskBeingPromoted == nil && newTaskTitle.isEmpty {
             newTaskTitle = ""
         }
         if subtaskBeingPromoted == nil {
@@ -2032,5 +2039,164 @@ func calculateDynamicHeight(snapshot s: ResizeSnapshot) -> CGFloat {
     height += 60  // bottom buttons
 
     return min(max(height, 380), 900)
+}
+
+// MARK: - Task Palette (command-palette style task switcher)
+
+struct TaskPaletteView: View {
+    let tasks: [TodoItem]
+    @Binding var searchText: String
+    @Binding var selectedIndex: Int
+    let currentTaskId: UUID
+    let onSelect: (TodoItem) -> Void
+    let onCreate: (String) -> Void
+    let onDismiss: () -> Void
+
+    @FocusState private var searchFocused: Bool
+    @State private var keyMonitor: Any? = nil
+
+    // Total rows = tasks + optional create row
+    private var showCreateRow: Bool {
+        guard !searchText.isEmpty else { return false }
+        let exactMatch = tasks.contains { $0.text.lowercased() == searchText.lowercased() }
+        return !exactMatch
+    }
+
+    private var totalRows: Int { tasks.count + (showCreateRow ? 1 : 0) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Search field
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+                TextField("Search tasks…", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.body)
+                    .focused($searchFocused)
+                    .onSubmit { commitSelection() }
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+
+            Divider()
+
+            // Task list
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
+                            paletteRow(
+                                label: task.text,
+                                isSelected: selectedIndex == index,
+                                isCurrent: task.id == currentTaskId,
+                                isCreate: false
+                            ) {
+                                onSelect(task)
+                            }
+                            .id(index)
+                        }
+
+                        if showCreateRow {
+                            let createIndex = tasks.count
+                            paletteRow(
+                                label: "+ Create \"\(searchText)\"",
+                                isSelected: selectedIndex == createIndex,
+                                isCurrent: false,
+                                isCreate: true
+                            ) {
+                                onCreate(searchText)
+                            }
+                            .id(createIndex)
+                        }
+                    }
+                }
+                .frame(maxHeight: 280)
+                .onChange(of: selectedIndex) { idx in
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        proxy.scrollTo(idx, anchor: .center)
+                    }
+                }
+            }
+        }
+        .frame(width: 320)
+        .onAppear {
+            searchFocused = true
+            keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                switch event.keyCode {
+                case 125: // down arrow
+                    if selectedIndex < totalRows - 1 { selectedIndex += 1 }
+                    return nil
+                case 126: // up arrow
+                    if selectedIndex > 0 { selectedIndex -= 1 }
+                    return nil
+                case 53: // Escape
+                    onDismiss()
+                    return nil
+                default:
+                    return event
+                }
+            }
+        }
+        .onDisappear {
+            if let monitor = keyMonitor {
+                NSEvent.removeMonitor(monitor)
+                keyMonitor = nil
+            }
+        }
+        .onExitCommand { onDismiss() }
+        .onChange(of: searchText) { _ in
+            selectedIndex = 0
+        }
+    }
+
+    private func commitSelection() {
+        if showCreateRow && selectedIndex == tasks.count {
+            onCreate(searchText)
+        } else if selectedIndex < tasks.count {
+            onSelect(tasks[selectedIndex])
+        }
+    }
+
+    @ViewBuilder
+    private func paletteRow(
+        label: String,
+        isSelected: Bool,
+        isCurrent: Bool,
+        isCreate: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if isCurrent {
+                    Image(systemName: "play.fill")
+                        .font(.caption2)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 12)
+                } else {
+                    Spacer()
+                        .frame(width: 12)
+                }
+                Text(label)
+                    .font(isCreate ? .subheadline.italic() : .subheadline)
+                    .foregroundColor(isCreate ? .secondary : .primary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 }
 
