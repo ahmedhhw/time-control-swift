@@ -637,23 +637,114 @@ struct FloatingTaskWindowView: View {
             
             // Main content
             VStack(alignment: .leading, spacing: 0) {
-                // Toolbar row
-                HStack {
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isCollapsed.toggle()
-                            if !isCollapsed { showCollapsedMenu = false }
+                // Content (hidden when collapsed) — task title row first
+            if !isCollapsed {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Task title row (Row 1)
+                    HStack(spacing: 8) {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isCollapsed.toggle()
+                                if !isCollapsed { showCollapsedMenu = false }
+                            }
+                        }) {
+                            Image(systemName: "chevron.up")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                                .frame(width: 20, height: 20)
                         }
-                    }) {
-                        Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                            .frame(width: 20, height: 20)
-                    }
-                    .buttonStyle(.plain)
-                    .floatingTooltip(isCollapsed ? "Expand" : "Collapse")
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Collapse")
 
+                        Picker("Current Task", selection: Binding(
+                            get: { localTask.id },
+                            set: { newTaskId in
+                                if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
+                                    let wasComplete = taskMarkedComplete
+                                    windowManager.switchToTask(selectedTask)
+                                    taskMarkedComplete = false
+                                    if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+                                            guard isViewActive else { return }
+                                            resumeTask()
+                                        }
+                                    }
+                                }
+                            }
+                        )) {
+                            ForEach(availableTasks) { task in
+                                Text(task.text)
+                                    .lineLimit(1)
+                                    .tag(task.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .font(.title2)
+                        .labelsHidden()
+                        .floatingTooltip(localTask.text)
+
+                        Button(action: { showingNewTaskPopup = true }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Create new task")
+
+                        // Inline play/pause + time
+                        Button(action: {
+                            guard !taskMarkedComplete else { return }
+                            if localTask.isRunning { pauseTask() } else { resumeTask() }
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: localTask.isRunning ? "pause.circle.fill" : "play.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(localTask.isRunning ? .orange : .blue)
+                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(localTask.isRunning ? .blue : .secondary)
+                                    .monospacedDigit()
+                                    .id(timerUpdateTrigger)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip(localTask.isRunning ? "Pause this task" : "Resume this task")
+                        .disabled(taskMarkedComplete)
+                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
+
+                        Button(action: { completeTask() }) {
+                            Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(taskMarkedComplete ? .secondary : .green)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip(taskMarkedComplete ? "Close this task view" : "Mark task complete")
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 4)
+                    .padding(.bottom, 6)
+
+                    Divider()
+                }
+            }
+
+                // Toolbar row (Row 2: book + tabs when expanded, or chevron + collapsed controls)
+                HStack {
                     if isCollapsed {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isCollapsed.toggle()
+                                if !isCollapsed { showCollapsedMenu = false }
+                            }
+                        }) {
+                            Image(systemName: "chevron.down")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                                .frame(width: 20, height: 20)
+                        }
+                        .buttonStyle(.plain)
+                        .floatingTooltip("Expand")
                         // Collapsed: book icon opens a popover with the hidden actions
                         Button(action: { showCollapsedMenu.toggle() }) {
                             Image(systemName: "books.vertical")
@@ -753,9 +844,11 @@ struct FloatingTaskWindowView: View {
                                 Button(action: { selectedTabRaw = tab.rawValue }) {
                                     VStack(spacing: 2) {
                                         Text(tab.rawValue)
-                                            .font(.caption)
+                                            .font(.caption2)
+                                            .lineLimit(1)
+                                            .fixedSize()
                                             .foregroundColor(selectedTab == tab ? .primary : .secondary)
-                                            .padding(.horizontal, 6)
+                                            .padding(.horizontal, 4)
                                             .padding(.top, 2)
                                         Rectangle()
                                             .fill(selectedTab == tab ? Color.accentColor : Color.clear)
@@ -773,82 +866,9 @@ struct FloatingTaskWindowView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
             
-            // Content (hidden when collapsed)
+            // Tab content (hidden when collapsed)
             if !isCollapsed {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Task title row
-                    HStack(spacing: 8) {
-                        Picker("Current Task", selection: Binding(
-                            get: { localTask.id },
-                            set: { newTaskId in
-                                if let selectedTask = availableTasks.first(where: { $0.id == newTaskId }) {
-                                    let wasComplete = taskMarkedComplete
-                                    windowManager.switchToTask(selectedTask)
-                                    taskMarkedComplete = false
-                                    if wasComplete && !selectedTask.isCompleted && viewModel.autoPlayAfterSwitching {
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
-                                            guard isViewActive else { return }
-                                            resumeTask()
-                                        }
-                                    }
-                                }
-                            }
-                        )) {
-                            ForEach(availableTasks) { task in
-                                Text(task.text)
-                                    .lineLimit(1)
-                                    .tag(task.id)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .font(.title2)
-                        .labelsHidden()
-                        .floatingTooltip(localTask.text)
-
-                        Button(action: { showingNewTaskPopup = true }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip("Create new task")
-
-                        // Inline play/pause + time
-                        Button(action: {
-                            guard !taskMarkedComplete else { return }
-                            if localTask.isRunning { pauseTask() } else { resumeTask() }
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: localTask.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                                    .font(.title3)
-                                    .foregroundColor(localTask.isRunning ? .orange : .blue)
-                                Text(TimeFormatter.formatTime(localTask.currentTimeSpent))
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(localTask.isRunning ? .blue : .secondary)
-                                    .monospacedDigit()
-                                    .id(timerUpdateTrigger)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip(localTask.isRunning ? "Pause this task" : "Resume this task")
-                        .disabled(taskMarkedComplete)
-                        .opacity(taskMarkedComplete ? 0.3 : 1.0)
-
-                        Button(action: { completeTask() }) {
-                            Image(systemName: taskMarkedComplete ? "xmark.circle.fill" : "checkmark.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(taskMarkedComplete ? .secondary : .green)
-                        }
-                        .buttonStyle(.plain)
-                        .floatingTooltip(taskMarkedComplete ? "Close this task view" : "Mark task complete")
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.top, 4)
-                    .padding(.bottom, 6)
-
-                    Divider()
-
                     // Tab content
                     Group {
                         switch selectedTab {
