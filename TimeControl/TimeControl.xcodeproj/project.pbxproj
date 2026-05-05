@@ -100,6 +100,7 @@
 		AI000001000000000000001 /* ADOImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000001000000000000000 /* ADOImportView.swift */; };
 		AI000002000000000000001 /* ADOImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000002000000000000000 /* ADOImportViewModel.swift */; };
 		AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000003000000000000000 /* ADOImportViewModelTests.swift */; };
+		AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001000000000000000 /* ADOBulkFetchTests.swift */; };
 		AC000001000000000000001 /* ADOCommentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000001000000000000000 /* ADOCommentStore.swift */; };
 		AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000002000000000000000 /* ADOCommentViewModel.swift */; };
 		AC000003000000000000001 /* ADOCommentServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000003000000000000000 /* ADOCommentServiceTests.swift */; };
@@ -173,6 +174,7 @@
 		AI000001000000000000000 /* ADOImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportView.swift; sourceTree = "<group>"; };
 		AI000002000000000000000 /* ADOImportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportViewModel.swift; sourceTree = "<group>"; };
 		AI000003000000000000000 /* ADOImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportViewModelTests.swift; sourceTree = "<group>"; };
+		AB000001000000000000000 /* ADOBulkFetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOBulkFetchTests.swift; sourceTree = "<group>"; };
 		AC000001000000000000000 /* ADOCommentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentStore.swift; sourceTree = "<group>"; };
 		AC000002000000000000000 /* ADOCommentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModel.swift; sourceTree = "<group>"; };
 		AC000003000000000000000 /* ADOCommentServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentServiceTests.swift; sourceTree = "<group>"; };
@@ -413,6 +415,7 @@
 				A1000000000000000000150 /* ADOSettingsStoreTests.swift */,
 				AU000002000000000000000 /* ADOURLBuilderTests.swift */,
 				AI000003000000000000000 /* ADOImportViewModelTests.swift */,
+				AB000001000000000000000 /* ADOBulkFetchTests.swift */,
 				AC000003000000000000000 /* ADOCommentServiceTests.swift */,
 				AC000004000000000000000 /* ADOCommentViewModelTests.swift */,
 				IM000002000000000000000 /* ADOServiceAttachmentTests.swift */,
@@ -599,6 +602,7 @@
 				A1000000000000000000151 /* ADOSettingsStoreTests.swift in Sources */,
 				AU000002000000000000001 /* ADOURLBuilderTests.swift in Sources */,
 				AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */,
+				AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */,
 				AC000003000000000000001 /* ADOCommentServiceTests.swift in Sources */,
 				AC000004000000000000001 /* ADOCommentViewModelTests.swift in Sources */,
 				IM000002000000000000001 /* ADOServiceAttachmentTests.swift in Sources */,

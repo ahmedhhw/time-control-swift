@@ -13,6 +13,14 @@ final class ADOImportViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
+    @Published var assignedItems: [ADOWorkItem] = []
+    @Published var mentionedItems: [ADOWorkItem] = []
+    @Published var selectedIds: Set<Int> = []
+    @Published var isLoadingAssigned: Bool = false
+    @Published var isLoadingMentioned: Bool = false
+    @Published var assignedError: String?
+    @Published var mentionedError: String?
+
     private let service: ADOService
     private let settings: ADOSettingsStore
 
@@ -73,7 +81,108 @@ final class ADOImportViewModel: ObservableObject {
         )
     }
 
+    // MARK: - Bulk load
+
+    func loadAssigned() async {
+        isLoadingAssigned = true
+        assignedError = nil
+        do {
+            assignedItems = try await service.fetchAssignedWorkItems(
+                org: settings.organization,
+                project: settings.project,
+                pat: settings.pat
+            )
+        } catch {
+            assignedError = errorDescription(for: error)
+            assignedItems = []
+        }
+        isLoadingAssigned = false
+    }
+
+    func loadMentioned() async {
+        isLoadingMentioned = true
+        mentionedError = nil
+        do {
+            mentionedItems = try await service.fetchMentionedWorkItems(
+                org: settings.organization,
+                project: settings.project,
+                pat: settings.pat
+            )
+        } catch {
+            mentionedError = errorDescription(for: error)
+            mentionedItems = []
+        }
+        isLoadingMentioned = false
+    }
+
+    // MARK: - Selection
+
+    func toggleSelection(_ id: Int) {
+        if selectedIds.contains(id) {
+            selectedIds.remove(id)
+        } else {
+            selectedIds.insert(id)
+        }
+    }
+
+    var canImport: Bool {
+        !selectedIds.isEmpty || fetchedItem != nil
+    }
+
+    // MARK: - Import
+
+    func importSelected(existingAdoIds: Set<String>) -> [TodoItem] {
+        var result: [TodoItem] = []
+
+        let allBulkItems = assignedItems + mentionedItems
+        for id in selectedIds {
+            let idString = String(id)
+            guard !existingAdoIds.contains(idString) else { continue }
+            guard let item = allBulkItems.first(where: { $0.id == id }) else { continue }
+            result.append(TodoItem(
+                text: item.title,
+                description: stripHTML(item.description),
+                adoWorkItemId: idString
+            ))
+        }
+
+        if let item = fetchedItem {
+            let idString = String(item.id)
+            if !existingAdoIds.contains(idString) && !selectedIds.contains(item.id) {
+                result.append(TodoItem(
+                    text: item.title,
+                    description: stripHTML(item.description),
+                    adoWorkItemId: idString
+                ))
+            }
+        }
+
+        return result
+    }
+
     // MARK: - Private
+
+    private func errorDescription(for error: Error) -> String {
+        guard let adoError = error as? ADOService.ADOError else {
+            return "Unexpected error: \(error.localizedDescription)"
+        }
+        switch adoError {
+        case .unauthorized:
+            return "Authentication failed (401) — check your PAT in Settings."
+        case .networkUnavailable:
+            return "Can't reach ADO — check your network connection."
+        case .tlsError:
+            return "TLS error — if on a corporate network, contact IT."
+        case .serverError(let code):
+            return "Server error (\(code)). Try again later."
+        case .urlError(let code):
+            return "Network error (URLError \(code)) — check your connection."
+        case .notFound:
+            return "Work item not found."
+        case .invalidResponse:
+            return "Invalid response from ADO."
+        }
+    }
 
     private func stripHTML(_ html: String) -> String {
         guard !html.isEmpty else { return html }

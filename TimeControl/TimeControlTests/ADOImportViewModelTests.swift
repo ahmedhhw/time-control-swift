@@ -266,3 +266,256 @@ final class ADOImportViewModelTests: XCTestCase {
         XCTAssertTrue(vm.canFetch)
     }
 }
+
+// MARK: - Bulk Import VM Tests
+
+@MainActor
+final class ADOBulkImportViewModelTests: XCTestCase {
+
+    // MARK: - Helpers
+
+    private func makeSettings(org: String = "myorg", project: String = "myproj", pat: String = "mytoken") -> ADOSettingsStore {
+        let store = ADOSettingsStore(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+        store.organization = org
+        store.project = project
+        store.pat = pat
+        return store
+    }
+
+    private func makeSession() -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        return URLSession(configuration: config)
+    }
+
+    private func wiqlJSON(ids: [Int]) -> Data {
+        let items = ids.map {
+            "{\"id\":\($0),\"url\":\"https://dev.azure.com/org/proj/_apis/wit/workItems/\($0)\"}"
+        }.joined(separator: ",")
+        return "{\"workItems\":[\(items)]}".data(using: .utf8)!
+    }
+
+    private func batchJSON(items: [(id: Int, title: String, state: String, description: String)]) -> Data {
+        let values = items.map { item in
+            "{\"id\":\(item.id),\"fields\":{\"System.Title\":\"\(item.title)\",\"System.State\":\"\(item.state)\",\"System.Description\":\"\(item.description)\"}}"
+        }.joined(separator: ",")
+        return "{\"value\":[\(values)]}".data(using: .utf8)!
+    }
+
+    private func makeResponse(statusCode: Int) -> HTTPURLResponse {
+        HTTPURLResponse(url: URL(string: "https://dev.azure.com")!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
+    }
+
+    override func tearDown() {
+        MockURLProtocol.requestHandler = nil
+        super.tearDown()
+    }
+
+    // MARK: - loadAssigned
+
+    func testLoadAssignedPopulatesAssignedItems() async {
+        var callCount = 0
+        MockURLProtocol.requestHandler = { [self] _ in
+            callCount += 1
+            if callCount == 1 {
+                return (self.makeResponse(statusCode: 200), self.wiqlJSON(ids: [10, 20]))
+            } else {
+                return (self.makeResponse(statusCode: 200), self.batchJSON(items: [
+                    (10, "Task A", "Active", ""),
+                    (20, "Task B", "Resolved", "desc")
+                ]))
+            }
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        await vm.loadAssigned()
+
+        XCTAssertEqual(vm.assignedItems.count, 2)
+        XCTAssertEqual(vm.assignedItems[0].title, "Task A")
+        XCTAssertEqual(vm.assignedItems[1].title, "Task B")
+        XCTAssertNil(vm.assignedError)
+    }
+
+    func testLoadAssignedSetsIsLoadingAssignedThenClears() async {
+        var callCount = 0
+        MockURLProtocol.requestHandler = { [self] _ in
+            callCount += 1
+            if callCount == 1 {
+                return (self.makeResponse(statusCode: 200), self.wiqlJSON(ids: []))
+            } else {
+                return (self.makeResponse(statusCode: 200), self.batchJSON(items: []))
+            }
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        await vm.loadAssigned()
+
+        // After completion, isLoadingAssigned must be false
+        XCTAssertFalse(vm.isLoadingAssigned)
+    }
+
+    func testLoadAssignedOnErrorSetsAssignedError() async {
+        MockURLProtocol.requestHandler = { [self] _ in
+            return (self.makeResponse(statusCode: 401), Data())
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        await vm.loadAssigned()
+
+        XCTAssertNotNil(vm.assignedError)
+        XCTAssertTrue(vm.assignedItems.isEmpty)
+    }
+
+    // MARK: - loadMentioned
+
+    func testLoadMentionedPopulatesMentionedItems() async {
+        var callCount = 0
+        MockURLProtocol.requestHandler = { [self] _ in
+            callCount += 1
+            if callCount == 1 {
+                return (self.makeResponse(statusCode: 200), self.wiqlJSON(ids: [99]))
+            } else {
+                return (self.makeResponse(statusCode: 200), self.batchJSON(items: [
+                    (99, "Mentioned Item", "Active", "")
+                ]))
+            }
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        await vm.loadMentioned()
+
+        XCTAssertEqual(vm.mentionedItems.count, 1)
+        XCTAssertEqual(vm.mentionedItems[0].title, "Mentioned Item")
+        XCTAssertNil(vm.mentionedError)
+    }
+
+    func testLoadMentionedOnErrorSetsMentionedError() async {
+        MockURLProtocol.requestHandler = { [self] _ in
+            return (self.makeResponse(statusCode: 401), Data())
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        await vm.loadMentioned()
+
+        XCTAssertNotNil(vm.mentionedError)
+        XCTAssertTrue(vm.mentionedItems.isEmpty)
+    }
+
+    // MARK: - toggleSelection
+
+    func testToggleSelectionAddsId() {
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        vm.toggleSelection(42)
+        XCTAssertTrue(vm.selectedIds.contains(42))
+    }
+
+    func testToggleSelectionRemovesAlreadySelectedId() {
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        vm.toggleSelection(42)
+        vm.toggleSelection(42)
+        XCTAssertFalse(vm.selectedIds.contains(42))
+    }
+
+    // MARK: - canImport
+
+    func testCanImportFalseWhenNothingSelectedAndNoFetch() {
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        XCTAssertFalse(vm.canImport)
+    }
+
+    func testCanImportTrueWhenItemSelected() {
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        vm.toggleSelection(10)
+        XCTAssertTrue(vm.canImport)
+    }
+
+    func testCanImportTrueWhenFetchedItemPresent() async {
+        var callCount = 0
+        MockURLProtocol.requestHandler = { [self] _ in
+            callCount += 1
+            let json = "{\"id\":1,\"fields\":{\"System.Title\":\"T\",\"System.Description\":\"\"}}".data(using: .utf8)!
+            return (self.makeResponse(statusCode: 200), json)
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        vm.workItemIdText = "1"
+        await vm.fetchWorkItem()
+
+        XCTAssertTrue(vm.canImport)
+    }
+
+    // MARK: - importSelected
+
+    func testImportSelectedReturnsTodoItemsForSelectedIds() async {
+        var callCount = 0
+        MockURLProtocol.requestHandler = { [self] _ in
+            callCount += 1
+            if callCount == 1 {
+                return (self.makeResponse(statusCode: 200), self.wiqlJSON(ids: [10, 20]))
+            } else {
+                return (self.makeResponse(statusCode: 200), self.batchJSON(items: [
+                    (10, "Task A", "Active", ""),
+                    (20, "Task B", "Active", "")
+                ]))
+            }
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        await vm.loadAssigned()
+
+        vm.toggleSelection(10)
+        vm.toggleSelection(20)
+
+        let todos = vm.importSelected(existingAdoIds: [])
+        XCTAssertEqual(todos.count, 2)
+        XCTAssertTrue(todos.allSatisfy { $0.adoWorkItemId != nil })
+    }
+
+    func testImportSelectedIncludesFetchedItem() async {
+        // Set up for the single-item fetch
+        MockURLProtocol.requestHandler = { [self] _ in
+            let json = "{\"id\":55,\"fields\":{\"System.Title\":\"Fetched Item\",\"System.Description\":\"\"}}".data(using: .utf8)!
+            return (self.makeResponse(statusCode: 200), json)
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        vm.workItemIdText = "55"
+        await vm.fetchWorkItem()
+
+        let todos = vm.importSelected(existingAdoIds: [])
+        XCTAssertEqual(todos.count, 1)
+        XCTAssertEqual(todos[0].adoWorkItemId, "55")
+    }
+
+    func testImportSelectedExcludesAlreadyImportedIds() async {
+        var callCount = 0
+        MockURLProtocol.requestHandler = { [self] _ in
+            callCount += 1
+            if callCount == 1 {
+                return (self.makeResponse(statusCode: 200), self.wiqlJSON(ids: [10, 20]))
+            } else {
+                return (self.makeResponse(statusCode: 200), self.batchJSON(items: [
+                    (10, "Task A", "Active", ""),
+                    (20, "Task B", "Active", "")
+                ]))
+            }
+        }
+
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        await vm.loadAssigned()
+
+        vm.toggleSelection(10)
+        vm.toggleSelection(20)
+
+        let todos = vm.importSelected(existingAdoIds: ["10"])
+        // Item 10 is already imported, only item 20 should be returned
+        XCTAssertEqual(todos.count, 1)
+        XCTAssertEqual(todos[0].adoWorkItemId, "20")
+    }
+
+    func testImportSelectedReturnsEmptyWhenNothingSelected() {
+        let vm = ADOImportViewModel(service: ADOService(session: makeSession()), settings: makeSettings())
+        let todos = vm.importSelected(existingAdoIds: [])
+        XCTAssertTrue(todos.isEmpty)
+    }
+}

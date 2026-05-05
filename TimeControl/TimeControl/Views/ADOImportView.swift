@@ -8,12 +8,19 @@ import AppKit
 
 struct ADOImportView: View {
 
-    /// Called when the user confirms the import. Receives the ready-to-add TodoItem.
-    let onImport: (TodoItem) -> Void
+    /// Called when the user confirms the import. Receives the ready-to-add TodoItems.
+    let onImport: ([TodoItem]) -> Void
     let onCancel: () -> Void
+    let existingAdoIds: Set<String>
 
     @StateObject private var vm = ADOImportViewModel()
     @FocusState private var idFieldFocused: Bool
+
+    init(existingAdoIds: Set<String> = [], onImport: @escaping ([TodoItem]) -> Void, onCancel: @escaping () -> Void) {
+        self.existingAdoIds = existingAdoIds
+        self.onImport = onImport
+        self.onCancel = onCancel
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,11 +28,11 @@ struct ADOImportView: View {
             Divider()
             content
         }
-        .frame(minWidth: 500, minHeight: 340)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                idFieldFocused = true
-            }
+        .frame(minWidth: 520, minHeight: 460)
+        .task {
+            async let assigned: () = vm.loadAssigned()
+            async let mentioned: () = vm.loadMentioned()
+            _ = await (assigned, mentioned)
         }
     }
 
@@ -41,12 +48,11 @@ struct ADOImportView: View {
                 .fontWeight(.semibold)
             Spacer()
             Button("Import") {
-                if let todo = vm.importAsNewTask() {
-                    onImport(todo)
-                }
+                let todos = vm.importSelected(existingAdoIds: existingAdoIds)
+                onImport(todos)
             }
             .keyboardShortcut(.defaultAction)
-            .disabled(vm.fetchedItem == nil)
+            .disabled(!vm.canImport)
         }
         .padding()
         .background(Color(NSColor.windowBackgroundColor))
@@ -57,11 +63,175 @@ struct ADOImportView: View {
     private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                idInputRow
+                assignedSection
+                mentionedSection
                 Divider()
-                resultArea
+                fetchByIdSection
             }
             .padding()
+        }
+    }
+
+    // MARK: - Assigned section
+
+    private var assignedSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Assigned to me")
+                    .font(.headline)
+                Spacer()
+                if vm.isLoadingAssigned {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button("Refresh") {
+                        Task { await vm.loadAssigned() }
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.subheadline)
+                }
+            }
+
+            if let err = vm.assignedError {
+                Label(err, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundColor(.red)
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if vm.assignedItems.isEmpty && !vm.isLoadingAssigned {
+                Text("No items")
+                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+            } else {
+                workItemList(vm.assignedItems)
+            }
+        }
+    }
+
+    // MARK: - Mentioned section
+
+    private var mentionedSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Mentioned in")
+                    .font(.headline)
+                Spacer()
+                if vm.isLoadingMentioned {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button("Refresh") {
+                        Task { await vm.loadMentioned() }
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.subheadline)
+                }
+            }
+
+            if let err = vm.mentionedError {
+                Label(err, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundColor(.red)
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if vm.mentionedItems.isEmpty && !vm.isLoadingMentioned {
+                Text("No items")
+                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+            } else {
+                workItemList(vm.mentionedItems)
+            }
+        }
+    }
+
+    // MARK: - Work item row list
+
+    @ViewBuilder
+    private func workItemList(_ items: [ADOWorkItem]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(items, id: \.id) { item in
+                workItemRow(item)
+                if item.id != items.last?.id {
+                    Divider().padding(.leading, 36)
+                }
+            }
+        }
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func workItemRow(_ item: ADOWorkItem) -> some View {
+        let alreadyAdded = existingAdoIds.contains(String(item.id))
+
+        HStack(spacing: 10) {
+            if alreadyAdded {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.secondary)
+                    .frame(width: 18, height: 18)
+            } else {
+                Toggle(isOn: Binding(
+                    get: { vm.selectedIds.contains(item.id) },
+                    set: { _ in vm.toggleSelection(item.id) }
+                )) {
+                    EmptyView()
+                }
+                .toggleStyle(.checkbox)
+                .frame(width: 18, height: 18)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text("#\(item.id)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if !item.state.isEmpty {
+                        Text(item.state)
+                            .font(.caption2)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.15))
+                            .cornerRadius(4)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Text(item.title)
+                    .font(.body)
+                    .lineLimit(2)
+                    .foregroundColor(alreadyAdded ? .secondary : .primary)
+            }
+
+            Spacer()
+
+            if alreadyAdded {
+                Text("Already added")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if !alreadyAdded {
+                vm.toggleSelection(item.id)
+            }
+        }
+    }
+
+    // MARK: - Fetch by ID section
+
+    private var fetchByIdSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("or fetch by ID")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            idInputRow
+
+            resultArea
         }
     }
 
@@ -144,10 +314,8 @@ struct ADOImportView: View {
                     }
                 }
             }
-        } else if !vm.isLoading && vm.errorMessage == nil {
-            Text("Enter a work item ID above and tap Fetch.")
-                .foregroundColor(.secondary)
-                .font(.subheadline)
+        } else if !vm.isLoading && vm.errorMessage == nil && !vm.workItemIdText.isEmpty {
+            EmptyView()
         }
     }
 }

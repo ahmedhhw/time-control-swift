@@ -302,9 +302,13 @@ struct ContentView: View {
             })
         }
         .sheet(isPresented: $viewModel.showingADOImport) {
+            let existingAdoIds = Set(viewModel.todos.compactMap(\.adoWorkItemId))
             ADOImportView(
-                onImport: { newTodo in
-                    viewModel.insertTodo(newTodo)
+                existingAdoIds: existingAdoIds,
+                onImport: { todos in
+                    for todo in todos {
+                        viewModel.insertTodo(todo)
+                    }
                     viewModel.showingADOImport = false
                 },
                 onCancel: { viewModel.showingADOImport = false }

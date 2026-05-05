@@ -9,6 +9,14 @@ struct ADOWorkItem {
     let id: Int
     let title: String
     let description: String
+    let state: String
+
+    init(id: Int, title: String, description: String, state: String = "") {
+        self.id = id
+        self.title = title
+        self.description = description
+        self.state = state
+    }
 }
 
 final class ADOService {
@@ -230,6 +238,127 @@ final class ADOService {
             throw ADOError.invalidResponse
         }
         return body.value
+    }
+
+    // MARK: - Bulk fetch
+
+    func fetchAssignedWorkItems(org: String, project: String, pat: String) async throws -> [ADOWorkItem] {
+        let query = "SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @Me AND [System.State] <> 'Closed' ORDER BY [System.ChangedDate] DESC"
+        return try await fetchWorkItems(org: org, project: project, pat: pat, wiqlQuery: query)
+    }
+
+    func fetchMentionedWorkItems(org: String, project: String, pat: String) async throws -> [ADOWorkItem] {
+        // Fetches items recently changed by the current user that they didn't create —
+        // a practical proxy for "mentioned in", since WIQL has no native mentions filter.
+        let query = "SELECT [System.Id] FROM WorkItems WHERE [System.ChangedBy] = @Me AND [System.CreatedBy] <> @Me AND [System.ChangedDate] >= @Today - 30 AND [System.State] <> 'Closed' ORDER BY [System.ChangedDate] DESC"
+        return try await fetchWorkItems(org: org, project: project, pat: pat, wiqlQuery: query)
+    }
+
+    private func fetchWorkItems(org: String, project: String, pat: String, wiqlQuery: String) async throws -> [ADOWorkItem] {
+        // Step 1: WIQL query to get IDs
+        let wiqlURL = "https://dev.azure.com/\(org)/\(project)/_apis/wit/wiql?api-version=7.1"
+        guard let url = URL(string: wiqlURL) else { throw ADOError.invalidResponse }
+
+        var wiqlRequest = URLRequest(url: url)
+        wiqlRequest.httpMethod = "POST"
+        wiqlRequest.timeoutInterval = 30
+        wiqlRequest.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
+        wiqlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        wiqlRequest.httpBody = try? JSONEncoder().encode(["query": wiqlQuery])
+
+        let (wiqlData, wiqlResponse) = try await performRequest(wiqlRequest)
+
+        guard let wiqlHttp = wiqlResponse as? HTTPURLResponse else { throw ADOError.invalidResponse }
+        switch wiqlHttp.statusCode {
+        case 200: break
+        case 401: throw ADOError.unauthorized
+        default: throw ADOError.serverError(wiqlHttp.statusCode)
+        }
+
+        struct WIQLResponse: Decodable {
+            struct WorkItemRef: Decodable { let id: Int }
+            let workItems: [WorkItemRef]
+        }
+
+        guard let wiqlBody = try? JSONDecoder().decode(WIQLResponse.self, from: wiqlData) else {
+            throw ADOError.invalidResponse
+        }
+
+        let ids = wiqlBody.workItems.map(\.id)
+        guard !ids.isEmpty else { return [] }
+
+        // Step 2: Batch fetch full work item data
+        let batchURL = "https://dev.azure.com/\(org)/\(project)/_apis/wit/workitemsbatch?api-version=7.1"
+        guard let batchUrl = URL(string: batchURL) else { throw ADOError.invalidResponse }
+
+        struct BatchRequest: Encodable {
+            let ids: [Int]
+            let fields: [String]
+        }
+        let batchBody = BatchRequest(ids: ids, fields: ["System.Title", "System.State", "System.Description"])
+
+        var batchRequest = URLRequest(url: batchUrl)
+        batchRequest.httpMethod = "POST"
+        batchRequest.timeoutInterval = 30
+        batchRequest.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
+        batchRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        batchRequest.httpBody = try? JSONEncoder().encode(batchBody)
+
+        let (batchData, batchResponse) = try await performRequest(batchRequest)
+
+        guard let batchHttp = batchResponse as? HTTPURLResponse else { throw ADOError.invalidResponse }
+        switch batchHttp.statusCode {
+        case 200: break
+        case 401: throw ADOError.unauthorized
+        default: throw ADOError.serverError(batchHttp.statusCode)
+        }
+
+        struct BatchResponse: Decodable {
+            struct Item: Decodable {
+                struct Fields: Decodable {
+                    let title: String
+                    let state: String
+                    let description: String?
+                    enum CodingKeys: String, CodingKey {
+                        case title = "System.Title"
+                        case state = "System.State"
+                        case description = "System.Description"
+                    }
+                }
+                let id: Int
+                let fields: Fields
+            }
+            let value: [Item]
+        }
+
+        guard let batchBody = try? JSONDecoder().decode(BatchResponse.self, from: batchData) else {
+            throw ADOError.invalidResponse
+        }
+
+        return batchBody.value.map {
+            ADOWorkItem(id: $0.id, title: $0.fields.title, description: $0.fields.description ?? "", state: $0.fields.state)
+        }
+    }
+
+    // MARK: - Private helpers
+
+    private func authHeader(pat: String) -> String {
+        "Basic " + Data(":\(pat)".utf8).base64EncodedString()
+    }
+
+    private func performRequest(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await session.data(for: request)
+        } catch let urlError as URLError {
+            switch urlError.code {
+            case .serverCertificateUntrusted, .serverCertificateHasBadDate,
+                 .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot,
+                 .clientCertificateRequired, .secureConnectionFailed:
+                throw ADOError.tlsError
+            default:
+                throw ADOError.urlError(urlError.errorCode)
+            }
+        }
     }
 
     private func displayName(_ name: String, or mail: String, contains query: String) -> Bool {
