@@ -17,7 +17,7 @@ final class ADOCommentsViewModel: ObservableObject {
 
     @Published var state: State = .idle
 
-    let workItemId: String
+    private(set) var workItemId: String
     private let service: ADOService
     private let settings: ADOSettingsStore
 
@@ -25,6 +25,13 @@ final class ADOCommentsViewModel: ObservableObject {
         self.workItemId = workItemId
         self.service = service
         self.settings = settings
+    }
+
+    func updateWorkItemId(_ newId: String) async {
+        guard newId != workItemId else { return }
+        workItemId = newId
+        state = .idle
+        await fetch()
     }
 
     func fetch() async {

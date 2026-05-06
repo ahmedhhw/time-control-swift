@@ -7,7 +7,7 @@ import SwiftUI
 
 struct ADOCommentsSection: View {
     @ObservedObject var vm: ADOCommentsViewModel
-    @State private var isExpanded: Bool = false
+    @State private var isExpanded: Bool = true
 
     private var headerTitle: String {
         if case .loaded(let comments) = vm.state {
@@ -50,6 +50,11 @@ struct ADOCommentsSection: View {
             if isExpanded {
                 contentBody
                     .padding(.top, 2)
+            }
+        }
+        .onAppear {
+            if isExpanded, case .idle = vm.state {
+                Task { await vm.fetch() }
             }
         }
     }

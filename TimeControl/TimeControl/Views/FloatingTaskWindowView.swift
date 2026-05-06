@@ -1142,13 +1142,18 @@ struct FloatingTaskWindowView: View {
                 if newTask.countdownTime == 0 && timerJustCompleted {
                     timerJustCompleted = false
                 }
-                
+
                 // If a new timer was set externally, reset flags
                 if newTask.countdownTime > 0 && newTask.countdownElapsedAtPause == 0 {
                     timerJustCompleted = false
                     showTimerCompletedMessage = false
                 }
-                
+
+                if taskSwitched {
+                    Task { await commentsVM.updateWorkItemId(newTask.adoWorkItemId ?? "") }
+                    Task { await commentVM.updateWorkItemId(newTask.adoWorkItemId ?? "") }
+                }
+
             }
         }
         .onChange(of: currentSnapshot) { snapshot in

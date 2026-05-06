@@ -43,7 +43,7 @@ final class ADOCommentViewModel: ObservableObject {
     private var mentionTokens: [MentionToken] = []
     private var mentionSearchTask: Task<Void, Never>? = nil
 
-    let workItemId: String
+    private(set) var workItemId: String
     private let service: ADOService
     private let settings: ADOSettingsStore
 
@@ -51,6 +51,15 @@ final class ADOCommentViewModel: ObservableObject {
         self.workItemId = workItemId
         self.service = service
         self.settings = settings
+    }
+
+    func updateWorkItemId(_ newId: String) async {
+        guard newId != workItemId else { return }
+        workItemId = newId
+        commentBody = NSMutableAttributedString()
+        pastedImages = []
+        clearMentionState()
+        phase = .idle
     }
 
     func open() {
