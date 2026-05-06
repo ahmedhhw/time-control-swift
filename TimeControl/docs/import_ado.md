@@ -86,7 +86,7 @@ func fetchMentionedWorkItems(org: String, project: String, pat: String) async th
 
 Both hit the ADO WIQL endpoint (`_apis/wit/wiql`) with a query:
 - Assigned: `WHERE [System.AssignedTo] = @Me AND [System.State] <> 'Closed'`
-- Mentioned: `WHERE [System.ChangedDate] >= @Today - 30` filtered client-side by mention in the `History` field (or use the mentions API if available)
+- Mentioned: `WHERE [System.ChangedBy] <> @Me AND [System.State] <> 'Closed'` — items changed by others (indicating potential mentions/discussions)
 
 **Test file:** `ADOBulkFetchTests.swift` (new)
 

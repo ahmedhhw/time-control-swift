@@ -10,7 +10,6 @@ final class IdlePromptWindowManager {
     static let shared = IdlePromptWindowManager()
 
     private var panel: NSPanel?
-    private var hostingView: NSHostingView<IdlePromptView>?
 
     private init() {}
 
@@ -22,7 +21,7 @@ final class IdlePromptWindowManager {
 
         let screen = screenForPrompt()
         let panelWidth: CGFloat = 360
-        let panelHeight: CGFloat = 180
+        let panelHeight: CGFloat = 200
         let padding: CGFloat = 16
 
         let xPos = screen.visibleFrame.maxX - panelWidth - padding
@@ -59,19 +58,17 @@ final class IdlePromptWindowManager {
             }
         )
 
-        let hosting = NSHostingView(rootView: promptView)
-        hosting.frame = NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight)
-        newPanel.contentView = hosting
+        let hostingController = NSHostingController(rootView: promptView)
+        hostingController.view.frame = NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight)
+        newPanel.contentViewController = hostingController
 
         panel = newPanel
-        hostingView = hosting
         newPanel.orderFrontRegardless()
     }
 
     func dismiss() {
         panel?.close()
         panel = nil
-        hostingView = nil
     }
 
     // MARK: - Private helpers

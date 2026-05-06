@@ -64,7 +64,7 @@ final class NotificationWindowManager {
         guard let screen = NSScreen.main else { return }
 
         let panelWidth: CGFloat = 340
-        let panelHeight: CGFloat = 100
+        let panelHeight: CGFloat = 120
         let padding: CGFloat = 16
 
         let xPos = screen.visibleFrame.maxX - panelWidth - padding
@@ -85,15 +85,15 @@ final class NotificationWindowManager {
         newPanel.hidesOnDeactivate = false
 
         let overlayView = NotificationOverlayView(payload: payload, windowManager: self)
-        let hosting = NSHostingController(rootView: overlayView)
-        hosting.view.frame = NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight)
-        hosting.view.wantsLayer = true
-        hosting.view.layer?.backgroundColor = NSColor.clear.cgColor
+        let hostingController = NSHostingController(rootView: overlayView)
+        hostingController.view.frame = NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight)
+        hostingController.view.wantsLayer = true
+        hostingController.view.layer?.backgroundColor = NSColor.clear.cgColor
 
-        newPanel.contentView = hosting.view
+        newPanel.contentViewController = hostingController
 
         self.panel = newPanel
-        self.hostingController = hosting
+        self.hostingController = hostingController
 
         newPanel.orderFrontRegardless()
         scheduleAutoDismiss()

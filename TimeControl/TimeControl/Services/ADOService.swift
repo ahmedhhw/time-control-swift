@@ -248,9 +248,10 @@ final class ADOService {
     }
 
     func fetchMentionedWorkItems(org: String, project: String, pat: String) async throws -> [ADOWorkItem] {
-        // Fetches items recently changed by the current user that they didn't create —
-        // a practical proxy for "mentioned in", since WIQL has no native mentions filter.
-        let query = "SELECT [System.Id] FROM WorkItems WHERE [System.ChangedBy] = @Me AND [System.CreatedBy] <> @Me AND [System.ChangedDate] >= @Today - 30 AND [System.State] <> 'Closed' ORDER BY [System.ChangedDate] DESC"
+        // Fetches items where others have made changes (implying potential mention/discussion).
+        // Since WIQL has no native mentions filter, we use a simple heuristic: items changed
+        // by someone other than @Me and not closed. This captures items you're likely mentioned in.
+        let query = "SELECT [System.Id] FROM WorkItems WHERE [System.ChangedBy] <> @Me AND [System.State] <> 'Closed' ORDER BY [System.ChangedDate] DESC"
         return try await fetchWorkItems(org: org, project: project, pat: pat, wiqlQuery: query)
     }
 
