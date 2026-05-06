@@ -708,6 +708,7 @@ struct FloatingTaskWindowView: View {
                 updateWindowTitle()
                 applyResize(currentSnapshot)
                 FloatingWindowManager.shared.onOpenNotes = { openNotesWindow() }
+                commentVM.onSent = { Task { await commentsVM.refresh() } }
             }
             
             // Main content

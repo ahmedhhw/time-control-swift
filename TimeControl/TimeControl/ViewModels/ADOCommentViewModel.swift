@@ -27,6 +27,8 @@ final class ADOCommentViewModel: ObservableObject {
     @Published var commentBody = NSMutableAttributedString()
     @Published var pastedImages: [PastedImage] = []
 
+    var onSent: (() -> Void)?
+
     /// Plain-text projection for tests and prefilled sends (setting replaces `commentBody` with attributed plain text).
     var commentText: String {
         get { commentBody.string }
@@ -113,6 +115,11 @@ final class ADOCommentViewModel: ObservableObject {
                 pastedImages = []
             }
             phase = .sent
+            onSent?()
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                if phase == .sent { phase = .idle }
+            }
         } catch ADOService.ADOError.urlError, ADOService.ADOError.networkUnavailable, ADOService.ADOError.tlsError {
             phase = .queued
         } catch {

@@ -55,6 +55,7 @@ struct ADOChip: View {
 struct ADOLinkRow: View {
     let workItemId: String
     private let urlBuilder = ADOURLBuilder()
+    @State private var copied = false
 
     private var url: URL? { urlBuilder.buildURL(id: workItemId) }
 
@@ -73,17 +74,19 @@ struct ADOLinkRow: View {
             .buttonStyle(.plain)
             .disabled(url == nil)
             .contextMenu {
-                Button("Copy URL") {
-                    if let url {
-                        let pb = NSPasteboard.general
-                        pb.clearContents()
-                        pb.setString(url.absoluteString, forType: .string)
-                    }
-                }
-                .disabled(url == nil)
+                Button("Copy URL") { copyURL() }
+                    .disabled(url == nil)
             }
 
             Spacer()
+
+            Button(action: copyID) {
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                    .font(.caption)
+                    .foregroundColor(copied ? .green : .secondary)
+            }
+            .buttonStyle(.plain)
+            .help(copied ? "Copied!" : "Copy #\(workItemId)")
 
             Button(action: openURL) {
                 HStack(spacing: 2) {
@@ -104,5 +107,23 @@ struct ADOLinkRow: View {
     private func openURL() {
         guard let url else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    private func copyID() {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(workItemId, forType: .string)
+        copied = true
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            copied = false
+        }
+    }
+
+    private func copyURL() {
+        guard let url else { return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(url.absoluteString, forType: .string)
     }
 }
