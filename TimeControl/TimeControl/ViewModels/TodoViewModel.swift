@@ -41,12 +41,18 @@ class TodoViewModel: ObservableObject {
     /// Incremented each time the idle prompt's "Start a Task" is tapped.
     /// ContentView observes this to focus the new-task input field.
     @Published var focusNewTaskInputToken: UUID = UUID()
-    
+    /// Task IDs that have unread ADO comments.
+    @Published var unreadADOTaskIds: Set<UUID> = []
+    @Published var isRefreshingADOComments: Bool = false
+
     private var timer: AnyCancellable?
     var storageURL: URL = TodoStorage.storageURL
     var sqliteStorage: SQLiteStorage?
     private var saveDebounceTimer: Timer?
     private(set) var sleepPausedTaskId: UUID? = nil
+    let adoUnreadStore = ADOUnreadCommentsStore()
+    private let adoService = ADOService()
+    private let adoSettings = ADOSettingsStore()
 
     /// Last time the app was known to be alive, persisted across launches for crash-recovery.
     /// Set to `nil` on clean shutdown; used by `sanitizeOrphanedRunningState` as the stop time.
@@ -1458,5 +1464,49 @@ class TodoViewModel: ObservableObject {
             }
         }
         return total
+    }
+
+    // MARK: - ADO Unread Comments
+
+    @MainActor
+    func refreshADOComments() async {
+        let adoTasks = todos.filter { $0.adoWorkItemId != nil }
+        guard !adoTasks.isEmpty,
+              !adoSettings.organization.isEmpty,
+              !adoSettings.project.isEmpty,
+              !adoSettings.pat.isEmpty else { return }
+
+        isRefreshingADOComments = true
+        defer { isRefreshingADOComments = false }
+
+        await withTaskGroup(of: (UUID, Int?).self) { group in
+            for task in adoTasks {
+                guard let idString = task.adoWorkItemId, let id = Int(idString) else { continue }
+                group.addTask { [weak self] in
+                    guard let self else { return (task.id, nil) }
+                    let comments = try? await self.adoService.fetchComments(
+                        org: self.adoSettings.organization,
+                        project: self.adoSettings.project,
+                        id: id,
+                        pat: self.adoSettings.pat
+                    )
+                    return (task.id, comments?.first?.id)
+                }
+            }
+
+            for await (taskId, latestId) in group {
+                guard let latestId else { continue }
+                if adoUnreadStore.hasUnread(latestCommentId: latestId, for: taskId) {
+                    unreadADOTaskIds.insert(taskId)
+                } else {
+                    unreadADOTaskIds.remove(taskId)
+                }
+            }
+        }
+    }
+
+    func markADOCommentsRead(for taskId: UUID, latestCommentId: Int) {
+        adoUnreadStore.markSeen(commentId: latestCommentId, for: taskId)
+        unreadADOTaskIds.remove(taskId)
     }
 }

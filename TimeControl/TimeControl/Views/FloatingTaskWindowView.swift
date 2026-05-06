@@ -153,11 +153,6 @@ struct FloatingTaskWindowView: View {
         return sorted
     }
     
-    private var filteredPaletteTasks: [TodoItem] {
-        guard !paletteSearch.isEmpty else { return availableTasks }
-        return availableTasks.filter { $0.text.localizedCaseInsensitiveContains(paletteSearch) }
-    }
-
     // The base window width is 350pt. For every extra 50pt the user has resized,
     // allow the collapsed picker to grow proportionally, capped so icons always fit.
     private var collapsedPickerMaxWidth: CGFloat {
@@ -236,7 +231,7 @@ struct FloatingTaskWindowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .popover(isPresented: $showTaskPalette, arrowEdge: .bottom) {
             TaskPaletteView(
-                tasks: filteredPaletteTasks,
+                tasks: availableTasks,
                 searchText: $paletteSearch,
                 selectedIndex: $paletteSelectedIndex,
                 currentTaskId: localTask.id,
@@ -261,7 +256,7 @@ struct FloatingTaskWindowView: View {
             )
         }
         .onChange(of: showTaskPalette) { isShowing in
-            if isShowing {
+            if !isShowing {
                 paletteSearch = ""
                 paletteSelectedIndex = 0
             }
@@ -685,7 +680,9 @@ struct FloatingTaskWindowView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ADOLinkRow(workItemId: adoId)
                 ScrollView {
-                    ADOCommentsSection(vm: commentsVM)
+                    ADOCommentsSection(vm: commentsVM, onCommentsRead: { latestId in
+                            viewModel.markADOCommentsRead(for: localTask.id, latestCommentId: latestId)
+                        })
                         .padding(.bottom, 4)
                 }
                 .frame(maxHeight: 280)
@@ -2067,6 +2064,20 @@ func calculateDynamicHeight(snapshot s: ResizeSnapshot) -> CGFloat {
     return min(max(height, 380), 900)
 }
 
+// MARK: - Task Palette filter logic (pure, testable)
+
+enum TaskPaletteFilter {
+    static func filter(tasks: [TodoItem], searchText: String) -> [TodoItem] {
+        guard !searchText.isEmpty else { return tasks }
+        return tasks.filter { $0.text.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    static func showCreateRow(tasks: [TodoItem], searchText: String) -> Bool {
+        guard !searchText.isEmpty else { return false }
+        return !tasks.contains { $0.text.lowercased() == searchText.lowercased() }
+    }
+}
+
 // MARK: - Task Palette (command-palette style task switcher)
 
 struct TaskPaletteView: View {
@@ -2081,14 +2092,16 @@ struct TaskPaletteView: View {
     @FocusState private var searchFocused: Bool
     @State private var keyMonitor: Any? = nil
 
-    // Total rows = tasks + optional create row
-    private var showCreateRow: Bool {
-        guard !searchText.isEmpty else { return false }
-        let exactMatch = tasks.contains { $0.text.lowercased() == searchText.lowercased() }
-        return !exactMatch
+    private var filteredTasks: [TodoItem] {
+        TaskPaletteFilter.filter(tasks: tasks, searchText: searchText)
     }
 
-    private var totalRows: Int { tasks.count + (showCreateRow ? 1 : 0) }
+    // Total rows = tasks + optional create row
+    private var showCreateRow: Bool {
+        TaskPaletteFilter.showCreateRow(tasks: filteredTasks, searchText: searchText)
+    }
+
+    private var totalRows: Int { filteredTasks.count + (showCreateRow ? 1 : 0) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -2119,7 +2132,7 @@ struct TaskPaletteView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
+                        ForEach(Array(filteredTasks.enumerated()), id: \.element.id) { index, task in
                             paletteRow(
                                 label: task.text,
                                 isSelected: selectedIndex == index,
@@ -2129,11 +2142,11 @@ struct TaskPaletteView: View {
                             ) {
                                 onSelect(task)
                             }
-                            .id(index)
+                            .id(task.id)
                         }
 
                         if showCreateRow {
-                            let createIndex = tasks.count
+                            let createIndex = filteredTasks.count
                             paletteRow(
                                 label: "+ Create \"\(searchText)\"",
                                 isSelected: selectedIndex == createIndex,
@@ -2143,14 +2156,23 @@ struct TaskPaletteView: View {
                             ) {
                                 onCreate(searchText)
                             }
-                            .id(createIndex)
+                            .id("__create__")
                         }
                     }
                 }
                 .frame(maxHeight: 280)
                 .onChange(of: selectedIndex) { idx in
+                    let target: AnyHashable? = {
+                        if idx < filteredTasks.count {
+                            return filteredTasks[idx].id
+                        } else if showCreateRow {
+                            return "__create__"
+                        }
+                        return nil
+                    }()
+                    guard let target else { return }
                     withAnimation(.easeInOut(duration: 0.1)) {
-                        proxy.scrollTo(idx, anchor: .center)
+                        proxy.scrollTo(target, anchor: .center)
                     }
                 }
             }
@@ -2187,10 +2209,10 @@ struct TaskPaletteView: View {
     }
 
     private func commitSelection() {
-        if showCreateRow && selectedIndex == tasks.count {
+        if showCreateRow && selectedIndex == filteredTasks.count {
             onCreate(searchText)
-        } else if selectedIndex < tasks.count {
-            onSelect(tasks[selectedIndex])
+        } else if selectedIndex < filteredTasks.count {
+            onSelect(filteredTasks[selectedIndex])
         }
     }
 

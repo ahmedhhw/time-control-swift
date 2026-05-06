@@ -16,12 +16,15 @@ struct TaskListToolbar: View {
     @Binding var showingADOImport: Bool
     @Binding var sortOption: TaskSortOption
     var newTaskInputFocused: FocusState<Bool>.Binding? = nil
+    var isRefreshingADO: Bool = false
+    var unreadADOCount: Int = 0
 
     let onAddTodo: () -> Void
     let onToggleExpandAll: () -> Void
     let onExportAllTasks: () -> Void
     let onOpenNotesViewer: () -> Void
     let onOpenHistory: () -> Void
+    var onRefreshADO: (() -> Void)? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -35,6 +38,35 @@ struct TaskListToolbar: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(filterText.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                if let onRefreshADO {
+                    Button(action: onRefreshADO) {
+                        ZStack {
+                            if isRefreshingADO {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(width: 20, height: 20)
+                            } else {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "arrow.clockwise.circle")
+                                        .font(.title2)
+                                        .foregroundColor(.secondary)
+                                    if unreadADOCount > 0 {
+                                        Circle()
+                                            .fill(Color.orange)
+                                            .frame(width: 8, height: 8)
+                                            .offset(x: 2, y: -2)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isRefreshingADO)
+                    .help(unreadADOCount > 0
+                          ? "Refresh ADO comments (\(unreadADOCount) task\(unreadADOCount == 1 ? "" : "s") with new comments)"
+                          : "Refresh ADO comments")
+                }
 
             }
             .padding()

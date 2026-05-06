@@ -5,6 +5,37 @@
 
 import Foundation
 
+// MARK: - ADOUnreadCommentsStore
+
+final class ADOUnreadCommentsStore {
+    private let defaults: UserDefaults
+    private let key = "ado.unread.lastSeenCommentId"
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func lastSeenCommentId(for taskId: UUID) -> Int? {
+        let dict = defaults.dictionary(forKey: key) as? [String: Int] ?? [:]
+        return dict[taskId.uuidString]
+    }
+
+    func markSeen(commentId: Int, for taskId: UUID) {
+        var dict = defaults.dictionary(forKey: key) as? [String: Int] ?? [:]
+        dict[taskId.uuidString] = commentId
+        defaults.set(dict, forKey: key)
+    }
+
+    func hasUnread(latestCommentId: Int, for taskId: UUID) -> Bool {
+        guard let seen = lastSeenCommentId(for: taskId) else {
+            return latestCommentId > 0
+        }
+        return latestCommentId > seen
+    }
+}
+
+// MARK: - SubtaskCommentPromptStore
+
 final class SubtaskCommentPromptStore {
     private let defaults: UserDefaults
     private let key = "ado.subtask.alwaysPost"

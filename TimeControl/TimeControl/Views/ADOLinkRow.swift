@@ -11,30 +11,38 @@ import AppKit
 /// Compact inline badge used in task rows to indicate an ADO-linked task.
 struct ADOChip: View {
     let workItemId: String
+    var hasUnread: Bool = false
     private let urlBuilder = ADOURLBuilder()
 
     private var url: URL? { urlBuilder.buildURL(id: workItemId) }
 
     var body: some View {
         Button(action: openURL) {
-            Text("ADO #\(workItemId)")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(url == nil ? .secondary : Color.accentColor)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.accentColor.opacity(0.12))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
-                )
+            HStack(spacing: 4) {
+                Text("ADO #\(workItemId)")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(url == nil ? .secondary : Color.accentColor)
+                if hasUnread {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.accentColor.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
         .disabled(url == nil)
-        .help(url == nil ? "Configure ADO org & project in Settings to open in browser" : "Open ADO #\(workItemId) in browser")
+        .help(url == nil ? "Configure ADO org & project in Settings to open in browser" : hasUnread ? "ADO #\(workItemId) — new comments (open to mark as read)" : "Open ADO #\(workItemId) in browser")
         .contextMenu {
             if let url {
                 Button("Open in Browser") { NSWorkspace.shared.open(url) }

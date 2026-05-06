@@ -29,6 +29,7 @@ struct TaskListItem: View {
     var onPromoteSubtask: ((Subtask) -> Void)? = nil
     var onSetReminder: ((Date?) -> Void)? = nil
     var onDismissBell: (() -> Void)? = nil
+    var hasUnreadADO: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,7 +47,8 @@ struct TaskListItem: View {
                 onDeleteSubtask: onDeleteSubtask,
                 onEditSubtask: onEditSubtask,
                 onSetReminder: onSetReminder,
-                onDismissBell: onDismissBell
+                onDismissBell: onDismissBell,
+                hasUnreadADO: hasUnreadADO
             )
             
             // Expanded area with inline subtask input and existing subtasks

@@ -83,15 +83,18 @@ final class ADOImportViewModel: ObservableObject {
 
     // MARK: - Bulk load
 
+    private static let ignoredStates: Set<String> = ["Removed", "Closed", "Resolved"]
+
     func loadAssigned() async {
         isLoadingAssigned = true
         assignedError = nil
         do {
-            assignedItems = try await service.fetchAssignedWorkItems(
+            let items = try await service.fetchAssignedWorkItems(
                 org: settings.organization,
                 project: settings.project,
                 pat: settings.pat
             )
+            assignedItems = items.filter { !Self.ignoredStates.contains($0.state) }
         } catch {
             assignedError = errorDescription(for: error)
             assignedItems = []
@@ -103,11 +106,12 @@ final class ADOImportViewModel: ObservableObject {
         isLoadingMentioned = true
         mentionedError = nil
         do {
-            mentionedItems = try await service.fetchMentionedWorkItems(
+            let items = try await service.fetchMentionedWorkItems(
                 org: settings.organization,
                 project: settings.project,
                 pat: settings.pat
             )
+            mentionedItems = items.filter { !Self.ignoredStates.contains($0.state) }
         } catch {
             mentionedError = errorDescription(for: error)
             mentionedItems = []

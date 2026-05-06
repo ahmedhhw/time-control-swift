@@ -16,6 +16,7 @@ struct TodoRow: View {
     let onEditSubtask: (Subtask) -> Void
     var onSetReminder: ((Date?) -> Void)? = nil
     var onDismissBell: (() -> Void)? = nil
+    var hasUnreadADO: Bool = false
 
     @State private var showExportText: Bool = false
     @State private var showSessions: Bool = false
@@ -259,7 +260,7 @@ struct TodoRow: View {
                     }
 
                     if let adoId = todo.adoWorkItemId, !adoId.isEmpty {
-                        ADOChip(workItemId: adoId)
+                        ADOChip(workItemId: adoId, hasUnread: hasUnreadADO)
                     }
                 }
                 

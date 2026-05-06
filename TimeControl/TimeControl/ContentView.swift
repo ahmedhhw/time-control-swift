@@ -59,6 +59,8 @@ struct ContentView: View {
                 showingADOImport: $viewModel.showingADOImport,
                 sortOption: $viewModel.sortOption,
                 newTaskInputFocused: $newTaskInputFocused,
+                isRefreshingADO: viewModel.isRefreshingADOComments,
+                unreadADOCount: viewModel.unreadADOTaskIds.count,
                 onAddTodo: { viewModel.addTodo() },
                 onToggleExpandAll: { toggleExpandAll() },
                 onExportAllTasks: {
@@ -70,6 +72,9 @@ struct ContentView: View {
                 },
                 onOpenHistory: {
                     openHistoryWindow()
+                },
+                onRefreshADO: {
+                    Task { await viewModel.refreshADOComments() }
                 }
             )
             .onChange(of: viewModel.focusNewTaskInputToken) { _ in
@@ -134,7 +139,8 @@ struct ContentView: View {
                                     },
                                     onDismissBell: {
                                         viewModel.dismissBell(for: todo.id)
-                                    }
+                                    },
+                                    hasUnreadADO: viewModel.unreadADOTaskIds.contains(todo.id)
                                 )
                                 .draggable(todo.id.uuidString) {
                                     // Preview shown while dragging
@@ -271,6 +277,7 @@ struct ContentView: View {
             viewModel.defaultTimerMinutes = defaultTimerMinutes
             viewModel.dropdownSortOption = DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed
             viewModel.isAdvancedMode = isAdvancedMode
+            Task { await viewModel.refreshADOComments() }
         }
         .onChange(of: activateReminders) { viewModel.activateReminders = $0 }
         .onChange(of: confirmTaskDeletion) { viewModel.confirmTaskDeletion = $0 }

@@ -7,6 +7,7 @@ import SwiftUI
 
 struct ADOCommentsSection: View {
     @ObservedObject var vm: ADOCommentsViewModel
+    var onCommentsRead: ((_ latestCommentId: Int) -> Void)? = nil
     @State private var isExpanded: Bool = true
 
     private var headerTitle: String {
@@ -55,6 +56,11 @@ struct ADOCommentsSection: View {
         .onAppear {
             if isExpanded, case .idle = vm.state {
                 Task { await vm.fetch() }
+            }
+        }
+        .onChange(of: vm.state) { state in
+            if case .loaded(let comments) = state, let latestId = comments.first?.id {
+                onCommentsRead?(latestId)
             }
         }
     }
