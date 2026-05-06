@@ -1061,6 +1061,9 @@ struct FloatingTaskWindowView: View {
                     // Countdown completed - mark as just completed
                     timerJustCompleted = true
                     
+                    // Switch to timers tab
+                    selectedTabRaw = FloatingTab.timers.rawValue
+                    
                     // Play notification sound
                     NSSound.beep()
 
