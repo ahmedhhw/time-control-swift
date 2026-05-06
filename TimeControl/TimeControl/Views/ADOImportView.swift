@@ -52,10 +52,16 @@ struct ADOImportView: View {
                 onImport(todos)
             }
             .keyboardShortcut(.defaultAction)
-            .disabled(!vm.canImport)
+            .disabled(!canImport)
         }
         .padding()
         .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    private var canImport: Bool {
+        let hasSelectedNewItems = vm.selectedIds.contains { !existingAdoIds.contains(String($0)) }
+        let hasNewFetchedItem = vm.fetchedItem.map { !existingAdoIds.contains(String($0.id)) } ?? false
+        return hasSelectedNewItems || hasNewFetchedItem
     }
 
     // MARK: - Main content
@@ -75,7 +81,9 @@ struct ADOImportView: View {
     // MARK: - Assigned section
 
     private var assignedSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let visibleAssignedItems = vm.assignedItems.filter { !existingAdoIds.contains(String($0.id)) }
+
+        return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Assigned to me")
                     .font(.headline)
@@ -97,12 +105,12 @@ struct ADOImportView: View {
                     .foregroundColor(.red)
                     .font(.subheadline)
                     .fixedSize(horizontal: false, vertical: true)
-            } else if vm.assignedItems.isEmpty && !vm.isLoadingAssigned {
+            } else if visibleAssignedItems.isEmpty && !vm.isLoadingAssigned {
                 Text("No items")
                     .foregroundColor(.secondary)
                     .font(.subheadline)
             } else {
-                workItemList(vm.assignedItems)
+                workItemList(visibleAssignedItems)
             }
         }
     }
@@ -110,7 +118,9 @@ struct ADOImportView: View {
     // MARK: - Mentioned section
 
     private var mentionedSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let visibleMentionedItems = vm.mentionedItems.filter { !existingAdoIds.contains(String($0.id)) }
+
+        return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Mentioned in")
                     .font(.headline)
@@ -132,12 +142,12 @@ struct ADOImportView: View {
                     .foregroundColor(.red)
                     .font(.subheadline)
                     .fixedSize(horizontal: false, vertical: true)
-            } else if vm.mentionedItems.isEmpty && !vm.isLoadingMentioned {
+            } else if visibleMentionedItems.isEmpty && !vm.isLoadingMentioned {
                 Text("No items")
                     .foregroundColor(.secondary)
                     .font(.subheadline)
             } else {
-                workItemList(vm.mentionedItems)
+                workItemList(visibleMentionedItems)
             }
         }
     }
@@ -164,23 +174,15 @@ struct ADOImportView: View {
 
     @ViewBuilder
     private func workItemRow(_ item: ADOWorkItem) -> some View {
-        let alreadyAdded = existingAdoIds.contains(String(item.id))
-
         HStack(spacing: 10) {
-            if alreadyAdded {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.secondary)
-                    .frame(width: 18, height: 18)
-            } else {
-                Toggle(isOn: Binding(
-                    get: { vm.selectedIds.contains(item.id) },
-                    set: { _ in vm.toggleSelection(item.id) }
-                )) {
-                    EmptyView()
-                }
-                .toggleStyle(.checkbox)
-                .frame(width: 18, height: 18)
+            Toggle(isOn: Binding(
+                get: { vm.selectedIds.contains(item.id) },
+                set: { _ in vm.toggleSelection(item.id) }
+            )) {
+                EmptyView()
             }
+            .toggleStyle(.checkbox)
+            .frame(width: 18, height: 18)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -200,24 +202,16 @@ struct ADOImportView: View {
                 Text(item.title)
                     .font(.body)
                     .lineLimit(2)
-                    .foregroundColor(alreadyAdded ? .secondary : .primary)
+                    .foregroundColor(.primary)
             }
 
             Spacer()
-
-            if alreadyAdded {
-                Text("Already added")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .contentShape(Rectangle())
         .onTapGesture {
-            if !alreadyAdded {
-                vm.toggleSelection(item.id)
-            }
+            vm.toggleSelection(item.id)
         }
     }
 
@@ -282,35 +276,42 @@ struct ADOImportView: View {
     @ViewBuilder
     private var resultArea: some View {
         if let item = vm.fetchedItem {
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Found work item", systemImage: "checkmark.circle.fill")
-                    .foregroundColor(.green)
+            if existingAdoIds.contains(String(item.id)) {
+                Text("Work item #\(item.id) is already added.")
                     .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Found work item", systemImage: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.subheadline)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("#\(item.id)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(item.title)
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                }
-
-                if !item.description.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Description (preview):")
-                            .font(.subheadline)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("#\(item.id)")
+                            .font(.caption)
                             .foregroundColor(.secondary)
+                        Text(item.title)
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                    }
 
-                        HTMLPreview(html: item.description)
-                            .frame(maxWidth: .infinity, minHeight: 80, maxHeight: 160, alignment: .topLeading)
-                            .padding(8)
-                            .background(Color(NSColor.textBackgroundColor))
-                            .cornerRadius(6)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 1)
-                            )
+                    if !item.description.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Description (preview):")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            HTMLPreview(html: item.description)
+                                .frame(maxWidth: .infinity, minHeight: 80, maxHeight: 160, alignment: .topLeading)
+                                .padding(8)
+                                .background(Color(NSColor.textBackgroundColor))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 1)
+                                )
+                        }
                     }
                 }
             }
