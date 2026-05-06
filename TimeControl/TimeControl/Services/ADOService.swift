@@ -152,64 +152,60 @@ final class ADOService {
     }
 
     func searchUsers(org: String, query: String, pat: String) async throws -> [ADOUser] {
-        // Graph API returns all org users; we fetch once and filter client-side.
-        // subjectTypes=aad limits to AAD-backed users (excludes service accounts/groups).
-        var components = URLComponents(string: "https://vssps.dev.azure.com/\(org)/_apis/graph/users")!
-        components.queryItems = [
-            URLQueryItem(name: "api-version", value: "7.1-preview.1")
-        ]
-        guard let url = components.url else { throw ADOError.invalidResponse }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        guard let url = URL(string: "https://vssps.dev.azure.com/\(org)/_apis/graph/subjectquery?api-version=7.1-preview.1") else {
+            throw ADOError.invalidResponse
+        }
+
+        struct SubjectQuery: Encodable {
+            let query: String
+            let subjectKind: [String]
+        }
+        let requestBody = SubjectQuery(query: trimmed, subjectKind: ["User"])
+        let encodedBody = try? JSONEncoder().encode(requestBody)
+        print("[searchUsers] POST \(url) body: \(String(data: encodedBody ?? Data(), encoding: .utf8) ?? "<encode failed>")")
 
         var request = URLRequest(url: url)
+        request.httpMethod = "POST"
         request.timeoutInterval = 15
-        let credentials = Data(":\(pat)".utf8).base64EncodedString()
-        request.setValue("Basic \(credentials)", forHTTPHeaderField: "Authorization")
+        request.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = encodedBody
 
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch let urlError as URLError {
-            switch urlError.code {
-            case .serverCertificateUntrusted, .serverCertificateHasBadDate,
-                 .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot,
-                 .clientCertificateRequired, .secureConnectionFailed:
-                throw ADOError.tlsError
-            default:
-                throw ADOError.urlError(urlError.errorCode)
-            }
-        }
+        let (data, response) = try await performRequest(request)
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        let rawBody = String(data: data, encoding: .utf8) ?? "<unreadable>"
+        print("[searchUsers] status: \(statusCode), response: \(rawBody)")
 
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            print("[searchUsers] non-200, returning empty")
             return []
         }
 
-        struct GraphResponse: Decodable {
-            struct GraphUser: Decodable {
-                let descriptor: String
-                let displayName: String
-                let mailAddress: String?
-                let principalName: String?
-                let origin: String?
-            }
-            let value: [GraphUser]
+        struct GraphSubject: Decodable {
+            let descriptor: String
+            let displayName: String
+            let mailAddress: String?
+            let principalName: String?
+        }
+        struct GraphSubjectResponse: Decodable {
+            let value: [GraphSubject]
         }
 
-        guard let body = try? JSONDecoder().decode(GraphResponse.self, from: data) else {
+        guard let response = try? JSONDecoder().decode(GraphSubjectResponse.self, from: data) else {
+            print("[searchUsers] decode failed, raw: \(rawBody)")
             return []
         }
+        let subjects = response.value
 
-        let lowercased = query.lowercased()
-        return body.value
-            .compactMap { user -> ADOUser? in
-                // Skip service accounts (vsts origin) with no mail
-                guard user.origin != "vsts" else { return nil }
-                let mail = user.mailAddress ?? user.principalName ?? ""
-                guard displayName(user.displayName, or: mail, contains: lowercased) else { return nil }
-                return ADOUser(id: user.descriptor, displayName: user.displayName, mailAddress: mail)
-            }
-            .prefix(8)
-            .map { $0 }
+        let users = subjects.compactMap { subject -> ADOUser? in
+            let mail = subject.mailAddress ?? subject.principalName ?? ""
+            return ADOUser(id: subject.descriptor, displayName: subject.displayName, mailAddress: mail)
+        }
+        print("[searchUsers] query '\(trimmed)' → \(users.count) users: \(users.map(\.displayName))")
+        return users
     }
 
     func fetchStorageKey(org: String, descriptor: String, pat: String) async throws -> String {
@@ -362,9 +358,6 @@ final class ADOService {
         }
     }
 
-    private func displayName(_ name: String, or mail: String, contains query: String) -> Bool {
-        name.lowercased().contains(query) || mail.lowercased().contains(query)
-    }
 
     func uploadAttachment(org: String, project: String, filename: String, data: Data, pat: String) async throws -> URL {
         let encodedName = filename.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filename

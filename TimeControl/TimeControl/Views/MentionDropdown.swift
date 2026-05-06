@@ -21,7 +21,7 @@ struct MentionDropdown: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
             } else if vm.mentionResults.isEmpty {
-                Text("No users found")
+                Text(vm.mentionQuery?.isEmpty == true ? "Type to search…" : "No users found")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
