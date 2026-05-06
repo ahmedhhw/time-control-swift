@@ -45,6 +45,7 @@ struct ContentView: View {
     @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
     @AppStorage("isAdvancedMode") private var isAdvancedMode: Bool = false
     @AppStorage("idlePromptEnabled") private var idlePromptEnabled: Bool = true
+    @AppStorage("preferADOMode") private var preferADOMode: Bool = false
     
     var body: some View {
         ZStack {
@@ -315,7 +316,16 @@ struct ContentView: View {
             )
         }
         .sheet(isPresented: $viewModel.showingSettings) {
-            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes, dropdownSortOptionRaw: $dropdownSortOptionRaw, idlePromptEnabled: $idlePromptEnabled)
+            SettingsSheet(activateReminders: $activateReminders, confirmTaskDeletion: $confirmTaskDeletion, confirmSubtaskDeletion: $confirmSubtaskDeletion, showTimeWhenCollapsed: $showTimeWhenCollapsed, autoPlayAfterSwitching: $autoPlayAfterSwitching, autoPauseAfterMinutes: $autoPauseAfterMinutes, timerOnTaskSwitch: $timerOnTaskSwitch, defaultTimerMinutes: $defaultTimerMinutes, dropdownSortOptionRaw: $dropdownSortOptionRaw, idlePromptEnabled: $idlePromptEnabled, preferADOMode: $preferADOMode)
+                .onChange(of: preferADOMode) { newValue in
+                    viewModel.preferADOMode = newValue
+                }
+        }
+        .onAppear {
+            viewModel.preferADOMode = preferADOMode
+        }
+        .onChange(of: viewModel.showingSettings) { _ in
+            viewModel.preferADOMode = preferADOMode
         }
         .confirmationDialog(
             "Delete Task",

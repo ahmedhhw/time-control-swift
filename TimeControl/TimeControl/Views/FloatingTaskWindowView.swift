@@ -104,19 +104,21 @@ struct FloatingTaskWindowView: View {
     
     private var availableTasks: [TodoItem] {
         let incomplete = windowManager.allTodos.filter { !$0.isCompleted }
+        var sorted: [TodoItem]
+        
         switch viewModel.dropdownSortOption {
         case .recentlyPlayed:
-            return incomplete.sorted {
+            sorted = incomplete.sorted {
                 let t1 = $0.lastPlayedAt ?? $0.startedAt ?? $0.createdAt
                 let t2 = $1.lastPlayedAt ?? $1.startedAt ?? $1.createdAt
                 return t1 > t2
             }
         case .newest:
-            return incomplete.sorted { $0.createdAt > $1.createdAt }
+            sorted = incomplete.sorted { $0.createdAt > $1.createdAt }
         case .oldest:
-            return incomplete.sorted { $0.createdAt < $1.createdAt }
+            sorted = incomplete.sorted { $0.createdAt < $1.createdAt }
         case .estimateSize:
-            return incomplete.sorted {
+            sorted = incomplete.sorted {
                 switch ($0.estimatedTime > 0, $1.estimatedTime > 0) {
                 case (true, true): return $0.estimatedTime < $1.estimatedTime
                 case (true, false): return true
@@ -125,7 +127,7 @@ struct FloatingTaskWindowView: View {
                 }
             }
         case .dueDate:
-            return incomplete.sorted {
+            sorted = incomplete.sorted {
                 switch ($0.dueDate, $1.dueDate) {
                 case let (d1?, d2?): return d1 < d2
                 case (_?, nil): return true
@@ -134,6 +136,21 @@ struct FloatingTaskWindowView: View {
                 }
             }
         }
+        
+        // Apply ADO prioritization if enabled
+        if viewModel.preferADOMode {
+            sorted.sort { todo1, todo2 in
+                let has1 = todo1.adoWorkItemId != nil
+                let has2 = todo2.adoWorkItemId != nil
+                if has1 != has2 {
+                    return has1
+                }
+                // Maintain existing sort order for same ADO status
+                return false
+            }
+        }
+        
+        return sorted
     }
     
     private var filteredPaletteTasks: [TodoItem] {
@@ -2101,6 +2118,7 @@ struct TaskPaletteView: View {
                                 label: task.text,
                                 isSelected: selectedIndex == index,
                                 isCurrent: task.id == currentTaskId,
+                                isADO: task.adoWorkItemId != nil,
                                 isCreate: false
                             ) {
                                 onSelect(task)
@@ -2114,6 +2132,7 @@ struct TaskPaletteView: View {
                                 label: "+ Create \"\(searchText)\"",
                                 isSelected: selectedIndex == createIndex,
                                 isCurrent: false,
+                                isADO: false,
                                 isCreate: true
                             ) {
                                 onCreate(searchText)
@@ -2174,6 +2193,7 @@ struct TaskPaletteView: View {
         label: String,
         isSelected: Bool,
         isCurrent: Bool,
+        isADO: Bool,
         isCreate: Bool,
         action: @escaping () -> Void
     ) -> some View {
@@ -2193,6 +2213,16 @@ struct TaskPaletteView: View {
                     .foregroundColor(isCreate ? .secondary : .primary)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isADO {
+                    Text("ADO")
+                        .font(.caption2).bold()
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color.blue.opacity(0.14))
+                        .cornerRadius(6)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)

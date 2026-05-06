@@ -37,6 +37,7 @@ class TodoViewModel: ObservableObject {
     @Published var defaultTimerMinutes: Int = 0
     @Published var shouldAutoShowTimerPicker: Bool = false
     @Published var dropdownSortOption: DropdownSortOption = .recentlyPlayed
+    @Published var preferADOMode: Bool = false
     /// Incremented each time the idle prompt's "Start a Task" is tapped.
     /// ContentView observes this to focus the new-task input field.
     @Published var focusNewTaskInputToken: UUID = UUID()
@@ -172,16 +173,29 @@ class TodoViewModel: ObservableObject {
     
     func sortTodos(_ items: [TodoItem]) -> [TodoItem] {
         guard isAdvancedMode else {
-            return items.sorted { $0.index < $1.index }
+            // Apply ADO prioritization in basic mode if enabled
+            var sorted = items.sorted { $0.index < $1.index }
+            if preferADOMode {
+                sorted.sort { todo1, todo2 in
+                    let has1 = todo1.adoWorkItemId != nil
+                    let has2 = todo2.adoWorkItemId != nil
+                    if has1 != has2 {
+                        return has1
+                    }
+                    return todo1.index < todo2.index
+                }
+            }
+            return sorted
         }
         
+        var sorted: [TodoItem]
         switch sortOption {
         case .creationDateNewest:
-            return items.sorted { $0.createdAt > $1.createdAt }
+            sorted = items.sorted { $0.createdAt > $1.createdAt }
         case .creationDateOldest:
-            return items.sorted { $0.createdAt < $1.createdAt }
+            sorted = items.sorted { $0.createdAt < $1.createdAt }
         case .recentlyPlayedNewest:
-            return items.sorted { todo1, todo2 in
+            sorted = items.sorted { todo1, todo2 in
                 let hasPlayed1 = todo1.lastPlayedAt != nil
                 let hasPlayed2 = todo2.lastPlayedAt != nil
                 
@@ -193,7 +207,7 @@ class TodoViewModel: ObservableObject {
                 return todo1.createdAt > todo2.createdAt
             }
         case .dueDateNearest:
-            return items.sorted { todo1, todo2 in
+            sorted = items.sorted { todo1, todo2 in
                 let hasDueDate1 = todo1.dueDate != nil
                 let hasDueDate2 = todo2.dueDate != nil
                 
@@ -205,6 +219,21 @@ class TodoViewModel: ObservableObject {
                 return todo1.createdAt > todo2.createdAt
             }
         }
+        
+        // Apply ADO prioritization if enabled
+        if preferADOMode {
+            sorted.sort { todo1, todo2 in
+                let has1 = todo1.adoWorkItemId != nil
+                let has2 = todo2.adoWorkItemId != nil
+                if has1 != has2 {
+                    return has1
+                }
+                // Maintain existing sort order for same ADO status
+                return false
+            }
+        }
+        
+        return sorted
     }
     
     func filterTodos(_ items: [TodoItem]) -> [TodoItem] {

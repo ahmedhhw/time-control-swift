@@ -19,6 +19,7 @@ struct SettingsSheet: View {
     @Binding var defaultTimerMinutes: Int
     @Binding var dropdownSortOptionRaw: String
     @Binding var idlePromptEnabled: Bool
+    @Binding var preferADOMode: Bool
     /// Both opacity bindings are optional. When non-nil the Appearance section appears
     /// (used by the floating Settings panel). When nil — e.g. main-window Settings sheet —
     /// the Appearance section is hidden because per-floating-window opacity isn't meaningful there.
@@ -74,6 +75,17 @@ struct SettingsSheet: View {
                     }
 
                     Text("Determines the sort order of tasks in the dropdown used for switching tasks in the floating task window.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+                        .padding(.vertical, 8)
+
+                    Toggle("Prefer ADO tasks at the top", isOn: $preferADOMode)
+                        .toggleStyle(.checkbox)
+                        .font(.title3)
+                    
+                    Text("When enabled, tasks linked to Azure DevOps work items will be prioritized and sorted to the top in both the main task list and the current task dropdown.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
@@ -254,6 +266,7 @@ struct FloatingSettingsHostView: View {
     @AppStorage("defaultTimerMinutes") private var defaultTimerMinutes: Int = 0
     @AppStorage("dropdownSortOption") private var dropdownSortOptionRaw: String = DropdownSortOption.recentlyPlayed.rawValue
     @AppStorage("idlePromptEnabled") private var idlePromptEnabled: Bool = true
+    @AppStorage("preferADOMode") private var preferADOMode: Bool = false
 
     @State private var currentTaskOpacity: Double = FloatingWindowManager.shared.currentTaskOpacity
     @State private var notesOpacity: Double = FloatingWindowManager.shared.notesOpacity
@@ -272,6 +285,7 @@ struct FloatingSettingsHostView: View {
             defaultTimerMinutes: $defaultTimerMinutes,
             dropdownSortOptionRaw: $dropdownSortOptionRaw,
             idlePromptEnabled: $idlePromptEnabled,
+            preferADOMode: $preferADOMode,
             currentTaskOpacity: Binding(
                 get: { currentTaskOpacity },
                 set: { newValue in
