@@ -16,7 +16,7 @@ final class HUDToastTests: XCTestCase {
         let task = makeTodo(text: "Fix crash")
         vm.todos = [task]
 
-        KeyboardShortcutManager.shared.performToggleTimer(viewModel: vm)
+        KeyboardShortcutManager.shared.performToggleTimerKeepWindow(viewModel: vm)
 
         XCTAssertEqual(vm.runningTaskId, task.id)
     }
@@ -27,9 +27,11 @@ final class HUDToastTests: XCTestCase {
         vm.todos = [task]
         vm.toggleTimer(task)  // start it
 
-        KeyboardShortcutManager.shared.performToggleTimer(viewModel: vm)
+        KeyboardShortcutManager.shared.performToggleTimerKeepWindow(viewModel: vm)
 
-        XCTAssertNil(vm.runningTaskId)
+        // keepWindowOpen: true keeps runningTaskId set; only lastStartTime is cleared
+        XCTAssertEqual(vm.runningTaskId, task.id)
+        XCTAssertNil(vm.todos.first(where: { $0.id == task.id })?.lastStartTime)
     }
 
     func test_toggleTimerNoOpWhenNoTasks() {
@@ -37,7 +39,7 @@ final class HUDToastTests: XCTestCase {
         vm.todos = []
 
         // Should not crash
-        KeyboardShortcutManager.shared.performToggleTimer(viewModel: vm)
+        KeyboardShortcutManager.shared.performToggleTimerKeepWindow(viewModel: vm)
 
         XCTAssertNil(vm.runningTaskId)
     }
@@ -49,7 +51,7 @@ final class HUDToastTests: XCTestCase {
         vm.toggleTimer(task)      // start
         vm.pauseTask(task.id, keepWindowOpen: false)  // pause — now nothing running but lastPlayedAt is set
 
-        KeyboardShortcutManager.shared.performToggleTimer(viewModel: vm)
+        KeyboardShortcutManager.shared.performToggleTimerKeepWindow(viewModel: vm)
 
         XCTAssertEqual(vm.runningTaskId, task.id)
     }

@@ -184,6 +184,20 @@ open ~/Library/Developer/Xcode/DerivedData/TimeControl-*/Build/Products/Release/
 cd TimeControl && xcodebuild -project TimeControl.xcodeproj -scheme TimeControl -configuration Debug && open ~/Library/Developer/Xcode/DerivedData/TimeControl-*/Build/Products/Debug/TimeControl.app
 ```
 
+### Run tests
+
+```bash
+cd TimeControl
+make test
+```
+
+If you prefer to invoke `xcodebuild` directly:
+
+```bash
+cd TimeControl
+xcodebuild -project TimeControl.xcodeproj -scheme TimeControl -configuration Debug test
+```
+
 ## Build a DMG (Distribution)
 
 ### Quick Start with Make
