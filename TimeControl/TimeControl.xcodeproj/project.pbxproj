@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-<<<<<<< HEAD
 		IA000001000000000000001 /* IdleActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000001000000000000000 /* IdleActivityMonitor.swift */; };
 		IA000002000000000000001 /* IdlePromptConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000002000000000000000 /* IdlePromptConfig.swift */; };
 		IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000003000000000000000 /* IdlePromptWindowManager.swift */; };
@@ -18,8 +17,6 @@
 		FF000002000000000000001 /* GRDB in Frameworks (tests) */ = {isa = PBXBuildFile; productRef = FF000004000000000000001 /* GRDB */; };
 		FF000005000000000000001 /* SQLiteStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000006000000000000001 /* SQLiteStorage.swift */; };
 		FF000007000000000000001 /* SQLiteStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000008000000000000001 /* SQLiteStorageTests.swift */; };
-=======
->>>>>>> keyboard_shortcuts
 		9D1052C62F46DA0000B7B24D /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */; };
 		9D1052C72F46DA0000B7B24D /* SubtaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */; };
 		9D1052C82F46DA0000B7B24D /* PauseTaskConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */; };
@@ -135,7 +132,6 @@
 		TC000002000000000000001 /* PauseBeforeDeleteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000002000000000000000 /* PauseBeforeDeleteTests.swift */; };
 		TC000003000000000000001 /* SessionDiscardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000003000000000000000 /* SessionDiscardTests.swift */; };
 		TP000001000000000000001 /* TaskPaletteFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP000001000000000000000 /* TaskPaletteFilterTests.swift */; };
-<<<<<<< HEAD
 		IP000002000000000000001 /* IdlePromptAutoDismissTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */; };
 		TW000001000000000000001 /* TaskPaletteWindowManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TW000001000000000000000 /* TaskPaletteWindowManagerTests.swift */; };
 		IS000001000000000000001 /* IdlePromptStartTaskWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IS000001000000000000000 /* IdlePromptStartTaskWiringTests.swift */; };
@@ -158,14 +154,12 @@
 		IM000001000000000000001 /* PastedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000001000000000000000 /* PastedImage.swift */; };
 		IM000003000000000000001 /* InlineImageAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000003000000000000000 /* InlineImageAttachment.swift */; };
 		IM000002000000000000001 /* ADOServiceAttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000002000000000000000 /* ADOServiceAttachmentTests.swift */; };
-=======
 		TPP00001000000000000002 /* TaskPalettePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = TPP00001000000000000001 /* TaskPalettePanel.swift */; };
 		TPP00002000000000000002 /* TaskPalettePanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TPP00002000000000000001 /* TaskPalettePanelTests.swift */; };
 		WO000001000000000000001 /* WindowOpacityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000001000000000000000 /* WindowOpacityStore.swift */; };
 		WO000002000000000000001 /* WindowOpacityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000002000000000000000 /* WindowOpacityStoreTests.swift */; };
 		WO000003000000000000001 /* WindowOpacityApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000003000000000000000 /* WindowOpacityApplier.swift */; };
 		WO000004000000000000001 /* WindowOpacityApplierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000004000000000000000 /* WindowOpacityApplierTests.swift */; };
->>>>>>> keyboard_shortcuts
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -194,7 +188,6 @@
 		9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerPickerSheet.swift; sourceTree = "<group>"; };
 		9D1052C02F46DA0000B7B24D /* ExportWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C12F46DA0000B7B24D /* FloatingWindowDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowDelegate.swift; sourceTree = "<group>"; };
-<<<<<<< HEAD
 		NW000001000000000000000 /* NotesWindowFrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStore.swift; sourceTree = "<group>"; };
 		NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStoreTests.swift; sourceTree = "<group>"; };
 		WO000001000000000000000 /* WindowOpacityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityStore.swift; sourceTree = "<group>"; };
@@ -239,8 +232,6 @@
 		IM000001000000000000000 /* PastedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastedImage.swift; sourceTree = "<group>"; };
 		IM000003000000000000000 /* InlineImageAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineImageAttachment.swift; sourceTree = "<group>"; };
 		IM000002000000000000000 /* ADOServiceAttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceAttachmentTests.swift; sourceTree = "<group>"; };
-=======
->>>>>>> keyboard_shortcuts
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
 		9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
