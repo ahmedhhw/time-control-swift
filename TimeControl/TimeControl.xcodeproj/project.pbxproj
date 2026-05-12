@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+<<<<<<< HEAD
 		IA000001000000000000001 /* IdleActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000001000000000000000 /* IdleActivityMonitor.swift */; };
 		IA000002000000000000001 /* IdlePromptConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000002000000000000000 /* IdlePromptConfig.swift */; };
 		IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000003000000000000000 /* IdlePromptWindowManager.swift */; };
@@ -17,8 +18,9 @@
 		FF000002000000000000001 /* GRDB in Frameworks (tests) */ = {isa = PBXBuildFile; productRef = FF000004000000000000001 /* GRDB */; };
 		FF000005000000000000001 /* SQLiteStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000006000000000000001 /* SQLiteStorage.swift */; };
 		FF000007000000000000001 /* SQLiteStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000008000000000000001 /* SQLiteStorageTests.swift */; };
+=======
+>>>>>>> keyboard_shortcuts
 		9D1052C62F46DA0000B7B24D /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */; };
-		A1000000000000000000153 /* ADOSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000152 /* ADOSettingsSection.swift */; };
 		9D1052C72F46DA0000B7B24D /* SubtaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */; };
 		9D1052C82F46DA0000B7B24D /* PauseTaskConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */; };
 		9D1052C92F46DA0000B7B24D /* TooltipWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */; };
@@ -26,18 +28,6 @@
 		9D1052CB2F46DA0000B7B24D /* ExportWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C02F46DA0000B7B24D /* ExportWindowManager.swift */; };
 		9D1052CC2F46DA0000B7B24D /* FloatingTooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B52F46DA0000B7B24D /* FloatingTooltip.swift */; };
 		9D1052CD2F46DA0000B7B24D /* FloatingWindowDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C12F46DA0000B7B24D /* FloatingWindowDelegate.swift */; };
-		NW000001000000000000001 /* NotesWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000001000000000000000 /* NotesWindowFrameStore.swift */; };
-		NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */; };
-		WO000001000000000000001 /* WindowOpacityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000001000000000000000 /* WindowOpacityStore.swift */; };
-		WO000002000000000000001 /* WindowOpacityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000002000000000000000 /* WindowOpacityStoreTests.swift */; };
-		WO000003000000000000001 /* WindowOpacityApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000003000000000000000 /* WindowOpacityApplier.swift */; };
-		WO000004000000000000001 /* WindowOpacityApplierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000004000000000000000 /* WindowOpacityApplierTests.swift */; };
-		ST000001000000000000001 /* SubtitleText.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST000001000000000000000 /* SubtitleText.swift */; };
-		ST000002000000000000001 /* SubtitleTextStrokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST000002000000000000000 /* SubtitleTextStrokeTests.swift */; };
-		AU000001000000000000001 /* ADOURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000001000000000000000 /* ADOURLBuilder.swift */; };
-		LP000001000000000000001 /* LinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = LP000001000000000000000 /* LinkParser.swift */; };
-		AU000002000000000000001 /* ADOURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000002000000000000000 /* ADOURLBuilderTests.swift */; };
-		AL000001000000000000001 /* ADOLinkRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AL000001000000000000000 /* ADOLinkRow.swift */; };
 		9D1052CE2F46DA0000B7B24D /* ExportAllTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */; };
 		9D1052CF2F46DA0000B7B24D /* FloatingWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */; };
 		9D1052D02F46DA0000B7B24D /* ReminderAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */; };
@@ -45,15 +35,15 @@
 		9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */; };
 		9D1052D32F46DA0000B7B24D /* TodoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052AE2F46DA0000B7B24D /* TodoItem.swift */; };
 		9D1052D42F46DA0000B7B24D /* TodoStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B32F46DA0000B7B24D /* TodoStorage.swift */; };
-		A1000000000000000000141 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000140 /* Keychain.swift */; };
-		A1000000000000000000143 /* ADOService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000142 /* ADOService.swift */; };
-		A1000000000000000000145 /* ADOSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000144 /* ADOSettingsStore.swift */; };
-		A1000000000000000000147 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000146 /* KeychainTests.swift */; };
-		A1000000000000000000149 /* ADOServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000148 /* ADOServiceTests.swift */; };
-		A1000000000000000000151 /* ADOSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000150 /* ADOSettingsStoreTests.swift */; };
 		9D1052D52F46DA0000B7B24D /* NewTaskPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */; };
 		9D1052D62F46DA0000B7B24D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052AD2F46DA0000B7B24D /* Enums.swift */; };
 		9D1052D92F46DB1800B7B24D /* TodoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */; };
+		9DA691972FB3D9A600264B63 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA691962FB3D9A600264B63 /* KeyboardShortcuts */; };
+		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
+		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
+		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
+		A1000000000000000000121 /* TodoOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000120 /* TodoOperationsTests.swift */; };
+		A1000000000000000000123 /* TimeFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000122 /* TimeFormattingTests.swift */; };
 		A1000000000000000000125 /* TestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000124 /* TestHelpers.swift */; };
 		A1000000000000000000127 /* TodoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000126 /* TodoViewModelTests.swift */; };
 		A1000000000000000000129 /* FilterSortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000128 /* FilterSortTests.swift */; };
@@ -65,11 +55,14 @@
 		A1000000000000000000135 /* ExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000134 /* ExportTests.swift */; };
 		A1000000000000000000137 /* TodayTotalTimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000136 /* TodayTotalTimeTests.swift */; };
 		A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000138 /* OrphanedSessionTests.swift */; };
-		A1000000000000000000115 /* TodoItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000114 /* TodoItemTests.swift */; };
-		A1000000000000000000117 /* SubtaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000116 /* SubtaskTests.swift */; };
-		A1000000000000000000119 /* TodoStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000118 /* TodoStorageTests.swift */; };
-		A1000000000000000000121 /* TodoOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000120 /* TodoOperationsTests.swift */; };
-		A1000000000000000000123 /* TimeFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000122 /* TimeFormattingTests.swift */; };
+		A1000000000000000000141 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000140 /* Keychain.swift */; };
+		A1000000000000000000143 /* ADOService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000142 /* ADOService.swift */; };
+		A1000000000000000000145 /* ADOSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000144 /* ADOSettingsStore.swift */; };
+		A1000000000000000000147 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000146 /* KeychainTests.swift */; };
+		A1000000000000000000149 /* ADOServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000148 /* ADOServiceTests.swift */; };
+		A1000000000000000000151 /* ADOSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000150 /* ADOSettingsStoreTests.swift */; };
+		A1000000000000000000153 /* ADOSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000152 /* ADOSettingsSection.swift */; };
+		A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000001FE /* HistorySessionFilterTests.swift */; };
 		A1000001000000000000001 /* TimeControlApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000000000000001 /* TimeControlApp.swift */; };
 		A1000003000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000004000000000000001 /* ContentView.swift */; };
 		A1000005000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000006000000000000001 /* Assets.xcassets */; };
@@ -79,12 +72,33 @@
 		AA000004000000000000002 /* MassOperationsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000004000000000000001 /* MassOperationsSheet.swift */; };
 		AA000005000000000000002 /* FloatingTaskWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000005000000000000001 /* FloatingTaskWindowView.swift */; };
 		AA000006000000000000002 /* NotesViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000006000000000000001 /* NotesViewerView.swift */; };
+		AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001000000000000000 /* ADOBulkFetchTests.swift */; };
+		AC000001000000000000001 /* ADOCommentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000001000000000000000 /* ADOCommentStore.swift */; };
+		AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000002000000000000000 /* ADOCommentViewModel.swift */; };
+		AC000003000000000000001 /* ADOCommentServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000003000000000000000 /* ADOCommentServiceTests.swift */; };
+		AC000004000000000000001 /* ADOCommentViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000004000000000000000 /* ADOCommentViewModelTests.swift */; };
+		AC000005000000000000001 /* ADOSubtaskCommentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000005000000000000000 /* ADOSubtaskCommentTests.swift */; };
+		AC000006000000000000001 /* ADOCommentPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000006000000000000000 /* ADOCommentPane.swift */; };
+		AC000007000000000000001 /* ADOSubtaskCommentPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000007000000000000000 /* ADOSubtaskCommentPrompt.swift */; };
+		AC000099000000000000001 /* LinkParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000099000000000000000 /* LinkParserTests.swift */; };
+		AI000001000000000000001 /* ADOImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000001000000000000000 /* ADOImportView.swift */; };
+		AI000002000000000000001 /* ADOImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000002000000000000000 /* ADOImportViewModel.swift */; };
+		AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000003000000000000000 /* ADOImportViewModelTests.swift */; };
+		AL000001000000000000001 /* ADOLinkRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AL000001000000000000000 /* ADOLinkRow.swift */; };
+		AU000001000000000000001 /* ADOURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000001000000000000000 /* ADOURLBuilder.swift */; };
+		AU000002000000000000001 /* ADOURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AU000002000000000000000 /* ADOURLBuilderTests.swift */; };
 		BB000001000000000000002 /* TaskListToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000001000000000000001 /* TaskListToolbar.swift */; };
 		BB000002000000000000002 /* TaskListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000002000000000000001 /* TaskListItem.swift */; };
 		BB000003000000000000002 /* CompletedTasksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000003000000000000001 /* CompletedTasksSection.swift */; };
 		CC000001000000000000002 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001000000000000001 /* HistoryView.swift */; };
 		CC000002000000000000002 /* HistorySessionProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000002000000000000001 /* HistorySessionProcessor.swift */; };
-		A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000001FE /* HistorySessionFilterTests.swift */; };
+		CF000001000000000000001 /* ADOComment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000001000000000000000 /* ADOComment.swift */; };
+		CF000002000000000000001 /* ADOCommentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000002000000000000000 /* ADOCommentsViewModel.swift */; };
+		CF000003000000000000001 /* ADOCommentsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000003000000000000000 /* ADOCommentsSection.swift */; };
+		CF000004000000000000001 /* ADOFetchCommentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000004000000000000000 /* ADOFetchCommentsTests.swift */; };
+		CF000005000000000000001 /* ADOUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000005000000000000000 /* ADOUser.swift */; };
+		CF000006000000000000001 /* MentionDropdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF000006000000000000000 /* MentionDropdown.swift */; };
+		CV000001000000000000001 /* CommentTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CV000001000000000000000 /* CommentTextView.swift */; };
 		DD000002000000000000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD000002000000000000001 /* AppDelegate.swift */; };
 		DD000003000000000000002 /* ReminderPickerPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD000003000000000000001 /* ReminderPickerPopover.swift */; };
 		EE000001000000000000002 /* NotificationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000001000000000000001 /* NotificationModels.swift */; };
@@ -93,15 +107,35 @@
 		EE000004000000000000002 /* NotificationWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000004000000000000001 /* NotificationWindowManager.swift */; };
 		EE000005000000000000002 /* NotificationOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000005000000000000001 /* NotificationOverlayView.swift */; };
 		EE000006000000000000002 /* NotificationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000006000000000000001 /* NotificationHistoryView.swift */; };
+		FF000001000000000000001 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = FF000003000000000000001 /* GRDB */; };
+		FF000002000000000000001 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = FF000004000000000000001 /* GRDB */; };
+		FF000005000000000000001 /* SQLiteStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000006000000000000001 /* SQLiteStorage.swift */; };
+		FF000007000000000000001 /* SQLiteStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000008000000000000001 /* SQLiteStorageTests.swift */; };
 		FF00000A000000000000002 /* NewTaskStickyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00000A000000000000001 /* NewTaskStickyStore.swift */; };
 		FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00000B000000000000001 /* NewTaskStickyModeTests.swift */; };
+		HTT00001000000000000002 /* HUDToastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HTT00001000000000000001 /* HUDToastTests.swift */; };
+		HUD00001000000000000002 /* HUDToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = HUD00001000000000000001 /* HUDToastView.swift */; };
+		IA000001000000000000001 /* IdleActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000001000000000000000 /* IdleActivityMonitor.swift */; };
+		IA000002000000000000001 /* IdlePromptConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000002000000000000000 /* IdlePromptConfig.swift */; };
+		IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000003000000000000000 /* IdlePromptWindowManager.swift */; };
+		IA000004000000000000001 /* IdlePromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000004000000000000000 /* IdlePromptView.swift */; };
+		IA000005000000000000001 /* IdleActivityMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000005000000000000000 /* IdleActivityMonitorTests.swift */; };
+		IM000001000000000000001 /* PastedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000001000000000000000 /* PastedImage.swift */; };
+		IM000002000000000000001 /* ADOServiceAttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000002000000000000000 /* ADOServiceAttachmentTests.swift */; };
+		IM000003000000000000001 /* InlineImageAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000003000000000000000 /* InlineImageAttachment.swift */; };
+		KSM00001000000000000002 /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = KSM00001000000000000001 /* KeyboardShortcutManager.swift */; };
+		SN000001000000000000002 /* ShortcutNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = SN000001000000000000001 /* ShortcutNames.swift */; };
+		LP000001000000000000001 /* LinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = LP000001000000000000000 /* LinkParser.swift */; };
+		NW000001000000000000001 /* NotesWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000001000000000000000 /* NotesWindowFrameStore.swift */; };
+		NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */; };
+		QTW00001000000000000002 /* QuickTimerWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = QTW00001000000000000001 /* QuickTimerWindow.swift */; };
+		ST000001000000000000001 /* SubtitleText.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST000001000000000000000 /* SubtitleText.swift */; };
+		ST000002000000000000001 /* SubtitleTextStrokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST000002000000000000000 /* SubtitleTextStrokeTests.swift */; };
 		TC000001000000000000001 /* TaskPauseConsistencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000001000000000000000 /* TaskPauseConsistencyTests.swift */; };
 		TC000002000000000000001 /* PauseBeforeDeleteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000002000000000000000 /* PauseBeforeDeleteTests.swift */; };
 		TC000003000000000000001 /* SessionDiscardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TC000003000000000000000 /* SessionDiscardTests.swift */; };
-		AI000001000000000000001 /* ADOImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000001000000000000000 /* ADOImportView.swift */; };
-		AI000002000000000000001 /* ADOImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000002000000000000000 /* ADOImportViewModel.swift */; };
-		AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000003000000000000000 /* ADOImportViewModelTests.swift */; };
 		TP000001000000000000001 /* TaskPaletteFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP000001000000000000000 /* TaskPaletteFilterTests.swift */; };
+<<<<<<< HEAD
 		IP000002000000000000001 /* IdlePromptAutoDismissTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */; };
 		TW000001000000000000001 /* TaskPaletteWindowManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TW000001000000000000000 /* TaskPaletteWindowManagerTests.swift */; };
 		IS000001000000000000001 /* IdlePromptStartTaskWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IS000001000000000000000 /* IdlePromptStartTaskWiringTests.swift */; };
@@ -124,6 +158,14 @@
 		IM000001000000000000001 /* PastedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000001000000000000000 /* PastedImage.swift */; };
 		IM000003000000000000001 /* InlineImageAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000003000000000000000 /* InlineImageAttachment.swift */; };
 		IM000002000000000000001 /* ADOServiceAttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000002000000000000000 /* ADOServiceAttachmentTests.swift */; };
+=======
+		TPP00001000000000000002 /* TaskPalettePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = TPP00001000000000000001 /* TaskPalettePanel.swift */; };
+		TPP00002000000000000002 /* TaskPalettePanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TPP00002000000000000001 /* TaskPalettePanelTests.swift */; };
+		WO000001000000000000001 /* WindowOpacityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000001000000000000000 /* WindowOpacityStore.swift */; };
+		WO000002000000000000001 /* WindowOpacityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000002000000000000000 /* WindowOpacityStoreTests.swift */; };
+		WO000003000000000000001 /* WindowOpacityApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000003000000000000000 /* WindowOpacityApplier.swift */; };
+		WO000004000000000000001 /* WindowOpacityApplierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000004000000000000000 /* WindowOpacityApplierTests.swift */; };
+>>>>>>> keyboard_shortcuts
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -141,12 +183,6 @@
 		9D1052AE2F46DA0000B7B24D /* TodoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItem.swift; sourceTree = "<group>"; };
 		9D1052B22F46DA0000B7B24D /* TimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatter.swift; sourceTree = "<group>"; };
 		9D1052B32F46DA0000B7B24D /* TodoStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorage.swift; sourceTree = "<group>"; };
-		A1000000000000000000140 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
-		A1000000000000000000142 /* ADOService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOService.swift; sourceTree = "<group>"; };
-		A1000000000000000000144 /* ADOSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsStore.swift; sourceTree = "<group>"; };
-		A1000000000000000000146 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000148 /* ADOServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000150 /* ADOSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsStoreTests.swift; sourceTree = "<group>"; };
 		9D1052B52F46DA0000B7B24D /* FloatingTooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingTooltip.swift; sourceTree = "<group>"; };
 		9D1052B72F46DA0000B7B24D /* ExportAllTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportAllTasksView.swift; sourceTree = "<group>"; };
 		9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskPopupView.swift; sourceTree = "<group>"; };
@@ -154,11 +190,11 @@
 		9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTaskConfirmationView.swift; sourceTree = "<group>"; };
 		9D1052BB2F46DA0000B7B24D /* ReminderAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderAlertView.swift; sourceTree = "<group>"; };
 		9D1052BC2F46DA0000B7B24D /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
-		A1000000000000000000152 /* ADOSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsSection.swift; sourceTree = "<group>"; };
 		9D1052BD2F46DA0000B7B24D /* SubtaskRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskRow.swift; sourceTree = "<group>"; };
 		9D1052BE2F46DA0000B7B24D /* TimerPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerPickerSheet.swift; sourceTree = "<group>"; };
 		9D1052C02F46DA0000B7B24D /* ExportWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C12F46DA0000B7B24D /* FloatingWindowDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowDelegate.swift; sourceTree = "<group>"; };
+<<<<<<< HEAD
 		NW000001000000000000000 /* NotesWindowFrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStore.swift; sourceTree = "<group>"; };
 		NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStoreTests.swift; sourceTree = "<group>"; };
 		WO000001000000000000000 /* WindowOpacityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityStore.swift; sourceTree = "<group>"; };
@@ -203,10 +239,17 @@
 		IM000001000000000000000 /* PastedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastedImage.swift; sourceTree = "<group>"; };
 		IM000003000000000000000 /* InlineImageAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineImageAttachment.swift; sourceTree = "<group>"; };
 		IM000002000000000000000 /* ADOServiceAttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceAttachmentTests.swift; sourceTree = "<group>"; };
+=======
+>>>>>>> keyboard_shortcuts
 		9D1052C22F46DA0000B7B24D /* FloatingWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWindowManager.swift; sourceTree = "<group>"; };
 		9D1052C32F46DA0000B7B24D /* TooltipWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipWindowManager.swift; sourceTree = "<group>"; };
 		9D1052D72F46DB1800B7B24D /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
 		A1000000000000000000101 /* TimeControlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeControlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000120 /* TodoOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoOperationsTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000122 /* TimeFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormattingTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000124 /* TestHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestHelpers.swift; sourceTree = "<group>"; };
 		A1000000000000000000126 /* TodoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModelTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000128 /* FilterSortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterSortTests.swift; sourceTree = "<group>"; };
@@ -218,11 +261,14 @@
 		A1000000000000000000134 /* ExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000136 /* TodayTotalTimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayTotalTimeTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000138 /* OrphanedSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrphanedSessionTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000114 /* TodoItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000116 /* SubtaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtaskTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000118 /* TodoStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStorageTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000120 /* TodoOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoOperationsTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000122 /* TimeFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormattingTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000140 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		A1000000000000000000142 /* ADOService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOService.swift; sourceTree = "<group>"; };
+		A1000000000000000000144 /* ADOSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsStore.swift; sourceTree = "<group>"; };
+		A1000000000000000000146 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000148 /* ADOServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000150 /* ADOSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsStoreTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000152 /* ADOSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsSection.swift; sourceTree = "<group>"; };
+		A10000000000000000001FE /* HistorySessionFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySessionFilterTests.swift; sourceTree = "<group>"; };
 		A1000002000000000000001 /* TimeControlApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeControlApp.swift; sourceTree = "<group>"; };
 		A1000004000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1000006000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -234,12 +280,33 @@
 		AA000004000000000000001 /* MassOperationsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MassOperationsSheet.swift; sourceTree = "<group>"; };
 		AA000005000000000000001 /* FloatingTaskWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingTaskWindowView.swift; sourceTree = "<group>"; };
 		AA000006000000000000001 /* NotesViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesViewerView.swift; sourceTree = "<group>"; };
+		AB000001000000000000000 /* ADOBulkFetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOBulkFetchTests.swift; sourceTree = "<group>"; };
+		AC000001000000000000000 /* ADOCommentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentStore.swift; sourceTree = "<group>"; };
+		AC000002000000000000000 /* ADOCommentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModel.swift; sourceTree = "<group>"; };
+		AC000003000000000000000 /* ADOCommentServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentServiceTests.swift; sourceTree = "<group>"; };
+		AC000004000000000000000 /* ADOCommentViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModelTests.swift; sourceTree = "<group>"; };
+		AC000005000000000000000 /* ADOSubtaskCommentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSubtaskCommentTests.swift; sourceTree = "<group>"; };
+		AC000006000000000000000 /* ADOCommentPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentPane.swift; sourceTree = "<group>"; };
+		AC000007000000000000000 /* ADOSubtaskCommentPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSubtaskCommentPrompt.swift; sourceTree = "<group>"; };
+		AC000099000000000000000 /* LinkParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkParserTests.swift; sourceTree = "<group>"; };
+		AI000001000000000000000 /* ADOImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportView.swift; sourceTree = "<group>"; };
+		AI000002000000000000000 /* ADOImportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportViewModel.swift; sourceTree = "<group>"; };
+		AI000003000000000000000 /* ADOImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportViewModelTests.swift; sourceTree = "<group>"; };
+		AL000001000000000000000 /* ADOLinkRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOLinkRow.swift; sourceTree = "<group>"; };
+		AU000001000000000000000 /* ADOURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOURLBuilder.swift; sourceTree = "<group>"; };
+		AU000002000000000000000 /* ADOURLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOURLBuilderTests.swift; sourceTree = "<group>"; };
 		BB000001000000000000001 /* TaskListToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListToolbar.swift; sourceTree = "<group>"; };
 		BB000002000000000000001 /* TaskListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListItem.swift; sourceTree = "<group>"; };
 		BB000003000000000000001 /* CompletedTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedTasksSection.swift; sourceTree = "<group>"; };
 		CC000001000000000000001 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		CC000002000000000000001 /* HistorySessionProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySessionProcessor.swift; sourceTree = "<group>"; };
-		A10000000000000000001FE /* HistorySessionFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySessionFilterTests.swift; sourceTree = "<group>"; };
+		CF000001000000000000000 /* ADOComment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOComment.swift; sourceTree = "<group>"; };
+		CF000002000000000000000 /* ADOCommentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentsViewModel.swift; sourceTree = "<group>"; };
+		CF000003000000000000000 /* ADOCommentsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentsSection.swift; sourceTree = "<group>"; };
+		CF000004000000000000000 /* ADOFetchCommentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOFetchCommentsTests.swift; sourceTree = "<group>"; };
+		CF000005000000000000000 /* ADOUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOUser.swift; sourceTree = "<group>"; };
+		CF000006000000000000000 /* MentionDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionDropdown.swift; sourceTree = "<group>"; };
+		CV000001000000000000000 /* CommentTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentTextView.swift; sourceTree = "<group>"; };
 		DD000002000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DD000003000000000000001 /* ReminderPickerPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderPickerPopover.swift; sourceTree = "<group>"; };
 		EE000001000000000000001 /* NotificationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationModels.swift; sourceTree = "<group>"; };
@@ -252,9 +319,34 @@
 		FF000008000000000000001 /* SQLiteStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStorageTests.swift; sourceTree = "<group>"; };
 		FF00000A000000000000001 /* NewTaskStickyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskStickyStore.swift; sourceTree = "<group>"; };
 		FF00000B000000000000001 /* NewTaskStickyModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTaskStickyModeTests.swift; sourceTree = "<group>"; };
+		HTT00001000000000000001 /* HUDToastTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDToastTests.swift; sourceTree = "<group>"; };
+		HUD00001000000000000001 /* HUDToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDToastView.swift; sourceTree = "<group>"; };
+		IA000001000000000000000 /* IdleActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleActivityMonitor.swift; sourceTree = "<group>"; };
+		IA000002000000000000000 /* IdlePromptConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptConfig.swift; sourceTree = "<group>"; };
+		IA000003000000000000000 /* IdlePromptWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptWindowManager.swift; sourceTree = "<group>"; };
+		IA000004000000000000000 /* IdlePromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptView.swift; sourceTree = "<group>"; };
+		IA000005000000000000000 /* IdleActivityMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleActivityMonitorTests.swift; sourceTree = "<group>"; };
+		IM000001000000000000000 /* PastedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastedImage.swift; sourceTree = "<group>"; };
+		IM000002000000000000000 /* ADOServiceAttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOServiceAttachmentTests.swift; sourceTree = "<group>"; };
+		IM000003000000000000000 /* InlineImageAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineImageAttachment.swift; sourceTree = "<group>"; };
+		KSM00001000000000000001 /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
+		SN000001000000000000001 /* ShortcutNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutNames.swift; sourceTree = "<group>"; };
+		LP000001000000000000000 /* LinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkParser.swift; sourceTree = "<group>"; };
+		NW000001000000000000000 /* NotesWindowFrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStore.swift; sourceTree = "<group>"; };
+		NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStoreTests.swift; sourceTree = "<group>"; };
+		QTW00001000000000000001 /* QuickTimerWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickTimerWindow.swift; sourceTree = "<group>"; };
+		ST000001000000000000000 /* SubtitleText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleText.swift; sourceTree = "<group>"; };
+		ST000002000000000000000 /* SubtitleTextStrokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleTextStrokeTests.swift; sourceTree = "<group>"; };
 		TC000001000000000000000 /* TaskPauseConsistencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPauseConsistencyTests.swift; sourceTree = "<group>"; };
 		TC000002000000000000000 /* PauseBeforeDeleteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseBeforeDeleteTests.swift; sourceTree = "<group>"; };
 		TC000003000000000000000 /* SessionDiscardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDiscardTests.swift; sourceTree = "<group>"; };
+		TP000001000000000000000 /* TaskPaletteFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPaletteFilterTests.swift; sourceTree = "<group>"; };
+		TPP00001000000000000001 /* TaskPalettePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPalettePanel.swift; sourceTree = "<group>"; };
+		TPP00002000000000000001 /* TaskPalettePanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPalettePanelTests.swift; sourceTree = "<group>"; };
+		WO000001000000000000000 /* WindowOpacityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityStore.swift; sourceTree = "<group>"; };
+		WO000002000000000000000 /* WindowOpacityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityStoreTests.swift; sourceTree = "<group>"; };
+		WO000003000000000000000 /* WindowOpacityApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityApplier.swift; sourceTree = "<group>"; };
+		WO000004000000000000000 /* WindowOpacityApplierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityApplierTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -262,7 +354,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FF000002000000000000001 /* GRDB in Frameworks (tests) */,
+				FF000002000000000000001 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,7 +362,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FF000001000000000000001 /* GRDB in Frameworks (app) */,
+				FF000001000000000000001 /* GRDB in Frameworks */,
+				9DA691972FB3D9A600264B63 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,6 +401,8 @@
 				LP000001000000000000000 /* LinkParser.swift */,
 				AC000001000000000000000 /* ADOCommentStore.swift */,
 				IA000001000000000000000 /* IdleActivityMonitor.swift */,
+				KSM00001000000000000001 /* KeyboardShortcutManager.swift */,
+				SN000001000000000000001 /* ShortcutNames.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -355,6 +450,9 @@
 				CF000006000000000000000 /* MentionDropdown.swift */,
 				ST000001000000000000000 /* SubtitleText.swift */,
 				IA000004000000000000000 /* IdlePromptView.swift */,
+				HUD00001000000000000001 /* HUDToastView.swift */,
+				TPP00001000000000000001 /* TaskPalettePanel.swift */,
+				QTW00001000000000000001 /* QuickTimerWindow.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -441,6 +539,8 @@
 				TC000001000000000000000 /* TaskPauseConsistencyTests.swift */,
 				TC000002000000000000000 /* PauseBeforeDeleteTests.swift */,
 				TC000003000000000000000 /* SessionDiscardTests.swift */,
+				HTT00001000000000000001 /* HUDToastTests.swift */,
+				TPP00002000000000000001 /* TaskPalettePanelTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -520,6 +620,7 @@
 			name = TimeControl;
 			packageProductDependencies = (
 				FF000003000000000000001 /* GRDB */,
+				9DA691962FB3D9A600264B63 /* KeyboardShortcuts */,
 			);
 			productName = TimeControl;
 			productReference = A1000009000000000000001 /* TimeControl.app */;
@@ -553,12 +654,13 @@
 				Base,
 			);
 			mainGroup = A1000012000000000000001;
+			packageReferences = (
+				FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				9DA691952FB3D9A600264B63 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+			);
 			productRefGroup = A1000014000000000000001 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			packageReferences = (
-				FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
-			);
 			targets = (
 				A1000016000000000000001 /* TimeControl */,
 				A1000000000000000000100 /* TimeControlTests */,
@@ -618,6 +720,8 @@
 				AU000002000000000000001 /* ADOURLBuilderTests.swift in Sources */,
 				AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */,
 				TP000001000000000000001 /* TaskPaletteFilterTests.swift in Sources */,
+				HTT00001000000000000002 /* HUDToastTests.swift in Sources */,
+				TPP00002000000000000002 /* TaskPalettePanelTests.swift in Sources */,
 				AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */,
 				AC000003000000000000001 /* ADOCommentServiceTests.swift in Sources */,
 				AC000004000000000000001 /* ADOCommentViewModelTests.swift in Sources */,
@@ -668,6 +772,11 @@
 				A1000000000000000000141 /* Keychain.swift in Sources */,
 				A1000000000000000000143 /* ADOService.swift in Sources */,
 				A1000000000000000000145 /* ADOSettingsStore.swift in Sources */,
+				KSM00001000000000000002 /* KeyboardShortcutManager.swift in Sources */,
+				SN000001000000000000002 /* ShortcutNames.swift in Sources */,
+				HUD00001000000000000002 /* HUDToastView.swift in Sources */,
+				TPP00001000000000000002 /* TaskPalettePanel.swift in Sources */,
+				QTW00001000000000000002 /* QuickTimerWindow.swift in Sources */,
 				AU000001000000000000001 /* ADOURLBuilder.swift in Sources */,
 				LP000001000000000000001 /* LinkParser.swift in Sources */,
 				AL000001000000000000001 /* ADOLinkRow.swift in Sources */,
@@ -722,30 +831,6 @@
 			targetProxy = A1000000000000000000108 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/groue/GRDB.swift.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 6.0.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		FF000003000000000000001 /* GRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
-			productName = GRDB;
-		};
-		FF000004000000000000001 /* GRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
-			productName = GRDB;
-		};
-/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000110 /* Debug */ = {
@@ -981,6 +1066,43 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9DA691952FB3D9A600264B63 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.0;
+			};
+		};
+		FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9DA691962FB3D9A600264B63 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9DA691952FB3D9A600264B63 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+		FF000003000000000000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		FF000004000000000000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF000009000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1000020000000000000001 /* Project object */;
 }

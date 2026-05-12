@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import KeyboardShortcuts
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -27,6 +28,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             IdlePromptWindowManager.shared.show(viewModel: self.viewModel)
         }
         monitor.start(viewModel: viewModel)
+
+        KeyboardShortcutManager.shared.setup(viewModel: viewModel)
 
         setupStatusBarItem()
         setupSleepWakePrompt()

@@ -2086,6 +2086,7 @@ struct TaskPaletteView: View {
     @Binding var searchText: String
     @Binding var selectedIndex: Int
     let currentTaskId: UUID
+    var showElapsedTime: Bool = false
     let onSelect: (TodoItem) -> Void
     let onCreate: (String) -> Void
     let onDismiss: () -> Void
@@ -2139,7 +2140,8 @@ struct TaskPaletteView: View {
                                 isSelected: selectedIndex == index,
                                 isCurrent: task.id == currentTaskId,
                                 isADO: task.adoWorkItemId != nil,
-                                isCreate: false
+                                isCreate: false,
+                                elapsedTime: showElapsedTime ? TaskPaletteElapsedTime.label(task: task) : nil
                             ) {
                                 onSelect(task)
                             }
@@ -2224,6 +2226,7 @@ struct TaskPaletteView: View {
         isCurrent: Bool,
         isADO: Bool,
         isCreate: Bool,
+        elapsedTime: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -2242,6 +2245,13 @@ struct TaskPaletteView: View {
                     .foregroundColor(isCreate ? .secondary : .primary)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let elapsed = elapsedTime {
+                    Text(elapsed)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
+                }
 
                 if isADO {
                     Text("ADO")
