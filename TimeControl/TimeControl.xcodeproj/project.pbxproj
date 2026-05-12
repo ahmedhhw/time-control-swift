@@ -52,6 +52,7 @@
 		A1000000000000000000135 /* ExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000134 /* ExportTests.swift */; };
 		A1000000000000000000137 /* TodayTotalTimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000136 /* TodayTotalTimeTests.swift */; };
 		A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000138 /* OrphanedSessionTests.swift */; };
+		KB000001000000000000002 /* KeyboardShortcutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KB000001000000000000001 /* KeyboardShortcutManagerTests.swift */; };
 		A1000000000000000000141 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000140 /* Keychain.swift */; };
 		A1000000000000000000143 /* ADOService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000142 /* ADOService.swift */; };
 		A1000000000000000000145 /* ADOSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000144 /* ADOSettingsStore.swift */; };
@@ -252,6 +253,7 @@
 		A1000000000000000000134 /* ExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000136 /* TodayTotalTimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayTotalTimeTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000138 /* OrphanedSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrphanedSessionTests.swift; sourceTree = "<group>"; };
+		KB000001000000000000001 /* KeyboardShortcutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManagerTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000140 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		A1000000000000000000142 /* ADOService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOService.swift; sourceTree = "<group>"; };
 		A1000000000000000000144 /* ADOSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOSettingsStore.swift; sourceTree = "<group>"; };
@@ -504,6 +506,7 @@
 				A1000000000000000000134 /* ExportTests.swift */,
 				A1000000000000000000136 /* TodayTotalTimeTests.swift */,
 				A1000000000000000000138 /* OrphanedSessionTests.swift */,
+				KB000001000000000000001 /* KeyboardShortcutManagerTests.swift */,
 				FF00000B000000000000001 /* NewTaskStickyModeTests.swift */,
 				A10000000000000000001FE /* HistorySessionFilterTests.swift */,
 				NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */,
@@ -699,6 +702,7 @@
 				A1000000000000000000135 /* ExportTests.swift in Sources */,
 				A1000000000000000000137 /* TodayTotalTimeTests.swift in Sources */,
 				A1000000000000000000139 /* OrphanedSessionTests.swift in Sources */,
+				KB000001000000000000002 /* KeyboardShortcutManagerTests.swift in Sources */,
 				FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */,
 				A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */,
 				NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */,

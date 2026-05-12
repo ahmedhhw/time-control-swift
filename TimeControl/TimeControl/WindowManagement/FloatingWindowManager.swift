@@ -23,6 +23,7 @@ class FloatingWindowManager: ObservableObject {
     private var windowDelegate: FloatingWindowDelegate?
     var onTaskSwitch: ((TodoItem) -> Void)?
     var onOpenNotes: (() -> Void)?
+    var onToggleCollapse: (() -> Void)?
     weak var viewModel: TodoViewModel?
     
     func showFloatingWindow(for task: TodoItem, viewModel: TodoViewModel) {
@@ -206,6 +207,7 @@ class FloatingWindowManager: ObservableObject {
         allTodos = []
         onTaskSwitch = nil
         onOpenNotes = nil
+        onToggleCollapse = nil
         windowDelegate = nil
         viewModel = nil
     }

@@ -10,4 +10,5 @@ extension KeyboardShortcuts.Name {
     static let taskSwitcher = Self("taskSwitcher", default: .init(.l, modifiers: .command))
     static let setTimer     = Self("setTimer",     default: .init(.t, modifiers: [.command, .shift]))
     static let openNotes    = Self("openNotes",    default: .init(.n, modifiers: .command))
+    static let toggleFloatingWindowCollapse = Self("toggleFloatingWindowCollapse", default: .init(.c, modifiers: .command))
 }

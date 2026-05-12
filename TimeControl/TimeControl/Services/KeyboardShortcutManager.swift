@@ -15,25 +15,17 @@ final class KeyboardShortcutManager {
         KeyboardShortcuts.onKeyDown(for: .toggleTimer) { [weak self] in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self?.performToggleTimerKeepWindow(viewModel: viewModel) }
         }
-        KeyboardShortcuts.onKeyDown(for: .taskSwitcher) {
-            DispatchQueue.main.async {
-                TaskPaletteWindowManager.shared.show(viewModel: viewModel)
-            }
+        KeyboardShortcuts.onKeyDown(for: .taskSwitcher) { [weak self] in
+            DispatchQueue.main.async { self?.performShowTaskSwitcher(viewModel: viewModel) }
         }
-        KeyboardShortcuts.onKeyDown(for: .setTimer) {
-            DispatchQueue.main.async {
-                QuickTimerWindowManager.shared.show(viewModel: viewModel)
-            }
+        KeyboardShortcuts.onKeyDown(for: .setTimer) { [weak self] in
+            DispatchQueue.main.async { self?.performShowQuickTimer(viewModel: viewModel) }
         }
-        KeyboardShortcuts.onKeyDown(for: .openNotes) {
-            DispatchQueue.main.async {
-                let mgr = FloatingWindowManager.shared
-                if let notes = mgr.notesWindowRef, notes.isVisible {
-                    notes.close()
-                } else {
-                    mgr.onOpenNotes?()
-                }
-            }
+        KeyboardShortcuts.onKeyDown(for: .openNotes) { [weak self] in
+            DispatchQueue.main.async { self?.performToggleNotes() }
+        }
+        KeyboardShortcuts.onKeyDown(for: .toggleFloatingWindowCollapse) { [weak self] in
+            DispatchQueue.main.async { self?.performToggleFloatingWindowCollapse() }
         }
     }
 
@@ -53,5 +45,28 @@ final class KeyboardShortcutManager {
             .first {
             viewModel.toggleTimer(task)
         }
+    }
+
+    func performShowTaskSwitcher(viewModel: TodoViewModel) {
+        TaskPaletteWindowManager.shared.show(viewModel: viewModel)
+    }
+
+    func performShowQuickTimer(viewModel: TodoViewModel) {
+        QuickTimerWindowManager.shared.show(viewModel: viewModel)
+    }
+
+    func performToggleNotes() {
+        let mgr = FloatingWindowManager.shared
+        if let notes = mgr.notesWindowRef, notes.isVisible {
+            notes.close()
+        } else {
+            mgr.onOpenNotes?()
+        }
+    }
+
+    func performToggleFloatingWindowCollapse() {
+        let mgr = FloatingWindowManager.shared
+        guard mgr.isWindowOpen else { return }
+        mgr.onToggleCollapse?()
     }
 }

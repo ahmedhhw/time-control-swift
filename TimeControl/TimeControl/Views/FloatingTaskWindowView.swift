@@ -707,6 +707,12 @@ struct FloatingTaskWindowView: View {
                 updateWindowTitle()
                 applyResize(currentSnapshot)
                 FloatingWindowManager.shared.onOpenNotes = { openNotesWindow() }
+                FloatingWindowManager.shared.onToggleCollapse = {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isCollapsed.toggle()
+                        if !isCollapsed { showCollapsedMenu = false }
+                    }
+                }
                 commentVM.onSent = { Task { await commentsVM.refresh() } }
             }
             
