@@ -38,10 +38,17 @@ final class KeyboardShortcutManager {
     }
 
     func performToggleTimerKeepWindow(viewModel: TodoViewModel) {
+        // Mirror the in-view pause/resume buttons: detect actual running state from
+        // lastStartTime so pause keeps `runningTaskId` set and the next press resumes.
         if let runningId = viewModel.runningTaskId,
            let task = viewModel.todos.first(where: { $0.id == runningId }) {
-            viewModel.pauseTask(runningId, keepWindowOpen: false)
-            DispatchQueue.main.async { self.hud.show(message: "⏸  \"\(task.text)\" paused") }
+            if task.lastStartTime != nil {
+                viewModel.pauseTask(runningId, keepWindowOpen: true)
+                DispatchQueue.main.async { self.hud.show(message: "⏸  \"\(task.text)\" paused") }
+            } else {
+                viewModel.resumeTask(runningId)
+                DispatchQueue.main.async { self.hud.show(message: "▶  \"\(task.text)\" resumed") }
+            }
         } else if let task = viewModel.todos
             .filter({ !$0.isCompleted })
             .sorted(by: { ($0.lastPlayedAt ?? 0) > ($1.lastPlayedAt ?? 0) })

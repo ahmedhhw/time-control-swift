@@ -52,6 +52,7 @@ struct FloatingTaskWindowView: View {
     @State private var showTimerBar: Bool = true
     @State private var showEstimateBar: Bool = true
     @State private var showDueDateBar: Bool = true
+    @State private var suppressResize: Bool = false
     @AppStorage("floatingWindow.showDescription") private var showDescription: Bool = true
     @AppStorage("floatingWindow.showTimers") private var showTimers: Bool = true
     @AppStorage("floatingWindow.showSubtasks") private var showSubtasks: Bool = true
