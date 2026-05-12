@@ -5,8 +5,9 @@
 //  Created on 2/11/26.
 //
 
-import SwiftUI
 import AppKit
+import KeyboardShortcuts
+import SwiftUI
 
 struct SettingsSheet: View {
     @Binding var activateReminders: Bool
@@ -189,6 +190,11 @@ struct SettingsSheet: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
+                    Divider()
+                        .padding(.vertical, 8)
+
+                    KeyboardShortcutsSection()
+
                     if let currentTaskBinding = currentTaskOpacity, let notesBinding = notesOpacity {
                         Divider()
                             .padding(.vertical, 8)
@@ -250,6 +256,23 @@ struct OpacitySettingRow: View {
             }
             Slider(value: $value,
                    in: WindowOpacityStore.minimum...WindowOpacityStore.maximum)
+        }
+    }
+}
+
+// MARK: - Keyboard Shortcuts Section
+
+struct KeyboardShortcutsSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Keyboard Shortcuts")
+                .font(.title3)
+                .fontWeight(.semibold)
+
+            KeyboardShortcuts.Recorder("Toggle Task Timer", name: .toggleTimer)
+            KeyboardShortcuts.Recorder("Quick Task Switcher", name: .taskSwitcher)
+            KeyboardShortcuts.Recorder("Set Timer", name: .setTimer)
+            KeyboardShortcuts.Recorder("Open Notes", name: .openNotes)
         }
     }
 }
