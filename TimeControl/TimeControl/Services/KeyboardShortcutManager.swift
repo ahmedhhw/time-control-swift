@@ -44,17 +44,14 @@ final class KeyboardShortcutManager {
            let task = viewModel.todos.first(where: { $0.id == runningId }) {
             if task.lastStartTime != nil {
                 viewModel.pauseTask(runningId, keepWindowOpen: true)
-                DispatchQueue.main.async { self.hud.show(message: "⏸  \"\(task.text)\" paused") }
             } else {
                 viewModel.resumeTask(runningId)
-                DispatchQueue.main.async { self.hud.show(message: "▶  \"\(task.text)\" resumed") }
             }
         } else if let task = viewModel.todos
             .filter({ !$0.isCompleted })
             .sorted(by: { ($0.lastPlayedAt ?? 0) > ($1.lastPlayedAt ?? 0) })
             .first {
             viewModel.toggleTimer(task)
-            DispatchQueue.main.async { self.hud.show(message: "▶  \"\(task.text)\" resumed") }
         }
     }
 }
