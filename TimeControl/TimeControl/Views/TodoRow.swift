@@ -266,14 +266,6 @@ struct TodoRow: View {
                 
                 Spacer()
 
-                // Chevron button to toggle subtask area (input + existing subtasks)
-                Button(action: onToggleExpanded) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .foregroundColor(.secondary)
-                        .font(.title3)
-                }
-                .buttonStyle(.plain)
-
                 Button(action: onToggleTimer) {
                     Image(systemName: todo.isRunning ? "pause.circle.fill" : "play.circle.fill")
                         .foregroundColor(todo.isCompleted ? .gray : (todo.isRunning ? .orange : .blue))
@@ -335,6 +327,14 @@ struct TodoRow: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(todo.isCompleted)
+
+                // Chevron button to toggle subtask area (input + existing subtasks)
+                Button(action: onToggleExpanded) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

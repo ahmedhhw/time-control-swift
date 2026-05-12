@@ -221,6 +221,7 @@ struct FloatingTaskWindowView: View {
                     .font(font)
                     .lineLimit(1)
                     .foregroundColor(.primary)
+                Spacer()
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -228,7 +229,7 @@ struct FloatingTaskWindowView: View {
         }
         .buttonStyle(.plain)
         .floatingTooltip(localTask.text)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .popover(isPresented: $showTaskPalette, arrowEdge: .bottom) {
             TaskPaletteView(
                 tasks: availableTasks,

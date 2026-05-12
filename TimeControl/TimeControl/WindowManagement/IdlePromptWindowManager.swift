@@ -4,8 +4,8 @@
 //
 
 import AppKit
-import SwiftUI
 import Combine
+import SwiftUI
 
 final class IdlePromptWindowManager {
     static let shared = IdlePromptWindowManager()
@@ -51,7 +51,7 @@ final class IdlePromptWindowManager {
             onStartTask: { [weak self] in
                 monitor.handleStartTask()
                 self?.dismiss()
-                IdlePromptWindowManager.focusMainWindowAndNewTaskInput(viewModel: viewModel)
+                TaskPaletteWindowManager.shared.show(viewModel: viewModel)
             },
             onDismiss: { [weak self] in
                 monitor.handleDismiss()
@@ -94,20 +94,9 @@ final class IdlePromptWindowManager {
     // MARK: - Private helpers
 
     private func screenForPrompt() -> NSScreen {
-        // Use the screen containing the current mouse position, falling back to main
         let mouseLocation = NSEvent.mouseLocation
         return NSScreen.screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
             ?? NSScreen.main
             ?? NSScreen.screens[0]
-    }
-
-    private static func focusMainWindowAndNewTaskInput(viewModel: TodoViewModel) {
-        NSApp.activate(ignoringOtherApps: true)
-        // Find and bring forward the main ContentView window
-        if let mainWindow = NSApp.windows.first(where: { $0.contentViewController is NSHostingController<ContentView> })
-            ?? NSApp.windows.filter({ !($0 is NSPanel) }).first {
-            mainWindow.makeKeyAndOrderFront(nil)
-        }
-        viewModel.requestFocusNewTaskInput()
     }
 }

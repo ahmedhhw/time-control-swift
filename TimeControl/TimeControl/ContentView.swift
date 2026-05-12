@@ -77,10 +77,6 @@ struct ContentView: View {
                     Task { await viewModel.refreshADOComments() }
                 }
             )
-            .onChange(of: viewModel.focusNewTaskInputToken) { _ in
-                newTaskInputFocused = true
-            }
-            
             // Main content area with incomplete todos
             if viewModel.todos.isEmpty {
                 VStack {

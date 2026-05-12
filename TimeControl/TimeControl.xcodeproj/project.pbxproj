@@ -10,6 +10,7 @@
 		IA000001000000000000001 /* IdleActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000001000000000000000 /* IdleActivityMonitor.swift */; };
 		IA000002000000000000001 /* IdlePromptConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000002000000000000000 /* IdlePromptConfig.swift */; };
 		IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000003000000000000000 /* IdlePromptWindowManager.swift */; };
+		TW000002000000000000001 /* TaskPaletteWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TW000002000000000000000 /* TaskPaletteWindowManager.swift */; };
 		IA000004000000000000001 /* IdlePromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000004000000000000000 /* IdlePromptView.swift */; };
 		IA000005000000000000001 /* IdleActivityMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IA000005000000000000000 /* IdleActivityMonitorTests.swift */; };
 		FF000001000000000000001 /* GRDB in Frameworks (app) */ = {isa = PBXBuildFile; productRef = FF000003000000000000001 /* GRDB */; };
@@ -102,6 +103,8 @@
 		AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000003000000000000000 /* ADOImportViewModelTests.swift */; };
 		TP000001000000000000001 /* TaskPaletteFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP000001000000000000000 /* TaskPaletteFilterTests.swift */; };
 		IP000002000000000000001 /* IdlePromptAutoDismissTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */; };
+		TW000001000000000000001 /* TaskPaletteWindowManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TW000001000000000000000 /* TaskPaletteWindowManagerTests.swift */; };
+		IS000001000000000000001 /* IdlePromptStartTaskWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IS000001000000000000000 /* IdlePromptStartTaskWiringTests.swift */; };
 		AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001000000000000000 /* ADOBulkFetchTests.swift */; };
 		AC000001000000000000001 /* ADOCommentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000001000000000000000 /* ADOCommentStore.swift */; };
 		AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000002000000000000000 /* ADOCommentViewModel.swift */; };
@@ -165,6 +168,7 @@
 		IA000001000000000000000 /* IdleActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleActivityMonitor.swift; sourceTree = "<group>"; };
 		IA000002000000000000000 /* IdlePromptConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptConfig.swift; sourceTree = "<group>"; };
 		IA000003000000000000000 /* IdlePromptWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptWindowManager.swift; sourceTree = "<group>"; };
+		TW000002000000000000000 /* TaskPaletteWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPaletteWindowManager.swift; sourceTree = "<group>"; };
 		IA000004000000000000000 /* IdlePromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptView.swift; sourceTree = "<group>"; };
 		IA000005000000000000000 /* IdleActivityMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleActivityMonitorTests.swift; sourceTree = "<group>"; };
 		ST000001000000000000000 /* SubtitleText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleText.swift; sourceTree = "<group>"; };
@@ -178,6 +182,8 @@
 		AI000003000000000000000 /* ADOImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportViewModelTests.swift; sourceTree = "<group>"; };
 		TP000001000000000000000 /* TaskPaletteFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPaletteFilterTests.swift; sourceTree = "<group>"; };
 		IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptAutoDismissTests.swift; sourceTree = "<group>"; };
+		TW000001000000000000000 /* TaskPaletteWindowManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPaletteWindowManagerTests.swift; sourceTree = "<group>"; };
+		IS000001000000000000000 /* IdlePromptStartTaskWiringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptStartTaskWiringTests.swift; sourceTree = "<group>"; };
 		AB000001000000000000000 /* ADOBulkFetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOBulkFetchTests.swift; sourceTree = "<group>"; };
 		AC000001000000000000000 /* ADOCommentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentStore.swift; sourceTree = "<group>"; };
 		AC000002000000000000000 /* ADOCommentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModel.swift; sourceTree = "<group>"; };
@@ -366,6 +372,7 @@
 				DD000002000000000000001 /* AppDelegate.swift */,
 				EE000004000000000000001 /* NotificationWindowManager.swift */,
 				IA000003000000000000000 /* IdlePromptWindowManager.swift */,
+				TW000002000000000000000 /* TaskPaletteWindowManager.swift */,
 			);
 			path = WindowManagement;
 			sourceTree = "<group>";
@@ -429,6 +436,8 @@
 				CF000004000000000000000 /* ADOFetchCommentsTests.swift */,
 				IA000005000000000000000 /* IdleActivityMonitorTests.swift */,
 				IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */,
+				TW000001000000000000000 /* TaskPaletteWindowManagerTests.swift */,
+				IS000001000000000000000 /* IdlePromptStartTaskWiringTests.swift */,
 				TC000001000000000000000 /* TaskPauseConsistencyTests.swift */,
 				TC000002000000000000000 /* PauseBeforeDeleteTests.swift */,
 				TC000003000000000000000 /* SessionDiscardTests.swift */,
@@ -621,6 +630,8 @@
 				TC000003000000000000001 /* SessionDiscardTests.swift in Sources */,
 				IA000005000000000000001 /* IdleActivityMonitorTests.swift in Sources */,
 				IP000002000000000000001 /* IdlePromptAutoDismissTests.swift in Sources */,
+				TW000001000000000000001 /* TaskPaletteWindowManagerTests.swift in Sources */,
+				IS000001000000000000001 /* IdlePromptStartTaskWiringTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -697,6 +708,7 @@
 				IA000001000000000000001 /* IdleActivityMonitor.swift in Sources */,
 				IA000002000000000000001 /* IdlePromptConfig.swift in Sources */,
 				IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */,
+				TW000002000000000000001 /* TaskPaletteWindowManager.swift in Sources */,
 				IA000004000000000000001 /* IdlePromptView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

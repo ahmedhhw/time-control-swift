@@ -38,9 +38,6 @@ class TodoViewModel: ObservableObject {
     @Published var shouldAutoShowTimerPicker: Bool = false
     @Published var dropdownSortOption: DropdownSortOption = .recentlyPlayed
     @Published var preferADOMode: Bool = false
-    /// Incremented each time the idle prompt's "Start a Task" is tapped.
-    /// ContentView observes this to focus the new-task input field.
-    @Published var focusNewTaskInputToken: UUID = UUID()
     /// Task IDs that have unread ADO comments.
     @Published var unreadADOTaskIds: Set<UUID> = []
     @Published var isRefreshingADOComments: Bool = false
@@ -375,12 +372,6 @@ class TodoViewModel: ObservableObject {
         saveAllTasks()
     }
 
-    /// Signals ContentView to focus the new-task input field.
-    /// Called by the idle prompt's "Start a Task" action.
-    func requestFocusNewTaskInput() {
-        focusNewTaskInputToken = UUID()
-    }
-    
     func editTodo(_ todo: TodoItem) {
         editingTodo = todo
     }
@@ -437,13 +428,21 @@ class TodoViewModel: ObservableObject {
             }
 
             saveAllTasks()
-            FloatingWindowManager.shared.updateTask(todos[index])
+            if FloatingWindowManager.shared.isWindowOpen {
+                FloatingWindowManager.shared.updateTask(todos[index])
+            } else {
+                FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
+            }
         } else {
             runningTaskId = nil
             saveAllTasks()
 
             if let index = todos.firstIndex(where: { $0.id == newTask.id }) {
-                FloatingWindowManager.shared.updateTask(todos[index])
+                if FloatingWindowManager.shared.isWindowOpen {
+                    FloatingWindowManager.shared.updateTask(todos[index])
+                } else {
+                    FloatingWindowManager.shared.showFloatingWindow(for: todos[index], viewModel: self)
+                }
             }
         }
     }
