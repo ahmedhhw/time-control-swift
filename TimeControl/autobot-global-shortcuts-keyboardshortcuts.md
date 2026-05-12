@@ -25,7 +25,7 @@ No UI changes are visible to the user. The Settings keyboard shortcut panel repl
 ┌─────────────────────────────────────────────────────────┐
 │  Settings > Shortcuts                                   │
 ├─────────────────────────────────────────────────────────┤
-│  Toggle Timer      [ ⌘O ]  ← KeyboardShortcuts.Recorder│
+│  Toggle Timer      [ ⌘I ]  ← KeyboardShortcuts.Recorder│
 │  Task Switcher     [ ⌘L ]                               │
 │  Set Timer         [ ⌘⇧T ]                              │
 │  Open Notes        [ ⌘N ]                               │
@@ -106,7 +106,7 @@ graph TD
 
 ## Open Questions
 
-- Should the 4 default shortcuts (⌘O, ⌘L, ⌘⇧T, ⌘N) be pre-seeded the first time the user runs the updated build, or start blank and let the user assign them? The library stores `nil` by default; seeding requires a one-time migration call.
+- Should the 5 default shortcuts (⌘I, ⌘L, ⌘⇧T, ⌘N, ⌘O) be pre-seeded the first time the user runs the updated build, or start blank and let the user assign them? The library stores `nil` by default; seeding requires a one-time migration call.
 - The existing unit tests mock `EventDispatching` — those tests will be deleted since the library is a black box. Do you want equivalent integration-level tests, or is manual verification sufficient?
 - `AXChecking` / `axChecker.requestPermission()` in the current manager — the library does not need Accessibility permission, so this block can be removed entirely. Confirm?
 
@@ -171,6 +171,7 @@ graph TD
   KeyboardShortcuts.Recorder("Task Switcher", name: .taskSwitcher)
   KeyboardShortcuts.Recorder("Set Timer", name: .setTimer)
   KeyboardShortcuts.Recorder("Open Notes", name: .openNotes)
+  KeyboardShortcuts.Recorder("Complete Task", name: .completeTask)
   ```
 - [ ] Remove `ShortcutRecorderRow.swift`, `KeyCaptureView`, `KeyCaptureField`
 

@@ -205,7 +205,7 @@ graph TD
 **Tests to write first (Red):**
 - [ ] `testDefaultsContainThreeShortcuts` → `ShortcutStore().shortcuts` has exactly 3 entries
 - [ ] `testDefaultShortcutIds` → ids are `"taskSwitcher"`, `"setTimer"`, `"toggleTimer"`
-- [ ] `testDefaultKeyBindings` → switcher is Cmd+L, timer is Cmd+Shift+T, toggle is Cmd+O
+- [ ] `testDefaultKeyBindings` → switcher is Cmd+L, timer is Cmd+Shift+T, toggle is Cmd+I
 - [ ] `testAllDefaultsEnabled` → all three `isEnabled == true` out of the box
 - [ ] `testSaveAndReload` → mutate a shortcut, init a new store with the same UserDefaults suite, values persist
 - [ ] `testDisableShortcut` → set `isEnabled = false`, reload, still false
@@ -240,7 +240,7 @@ graph TD
 
 ### Phase 3 — HUD toast (Toggle Timer action, end-to-end)
 
-**What it covers:** The simplest shortcut action — Cmd+O play/pauses the running task and shows a brief HUD. Delivers the first working shortcut the user can feel.
+**What it covers:** The simplest shortcut action — Cmd+I play/pauses the running task and shows a brief HUD. Delivers the first working shortcut the user can feel.
 
 **Tests to write first (Red):**
 - [ ] `testToggleTimerStartsTask` → no task running, call action with a task, `viewModel.runningTaskId` becomes that task's id
@@ -254,7 +254,7 @@ graph TD
 - [ ] `Views/HUDToastView.swift` — small SwiftUI view; auto-dismisses after ~2s via `DispatchQueue.main.asyncAfter`; hosted in a borderless `NSPanel` at bottom-right of main screen
 - [ ] Wire `toggleTimer` action in `KeyboardShortcutManager.setup()` to call `viewModel.toggleTimer` then show HUD
 
-**Done when:** Pressing Cmd+O from any app plays/pauses the running task and a toast briefly appears.
+**Done when:** Pressing Cmd+I from any app plays/pauses the running task and a toast briefly appears.
 
 ---
 

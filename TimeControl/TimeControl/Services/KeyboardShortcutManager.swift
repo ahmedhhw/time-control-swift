@@ -24,6 +24,9 @@ final class KeyboardShortcutManager {
         KeyboardShortcuts.onKeyDown(for: .openNotes) { [weak self] in
             DispatchQueue.main.async { self?.performToggleNotes() }
         }
+        KeyboardShortcuts.onKeyDown(for: .completeTask) { [weak self] in
+            DispatchQueue.main.async { self?.performCompleteTask(viewModel: viewModel) }
+        }
         KeyboardShortcuts.onKeyDown(for: .toggleFloatingWindowCollapse) { [weak self] in
             DispatchQueue.main.async { self?.performToggleFloatingWindowCollapse() }
         }
@@ -61,6 +64,19 @@ final class KeyboardShortcutManager {
             notes.close()
         } else {
             mgr.onOpenNotes?()
+        }
+    }
+
+    func performCompleteTask(viewModel: TodoViewModel) {
+        guard FloatingWindowManager.shared.isWindowOpen,
+              let task = FloatingWindowManager.shared.currentTask else {
+            return
+        }
+
+        viewModel.completeTaskFromFloatingWindow(task.id)
+
+        if let updatedTask = viewModel.todos.first(where: { $0.id == task.id }) {
+            FloatingWindowManager.shared.updateTask(updatedTask)
         }
     }
 

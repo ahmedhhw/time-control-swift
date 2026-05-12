@@ -273,7 +273,21 @@ struct KeyboardShortcutsSection: View {
             KeyboardShortcuts.Recorder("Quick Task Switcher", name: .taskSwitcher)
             KeyboardShortcuts.Recorder("Set Timer", name: .setTimer)
             KeyboardShortcuts.Recorder("Open Notes", name: .openNotes)
+            KeyboardShortcuts.Recorder("Complete Task", name: .completeTask)
             KeyboardShortcuts.Recorder("Collapse Floating Task Window", name: .toggleFloatingWindowCollapse)
+
+            Button("Reset shortcuts to defaults") {
+                KeyboardShortcuts.reset(
+                    .toggleTimer,
+                    .taskSwitcher,
+                    .setTimer,
+                    .openNotes,
+                    .completeTask,
+                    .toggleFloatingWindowCollapse
+                )
+            }
+            .buttonStyle(.bordered)
+            .padding(.top, 6)
         }
     }
 }

@@ -93,6 +93,7 @@ struct FloatingTaskWindowView: View {
         self._localTask = State(initialValue: task)
         self._notesText = State(initialValue: task.notes)
         self._descriptionText = State(initialValue: task.description)
+        self._taskMarkedComplete = State(initialValue: task.isCompleted)
         self._commentVM = StateObject(wrappedValue: ADOCommentViewModel(workItemId: task.adoWorkItemId ?? ""))
         self._commentsVM = StateObject(wrappedValue: ADOCommentsViewModel(workItemId: task.adoWorkItemId ?? ""))
 
@@ -1142,6 +1143,12 @@ struct FloatingTaskWindowView: View {
                     localTask = newTask
                     notesText = newTask.notes
                     if taskSwitched || !descriptionFocused { descriptionText = newTask.description }
+                }
+
+                if newTask.isCompleted {
+                    taskMarkedComplete = true
+                } else if taskSwitched {
+                    taskMarkedComplete = false
                 }
                 
                 // If timer was cleared externally (from ContentView), reset completion flags
