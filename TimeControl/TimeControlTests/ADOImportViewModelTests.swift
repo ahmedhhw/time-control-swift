@@ -322,7 +322,7 @@ final class ADOBulkImportViewModelTests: XCTestCase {
             } else {
                 return (self.makeResponse(statusCode: 200), self.batchJSON(items: [
                     (10, "Task A", "Active", ""),
-                    (20, "Task B", "Resolved", "desc")
+                    (20, "Task B", "Active", "desc")
                 ]))
             }
         }

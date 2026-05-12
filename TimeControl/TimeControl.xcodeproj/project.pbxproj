@@ -101,6 +101,7 @@
 		AI000002000000000000001 /* ADOImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000002000000000000000 /* ADOImportViewModel.swift */; };
 		AI000003000000000000001 /* ADOImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI000003000000000000000 /* ADOImportViewModelTests.swift */; };
 		TP000001000000000000001 /* TaskPaletteFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP000001000000000000000 /* TaskPaletteFilterTests.swift */; };
+		IP000002000000000000001 /* IdlePromptAutoDismissTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */; };
 		AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001000000000000000 /* ADOBulkFetchTests.swift */; };
 		AC000001000000000000001 /* ADOCommentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000001000000000000000 /* ADOCommentStore.swift */; };
 		AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000002000000000000000 /* ADOCommentViewModel.swift */; };
@@ -176,6 +177,7 @@
 		AI000002000000000000000 /* ADOImportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportViewModel.swift; sourceTree = "<group>"; };
 		AI000003000000000000000 /* ADOImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOImportViewModelTests.swift; sourceTree = "<group>"; };
 		TP000001000000000000000 /* TaskPaletteFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPaletteFilterTests.swift; sourceTree = "<group>"; };
+		IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdlePromptAutoDismissTests.swift; sourceTree = "<group>"; };
 		AB000001000000000000000 /* ADOBulkFetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOBulkFetchTests.swift; sourceTree = "<group>"; };
 		AC000001000000000000000 /* ADOCommentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentStore.swift; sourceTree = "<group>"; };
 		AC000002000000000000000 /* ADOCommentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModel.swift; sourceTree = "<group>"; };
@@ -426,6 +428,7 @@
 				AC000099000000000000000 /* LinkParserTests.swift */,
 				CF000004000000000000000 /* ADOFetchCommentsTests.swift */,
 				IA000005000000000000000 /* IdleActivityMonitorTests.swift */,
+				IP000002000000000000000 /* IdlePromptAutoDismissTests.swift */,
 				TC000001000000000000000 /* TaskPauseConsistencyTests.swift */,
 				TC000002000000000000000 /* PauseBeforeDeleteTests.swift */,
 				TC000003000000000000000 /* SessionDiscardTests.swift */,
@@ -617,6 +620,7 @@
 				TC000002000000000000001 /* PauseBeforeDeleteTests.swift in Sources */,
 				TC000003000000000000001 /* SessionDiscardTests.swift in Sources */,
 				IA000005000000000000001 /* IdleActivityMonitorTests.swift in Sources */,
+				IP000002000000000000001 /* IdlePromptAutoDismissTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

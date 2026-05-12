@@ -5,11 +5,16 @@
 
 import AppKit
 import SwiftUI
+import Combine
 
 final class IdlePromptWindowManager {
     static let shared = IdlePromptWindowManager()
 
     private var panel: NSPanel?
+    private var cancellables = Set<AnyCancellable>()
+
+    /// Called inside dismiss() — injectable for testing.
+    var onDismiss: (() -> Void)?
 
     private init() {}
 
@@ -63,12 +68,27 @@ final class IdlePromptWindowManager {
         newPanel.contentViewController = hostingController
 
         panel = newPanel
+        subscribeToMonitor(IdleActivityMonitor.shared)
         newPanel.orderFrontRegardless()
     }
 
     func dismiss() {
+        cancellables.removeAll()
         panel?.close()
         panel = nil
+        onDismiss?()
+    }
+
+    /// Subscribe to monitor state changes and auto-dismiss when a task starts running.
+    /// Called from show(viewModel:) so the subscription is active while the prompt is visible.
+    func subscribeToMonitor(_ monitor: IdleActivityMonitor) {
+        cancellables.removeAll()
+        monitor.$state
+            .dropFirst()  // skip the current value — only react to transitions
+            .filter { $0 == .suppressed }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.dismiss() }
+            .store(in: &cancellables)
     }
 
     // MARK: - Private helpers
