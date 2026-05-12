@@ -1217,6 +1217,7 @@ struct FloatingTaskWindowView: View {
         if let existingWindow = notesWindow, existingWindow.isVisible {
             existingWindow.contentView = hostingView
             existingWindow.orderFrontRegardless()
+            focusNotesTextView(in: existingWindow)
             return
         }
         notesWindow = nil
@@ -1270,6 +1271,25 @@ struct FloatingTaskWindowView: View {
 
         notesWindow = window
         window.orderFrontRegardless()
+        focusNotesTextView(in: window)
+    }
+
+    private func focusNotesTextView(in window: NSWindow) {
+        window.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async {
+            if let tv = Self.firstTextView(in: window.contentView) {
+                window.makeFirstResponder(tv)
+            }
+        }
+    }
+
+    private static func firstTextView(in view: NSView?) -> NSTextView? {
+        guard let view = view else { return nil }
+        if let tv = view as? NSTextView { return tv }
+        for sub in view.subviews {
+            if let found = firstTextView(in: sub) { return found }
+        }
+        return nil
     }
 
     private func openReminderWindow() {

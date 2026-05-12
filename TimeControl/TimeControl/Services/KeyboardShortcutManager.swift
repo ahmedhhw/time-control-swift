@@ -28,8 +28,8 @@ final class KeyboardShortcutManager {
         KeyboardShortcuts.onKeyDown(for: .openNotes) {
             DispatchQueue.main.async {
                 let mgr = FloatingWindowManager.shared
-                if mgr.notesWindowRef?.isVisible == true {
-                    mgr.notesWindowRef?.close()
+                if let notes = mgr.notesWindowRef, notes.isVisible {
+                    notes.close()
                 } else {
                     mgr.onOpenNotes?()
                 }
