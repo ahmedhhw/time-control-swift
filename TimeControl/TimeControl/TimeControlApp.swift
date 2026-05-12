@@ -16,5 +16,8 @@ struct TimeControlApp: App {
             ContentView()
                 .environmentObject(appDelegate.viewModel)
         }
+        .commands {
+            CommandGroup(replacing: .newItem) {}
+        }
     }
 }

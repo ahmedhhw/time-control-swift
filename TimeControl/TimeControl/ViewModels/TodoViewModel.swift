@@ -967,19 +967,19 @@ class TodoViewModel: ObservableObject {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
         }
-        
+
         stopSession(todoIndex: todoIndex)
         if let startTime = todos[todoIndex].lastStartTime {
             todos[todoIndex].totalTimeSpent += Date().timeIntervalSince(startTime)
         }
         todos[todoIndex].lastStartTime = nil
-        
+
         if todos[todoIndex].countdownTime > 0, let countdownStart = todos[todoIndex].countdownStartTime {
             let sessionElapsed = Date().timeIntervalSince(countdownStart)
             todos[todoIndex].countdownElapsedAtPause += sessionElapsed
             todos[todoIndex].countdownStartTime = nil
         }
-        
+
         for i in 0..<todos[todoIndex].subtasks.count {
             if todos[todoIndex].subtasks[i].isRunning {
                 stopSubtaskSession(todoIndex: todoIndex, subtaskIndex: i)
@@ -1074,22 +1074,22 @@ class TodoViewModel: ObservableObject {
         guard let todoIndex = todos.firstIndex(where: { $0.id == taskId }) else {
             return
         }
-        
+
         startSession(todoIndex: todoIndex)
         todos[todoIndex].lastStartTime = Date()
-        
+
         if todos[todoIndex].countdownTime > 0 && todos[todoIndex].countdownElapsedAtPause < todos[todoIndex].countdownTime {
             todos[todoIndex].countdownStartTime = Date()
         }
-        
+
         autoStartFirstIncompleteSubtask(at: todoIndex)
-        
+
         if todos[todoIndex].startedAt == nil {
             todos[todoIndex].startedAt = Date().timeIntervalSince1970
         }
-        
+
         todos[todoIndex].lastPlayedAt = Date().timeIntervalSince1970
-        
+
         runningTaskId = taskId
         saveTask(todos[todoIndex])
 

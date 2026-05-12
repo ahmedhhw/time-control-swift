@@ -13,11 +13,11 @@ final class KeyboardShortcutManager {
 
     func setup(viewModel: TodoViewModel) {
         KeyboardShortcuts.onKeyDown(for: .toggleTimer) { [weak self] in
-            DispatchQueue.main.async { self?.performToggleTimer(viewModel: viewModel) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self?.performToggleTimerKeepWindow(viewModel: viewModel) }
         }
         KeyboardShortcuts.onKeyDown(for: .taskSwitcher) {
             DispatchQueue.main.async {
-                TaskPalettePanelManager.shared.show(viewModel: viewModel)
+                TaskPaletteWindowManager.shared.show(viewModel: viewModel)
             }
         }
         KeyboardShortcuts.onKeyDown(for: .setTimer) {
@@ -27,22 +27,27 @@ final class KeyboardShortcutManager {
         }
         KeyboardShortcuts.onKeyDown(for: .openNotes) {
             DispatchQueue.main.async {
-                FloatingWindowManager.shared.onOpenNotes?()
+                let mgr = FloatingWindowManager.shared
+                if mgr.notesWindowRef?.isVisible == true {
+                    mgr.notesWindowRef?.close()
+                } else {
+                    mgr.onOpenNotes?()
+                }
             }
         }
     }
 
-    func performToggleTimer(viewModel: TodoViewModel) {
+    func performToggleTimerKeepWindow(viewModel: TodoViewModel) {
         if let runningId = viewModel.runningTaskId,
            let task = viewModel.todos.first(where: { $0.id == runningId }) {
             viewModel.pauseTask(runningId, keepWindowOpen: false)
-            hud.show(message: "⏸  \"\(task.text)\" paused")
+            DispatchQueue.main.async { self.hud.show(message: "⏸  \"\(task.text)\" paused") }
         } else if let task = viewModel.todos
             .filter({ !$0.isCompleted })
             .sorted(by: { ($0.lastPlayedAt ?? 0) > ($1.lastPlayedAt ?? 0) })
             .first {
             viewModel.toggleTimer(task)
-            hud.show(message: "▶  \"\(task.text)\" resumed")
+            DispatchQueue.main.async { self.hud.show(message: "▶  \"\(task.text)\" resumed") }
         }
     }
 }
