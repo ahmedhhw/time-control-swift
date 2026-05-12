@@ -54,6 +54,7 @@ final class IdleActivityMonitor: ObservableObject {
     private var activeStartedAt: Date?
     private var cooldownStartedAt: Date?
     private var snoozeUntil: Date?
+    private var promptShownAt: Date?
     private var promptsShownToday: Int = 0
     private var promptsShownDay: Int = -1  // calendar day component
     static let maxPromptsPerDay = 3
@@ -117,17 +118,20 @@ final class IdleActivityMonitor: ObservableObject {
 
     /// Called by the prompt view when user taps "Not Now" or X.
     func handleDismiss() {
+        promptShownAt = nil
         cooldownStartedAt = clock()
         state = .cooldown
     }
 
     /// Called by the prompt view when user taps "Start a Task".
     func handleStartTask() {
+        promptShownAt = nil
         state = .suppressed
     }
 
     /// Called by the prompt view when user taps "Snooze N min".
     func handleSnooze(minutes: Int) {
+        promptShownAt = nil
         let until = clock().addingTimeInterval(Double(minutes) * 60)
         snoozeUntil = until
         saveSnoozeToUserDefaults(until)
@@ -209,6 +213,16 @@ final class IdleActivityMonitor: ObservableObject {
     func evaluateState() {
         let now = clock()
 
+        // Exit promptShown if the prompt was never interacted with and timeout has elapsed
+        if state == .promptShown, let shownAt = promptShownAt {
+            if now.timeIntervalSince(shownAt) >= config.promptTimeoutSeconds {
+                promptShownAt = nil
+                activeStartedAt = nil
+                state = .idle
+                return
+            }
+        }
+
         // Exit cooldown if it has expired
         if case .cooldown = state, let start = cooldownStartedAt {
             if now.timeIntervalSince(start) >= config.cooldownSeconds {
@@ -276,6 +290,7 @@ final class IdleActivityMonitor: ObservableObject {
 
         // All conditions met — show prompt
         promptsShownToday += 1
+        promptShownAt = now
         state = .promptShown
         onShowPrompt?()
     }

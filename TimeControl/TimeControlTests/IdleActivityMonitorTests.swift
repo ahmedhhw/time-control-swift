@@ -407,6 +407,101 @@ final class IdleActivityMonitorTests: XCTestCase {
             "Clicking Start a Task should move to suppressed state")
     }
 
+    // MARK: - 10. promptShown timeout
+
+    func testPromptShownTimeout_transitionsToIdle_afterTimeout() {
+        let config = IdlePromptConfig(
+            enabled: true,
+            activityThresholdSeconds: 10,
+            cooldownSeconds: 1200,
+            promptTimeoutSeconds: 120
+        )
+        let (monitor, factory, advance) = makeMonitorAndDate(config: config)
+        monitor.onShowPrompt = {}
+
+        let (vm, _, _) = makeViewModel()
+        monitor.start(viewModel: vm)
+
+        // Reach promptShown state
+        monitor.testOnly_recordActivity()
+        advance(11)
+        fireTimer(factory)
+        XCTAssertEqual(monitor.state, .promptShown)
+
+        // Advance past timeout without interacting with prompt
+        advance(121)
+        fireTimer(factory)
+
+        XCTAssertEqual(monitor.state, .idle,
+            "State should return to idle after promptTimeoutSeconds with no interaction")
+    }
+
+    func testPromptShownTimeout_doesNotTransition_ifUserInteractsBeforeTimeout() {
+        let config = IdlePromptConfig(
+            enabled: true,
+            activityThresholdSeconds: 10,
+            cooldownSeconds: 1200,
+            promptTimeoutSeconds: 120
+        )
+        let (monitor, factory, advance) = makeMonitorAndDate(config: config)
+        monitor.onShowPrompt = {}
+
+        let (vm, _, _) = makeViewModel()
+        monitor.start(viewModel: vm)
+
+        monitor.testOnly_recordActivity()
+        advance(11)
+        fireTimer(factory)
+        XCTAssertEqual(monitor.state, .promptShown)
+
+        // User dismisses before timeout
+        monitor.handleDismiss()
+        XCTAssertEqual(monitor.state, .cooldown)
+
+        // Timeout interval passes — should stay in cooldown, not jump to idle via timeout path
+        advance(130)
+        fireTimer(factory) // cooldown expires (1200s not elapsed) — still in cooldown, not idle via timeout
+
+        // State should be cooldown (not idle via timeout) since cooldown hasn't expired yet
+        XCTAssertNotEqual(monitor.state, .promptShown,
+            "State must not be promptShown after dismiss, regardless of timeout")
+    }
+
+    func testPromptShownTimeout_allowsPromptToFireAgain_afterTimeout() {
+        let config = IdlePromptConfig(
+            enabled: true,
+            activityThresholdSeconds: 10,
+            cooldownSeconds: 1200,
+            promptTimeoutSeconds: 120
+        )
+        let (monitor, factory, advance) = makeMonitorAndDate(config: config)
+        var promptCount = 0
+        monitor.onShowPrompt = { promptCount += 1 }
+
+        let (vm, _, _) = makeViewModel()
+        monitor.start(viewModel: vm)
+
+        // First prompt fires
+        monitor.testOnly_recordActivity()
+        advance(11)
+        fireTimer(factory)
+        XCTAssertEqual(promptCount, 1)
+        XCTAssertEqual(monitor.state, .promptShown)
+
+        // Timeout expires without interaction — state becomes idle
+        advance(121)
+        fireTimer(factory)
+        XCTAssertEqual(monitor.state, .idle,
+            "State should be idle after timeout")
+
+        // New activity streak → prompt fires again
+        monitor.testOnly_recordActivity()
+        advance(11)
+        fireTimer(factory)
+
+        XCTAssertEqual(promptCount, 2, "Prompt should fire again after promptShown timeout resets to idle")
+    }
+
     // MARK: - Helpers
 
     private func fireTimer(_ factory: FakeTimerFactory) {

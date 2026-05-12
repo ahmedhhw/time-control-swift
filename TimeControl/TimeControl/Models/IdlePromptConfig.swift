@@ -9,11 +9,13 @@ struct IdlePromptConfig: Codable {
     var enabled: Bool
     var activityThresholdSeconds: Double
     var cooldownSeconds: Double
+    var promptTimeoutSeconds: Double = 120
 
     static let `default` = IdlePromptConfig(
         enabled: true,
         activityThresholdSeconds: 10,
-        cooldownSeconds: 1200
+        cooldownSeconds: 1200,
+        promptTimeoutSeconds: 120
     )
 
     private static let userDefaultsKey = "idlePromptConfig"
