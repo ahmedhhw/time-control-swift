@@ -273,6 +273,7 @@ struct ContentView: View {
             viewModel.defaultTimerMinutes = defaultTimerMinutes
             viewModel.dropdownSortOption = DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed
             viewModel.isAdvancedMode = isAdvancedMode
+            FloatingWindowManager.shared.onOpenNotesViewer = { openNotesViewerWindow() }
             Task { await viewModel.refreshADOComments() }
         }
         .onChange(of: activateReminders) { viewModel.activateReminders = $0 }
@@ -502,9 +503,11 @@ struct ContentView: View {
     }
 
     private func openNotesViewerWindow() {
-        // If already open, just bring it to front
         if let existing = notesViewerWindow, existing.isVisible {
-            existing.orderFrontRegardless()
+            existing.makeKeyAndOrderFront(nil)
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .focusNotesViewerSearch, object: nil)
+            }
             return
         }
         notesViewerWindow?.close()
@@ -540,8 +543,12 @@ struct ContentView: View {
         window.hidesOnDeactivate = false
         window.minSize = NSSize(width: 500, height: 300)
 
+        FloatingWindowManager.shared.notesViewerWindowRef = window
         notesViewerWindow = window
-        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .focusNotesViewerSearch, object: nil)
+        }
     }
 }
 

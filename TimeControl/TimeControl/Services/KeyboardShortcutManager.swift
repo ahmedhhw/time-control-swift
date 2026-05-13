@@ -30,6 +30,9 @@ final class KeyboardShortcutManager {
         KeyboardShortcuts.onKeyDown(for: .toggleFloatingWindowCollapse) { [weak self] in
             DispatchQueue.main.async { self?.performToggleFloatingWindowCollapse() }
         }
+        KeyboardShortcuts.onKeyDown(for: .openNotesViewer) { [weak self] in
+            DispatchQueue.main.async { self?.performToggleNotesViewer() }
+        }
     }
 
     func performToggleTimerKeepWindow(viewModel: TodoViewModel) {
@@ -77,6 +80,19 @@ final class KeyboardShortcutManager {
 
         if let updatedTask = viewModel.todos.first(where: { $0.id == task.id }) {
             FloatingWindowManager.shared.updateTask(updatedTask)
+        }
+    }
+
+    func performToggleNotesViewer() {
+        let mgr = FloatingWindowManager.shared
+        if let viewer = mgr.notesViewerWindowRef, viewer.isVisible {
+            if viewer.isKeyWindow {
+                viewer.close()
+            } else {
+                mgr.onOpenNotesViewer?()
+            }
+        } else {
+            mgr.onOpenNotesViewer?()
         }
     }
 

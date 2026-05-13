@@ -18,6 +18,8 @@ class FloatingWindowManager: ObservableObject {
     /// Set by FloatingTaskWindowView whenever a notes window opens or closes,
     /// so the Settings sheet can push live opacity updates to the open notes window.
     weak var notesWindowRef: NSWindow?
+    weak var notesViewerWindowRef: NSWindow?
+    var onOpenNotesViewer: (() -> Void)?
     @Published var currentTask: TodoItem?
     @Published var allTodos: [TodoItem] = []
     private var windowDelegate: FloatingWindowDelegate?

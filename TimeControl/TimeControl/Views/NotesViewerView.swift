@@ -11,6 +11,7 @@ struct NotesViewerView: View {
     @State private var selectedTaskId: UUID? = nil
     @State private var searchText: String = ""
     @State private var sortOption: TaskSortOption = .creationDateNewest
+    @FocusState private var searchFocused: Bool
 
     private var filteredTodos: [TodoItem] {
         let searched: [TodoItem]
@@ -63,6 +64,7 @@ struct NotesViewerView: View {
                         .foregroundColor(.secondary)
                     TextField("Search tasks or notes…", text: $searchText)
                         .textFieldStyle(.plain)
+                        .focused($searchFocused)
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
@@ -152,6 +154,9 @@ struct NotesViewerView: View {
             if selectedTaskId == nil {
                 selectedTaskId = filteredTodos.first?.id
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .focusNotesViewerSearch)) { _ in
+            searchFocused = true
         }
     }
 }

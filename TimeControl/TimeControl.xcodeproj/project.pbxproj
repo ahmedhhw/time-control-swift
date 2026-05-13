@@ -123,6 +123,7 @@
 		IM000003000000000000001 /* InlineImageAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = IM000003000000000000000 /* InlineImageAttachment.swift */; };
 		KSM00001000000000000002 /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = KSM00001000000000000001 /* KeyboardShortcutManager.swift */; };
 		SN000001000000000000002 /* ShortcutNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = SN000001000000000000001 /* ShortcutNames.swift */; };
+		NN000001000000000000002 /* NotificationNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = NN000001000000000000001 /* NotificationNames.swift */; };
 		LP000001000000000000001 /* LinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = LP000001000000000000000 /* LinkParser.swift */; };
 		NW000001000000000000001 /* NotesWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000001000000000000000 /* NotesWindowFrameStore.swift */; };
 		NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */; };
@@ -324,6 +325,7 @@
 		IM000003000000000000000 /* InlineImageAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineImageAttachment.swift; sourceTree = "<group>"; };
 		KSM00001000000000000001 /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
 		SN000001000000000000001 /* ShortcutNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutNames.swift; sourceTree = "<group>"; };
+		NN000001000000000000001 /* NotificationNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationNames.swift; sourceTree = "<group>"; };
 		LP000001000000000000000 /* LinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkParser.swift; sourceTree = "<group>"; };
 		NW000001000000000000000 /* NotesWindowFrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStore.swift; sourceTree = "<group>"; };
 		NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowFrameStoreTests.swift; sourceTree = "<group>"; };
@@ -396,6 +398,7 @@
 				IA000001000000000000000 /* IdleActivityMonitor.swift */,
 				KSM00001000000000000001 /* KeyboardShortcutManager.swift */,
 				SN000001000000000000001 /* ShortcutNames.swift */,
+				NN000001000000000000001 /* NotificationNames.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -769,6 +772,7 @@
 				A1000000000000000000145 /* ADOSettingsStore.swift in Sources */,
 				KSM00001000000000000002 /* KeyboardShortcutManager.swift in Sources */,
 				SN000001000000000000002 /* ShortcutNames.swift in Sources */,
+				NN000001000000000000002 /* NotificationNames.swift in Sources */,
 				HUD00001000000000000002 /* HUDToastView.swift in Sources */,
 				TPP00001000000000000002 /* TaskPalettePanel.swift in Sources */,
 				QTW00001000000000000002 /* QuickTimerWindow.swift in Sources */,

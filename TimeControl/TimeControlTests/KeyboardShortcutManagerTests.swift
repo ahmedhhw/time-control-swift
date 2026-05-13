@@ -20,6 +20,8 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         QuickTimerWindowManager.shared.dismiss()
         FloatingWindowManager.shared.onOpenNotes = nil
         FloatingWindowManager.shared.onToggleCollapse = nil
+        FloatingWindowManager.shared.notesViewerWindowRef = nil
+        FloatingWindowManager.shared.onOpenNotesViewer = nil
         FloatingWindowManager.shared.closeFloatingWindow()
         sut = nil
         super.tearDown()
@@ -145,6 +147,55 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         sut.performToggleFloatingWindowCollapse()
 
         XCTAssertFalse(fired)
+    }
+
+    // MARK: - performToggleNotesViewer
+
+    func testPerformToggleNotesViewer_nilWindowRef_firesOpenCallback() {
+        var fulfilled = false
+        FloatingWindowManager.shared.notesViewerWindowRef = nil
+        FloatingWindowManager.shared.onOpenNotesViewer = { fulfilled = true }
+
+        sut.performToggleNotesViewer()
+
+        XCTAssertTrue(fulfilled)
+    }
+
+    func testPerformToggleNotesViewer_windowNotVisible_firesOpenCallback() {
+        var fulfilled = false
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: true
+        )
+        FloatingWindowManager.shared.notesViewerWindowRef = window
+        FloatingWindowManager.shared.onOpenNotesViewer = { fulfilled = true }
+
+        sut.performToggleNotesViewer()
+
+        XCTAssertTrue(fulfilled)
+    }
+
+    func testPerformToggleNotesViewer_windowVisibleAndKey_doesNotFireCallback() throws {
+        var fulfilled = false
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.orderFrontRegardless()
+        window.makeKey()
+        // In headless CI / test runners the window server may refuse to grant key status.
+        try XCTSkipUnless(window.isKeyWindow, "Window could not become key in this environment")
+        FloatingWindowManager.shared.notesViewerWindowRef = window
+        FloatingWindowManager.shared.onOpenNotesViewer = { fulfilled = true }
+
+        sut.performToggleNotesViewer()
+
+        XCTAssertFalse(fulfilled)
+        window.close()
     }
 
     func testPerformToggleFloatingWindowCollapse_invokesCallbackWhenWindowOpen() {
