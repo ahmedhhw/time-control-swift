@@ -156,7 +156,29 @@ Use this format for each phase:
 
 This checklist reflects the feature's acceptance criteria from the design doc — not individual phase completion. It is the user's definition of done for the entire feature.
 
-6. Show the full updated document to the user and **stop**. Do not implement anything.
+6. **Ask the user how they want to test the feature manually:**
+
+   > "Before I hand off — how do you want to test this in the UI?
+   > - **A) Real credentials only** — checklist of what to configure and what to look for
+   > - **B) Mock server** — a local Python server that intercepts the app's API calls so you can test without real credentials
+   > - **C) Both**"
+
+   Wait for the user's answer, then append a `## How to Test` section to the doc based on their choice:
+
+   **If real credentials (A or C):** Write a table of required credentials/config, numbered setup steps in the app's Settings or UI, and a checkbox list of what to verify — including the happy path, error states (bad credentials, network off, empty results), and any regressions to check.
+
+   **If mock server (B or C):** Write a complete, runnable Python 3 script (`mock_server.py` at the repo root) that:
+   - Uses only the standard library (`http.server`, `json`, `urllib.parse`)
+   - Intercepts every API endpoint the feature calls (match on path + method)
+   - Returns realistic JSON payloads for the happy path by default
+   - Includes commented-out alternative handlers to simulate error states (401, 500, empty results, slow response via `time.sleep`)
+   - Prints each incoming request to stdout so the user can see what the app is calling
+   - Runs on `localhost:8080` (or the port that makes sense for the project) with a one-liner: `python3 mock_server.py`
+   - Includes clear instructions for how to point the app at `localhost` instead of the real API (e.g. override the base URL in a debug build flag or Settings)
+
+   All code in the How to Test section must be complete and runnable — no pseudocode.
+
+7. Show the full updated document to the user and **stop**. Do not implement anything.
 
 ---
 

@@ -370,11 +370,16 @@ final class ADOBulkImportViewModelTests: XCTestCase {
 
     func testLoadMentionedPopulatesMentionedItems() async {
         var callCount = 0
-        MockURLProtocol.requestHandler = { [self] _ in
+        MockURLProtocol.requestHandler = { [self] request in
             callCount += 1
-            if callCount == 1 {
-                return (self.makeResponse(statusCode: 200), self.wiqlJSON(ids: [99]))
-            } else {
+            switch callCount {
+            case 1: // Profile API
+                let json = "{\"authenticatedUser\":{\"providerDisplayName\":\"Ahmed H\",\"id\":\"abc-123\"}}".data(using: .utf8)!
+                return (self.makeResponse(statusCode: 200), json)
+            case 2: // Search API
+                let json = "{\"count\":1,\"results\":[{\"fields\":{\"system.id\":\"99\",\"system.title\":\"Mentioned Item\",\"system.state\":\"Active\"}}]}".data(using: .utf8)!
+                return (self.makeResponse(statusCode: 200), json)
+            default: // Batch fetch
                 return (self.makeResponse(statusCode: 200), self.batchJSON(items: [
                     (99, "Mentioned Item", "Active", "")
                 ]))

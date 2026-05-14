@@ -5,6 +5,11 @@
 
 import Foundation
 
+struct ADOUserProfile {
+    let displayName: String
+    let id: String
+}
+
 struct ADOWorkItem {
     let id: Int
     let title: String
@@ -244,11 +249,10 @@ final class ADOService {
     }
 
     func fetchMentionedWorkItems(org: String, project: String, pat: String) async throws -> [ADOWorkItem] {
-        // Fetches items where others have made changes (implying potential mention/discussion).
-        // Since WIQL has no native mentions filter, we use a simple heuristic: items changed
-        // by someone other than @Me and not closed. This captures items you're likely mentioned in.
-        let query = "SELECT [System.Id] FROM WorkItems WHERE [System.ChangedBy] <> @Me AND [System.State] <> 'Closed' ORDER BY [System.ChangedDate] DESC"
-        return try await fetchWorkItems(org: org, project: project, pat: pat, wiqlQuery: query)
+        let profile = try await fetchCurrentUserProfile(org: org, pat: pat)
+        let ids = try await searchCommentMentions(org: org, project: project, pat: pat, displayName: profile.displayName)
+        guard !ids.isEmpty else { return [] }
+        return try await fetchWorkItemsBatch(org: org, project: project, pat: pat, ids: ids)
     }
 
     private func fetchWorkItems(org: String, project: String, pat: String, wiqlQuery: String) async throws -> [ADOWorkItem] {
@@ -261,7 +265,7 @@ final class ADOService {
         wiqlRequest.timeoutInterval = 30
         wiqlRequest.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
         wiqlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        wiqlRequest.httpBody = try? JSONEncoder().encode(["query": wiqlQuery])
+        wiqlRequest.httpBody = try JSONEncoder().encode(["query": wiqlQuery])
 
         let (wiqlData, wiqlResponse) = try await performRequest(wiqlRequest)
 
@@ -283,31 +287,16 @@ final class ADOService {
 
         let ids = wiqlBody.workItems.map(\.id)
         guard !ids.isEmpty else { return [] }
+        return try await fetchWorkItemsBatch(org: org, project: project, pat: pat, ids: ids)
+    }
 
-        // Step 2: Batch fetch full work item data
+    private func fetchWorkItemsBatch(org: String, project: String, pat: String, ids: [Int]) async throws -> [ADOWorkItem] {
         let batchURL = "https://dev.azure.com/\(org)/\(project)/_apis/wit/workitemsbatch?api-version=7.1"
         guard let batchUrl = URL(string: batchURL) else { throw ADOError.invalidResponse }
 
         struct BatchRequest: Encodable {
             let ids: [Int]
             let fields: [String]
-        }
-        let batchBody = BatchRequest(ids: ids, fields: ["System.Title", "System.State", "System.Description"])
-
-        var batchRequest = URLRequest(url: batchUrl)
-        batchRequest.httpMethod = "POST"
-        batchRequest.timeoutInterval = 30
-        batchRequest.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
-        batchRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        batchRequest.httpBody = try? JSONEncoder().encode(batchBody)
-
-        let (batchData, batchResponse) = try await performRequest(batchRequest)
-
-        guard let batchHttp = batchResponse as? HTTPURLResponse else { throw ADOError.invalidResponse }
-        switch batchHttp.statusCode {
-        case 200: break
-        case 401: throw ADOError.unauthorized
-        default: throw ADOError.serverError(batchHttp.statusCode)
         }
 
         struct BatchResponse: Decodable {
@@ -328,16 +317,130 @@ final class ADOService {
             let value: [Item]
         }
 
-        guard let batchBody = try? JSONDecoder().decode(BatchResponse.self, from: batchData) else {
-            throw ADOError.invalidResponse
+        let chunks = stride(from: 0, to: ids.count, by: 200).map {
+            Array(ids[$0..<min($0 + 200, ids.count)])
         }
 
-        return batchBody.value.map {
-            ADOWorkItem(id: $0.id, title: $0.fields.title, description: $0.fields.description ?? "", state: $0.fields.state)
+        var all: [ADOWorkItem] = []
+        for chunk in chunks {
+            var batchRequest = URLRequest(url: batchUrl)
+            batchRequest.httpMethod = "POST"
+            batchRequest.timeoutInterval = 30
+            batchRequest.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
+            batchRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            batchRequest.httpBody = try JSONEncoder().encode(BatchRequest(ids: chunk, fields: ["System.Title", "System.State", "System.Description"]))
+
+            let (batchData, batchResponse) = try await performRequest(batchRequest)
+
+            guard let batchHttp = batchResponse as? HTTPURLResponse else { throw ADOError.invalidResponse }
+            switch batchHttp.statusCode {
+            case 200: break
+            case 401: throw ADOError.unauthorized
+            default: throw ADOError.serverError(batchHttp.statusCode)
+            }
+
+            guard let body = try? JSONDecoder().decode(BatchResponse.self, from: batchData) else {
+                throw ADOError.invalidResponse
+            }
+            all.append(contentsOf: body.value.map {
+                ADOWorkItem(id: $0.id, title: $0.fields.title, description: $0.fields.description ?? "", state: $0.fields.state)
+            })
         }
+        return all
     }
 
     // MARK: - Private helpers
+
+    func fetchCurrentUserProfile(org: String, pat: String) async throws -> ADOUserProfile {
+        guard let url = URL(string: "https://dev.azure.com/\(org)/_apis/connectiondata") else {
+            throw ADOError.invalidResponse
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        request.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await performRequest(request)
+
+        guard let http = response as? HTTPURLResponse else { throw ADOError.invalidResponse }
+        switch http.statusCode {
+        case 200: break
+        case 401: throw ADOError.unauthorized
+        default: throw ADOError.serverError(http.statusCode)
+        }
+
+        struct ConnectionDataResponse: Decodable {
+            struct AuthenticatedUser: Decodable {
+                let providerDisplayName: String
+                let id: String
+            }
+            let authenticatedUser: AuthenticatedUser
+        }
+        guard let body = try? JSONDecoder().decode(ConnectionDataResponse.self, from: data) else {
+            throw ADOError.invalidResponse
+        }
+        return ADOUserProfile(displayName: body.authenticatedUser.providerDisplayName, id: body.authenticatedUser.id)
+    }
+
+    func searchCommentMentions(org: String, project: String, pat: String, displayName: String) async throws -> [Int] {
+        let urlString = "https://almsearch.dev.azure.com/\(org)/\(project)/_apis/search/workitemsearchresults?api-version=7.1"
+        guard let url = URL(string: urlString) else { throw ADOError.invalidResponse }
+
+        struct SearchRequest: Encodable {
+            let searchText: String
+            let skip: Int
+            let top: Int
+            let filters: [String: [String]]
+            let orderBy: [[String: String]]
+            let includeFacets: Bool
+            enum CodingKeys: String, CodingKey {
+                case searchText
+                case skip = "$skip"
+                case top = "$top"
+                case filters
+                case orderBy = "$orderBy"
+                case includeFacets
+            }
+        }
+        let body = SearchRequest(
+            searchText: "comment:\"@\(displayName)\"",
+            skip: 0,
+            top: 200,
+            filters: ["System.TeamProject": [project]],
+            orderBy: [["field": "system.changeddate", "sortOrder": "DESC"]],
+            includeFacets: false
+        )
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        request.setValue(authHeader(pat: pat), forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await performRequest(request)
+
+        guard let http = response as? HTTPURLResponse else { throw ADOError.invalidResponse }
+        switch http.statusCode {
+        case 200: break
+        case 401: throw ADOError.unauthorized
+        default: throw ADOError.serverError(http.statusCode)
+        }
+
+        struct SearchResponse: Decodable {
+            struct Result: Decodable {
+                struct Fields: Decodable {
+                    let id: String
+                    enum CodingKeys: String, CodingKey { case id = "system.id" }
+                }
+                let fields: Fields
+            }
+            let results: [Result]
+        }
+        guard let responseBody = try? JSONDecoder().decode(SearchResponse.self, from: data) else {
+            throw ADOError.invalidResponse
+        }
+        return responseBody.results.compactMap { Int($0.fields.id) }
+    }
 
     private func authHeader(pat: String) -> String {
         "Basic " + Data(":\(pat)".utf8).base64EncodedString()
