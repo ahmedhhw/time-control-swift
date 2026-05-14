@@ -714,6 +714,31 @@ struct FloatingTaskWindowView: View {
                         if !isCollapsed { showCollapsedMenu = false }
                     }
                 }
+                FloatingWindowManager.shared.onOpenADOAndFocusComment = {
+                    let delay: Double = isCollapsed ? 0.25 : 0.0
+                    if isCollapsed {
+                        withAnimation(.easeInOut(duration: 0.2)) { isCollapsed = false }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        selectedTabRaw = FloatingTab.comments.rawValue
+                        commentVM.open()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            NotificationCenter.default.post(name: .focusADOCommentField, object: nil)
+                        }
+                    }
+                }
+                FloatingWindowManager.shared.onOpenSubtasksAndFocusInput = {
+                    let delay: Double = isCollapsed ? 0.25 : 0.0
+                    if isCollapsed {
+                        withAnimation(.easeInOut(duration: 0.2)) { isCollapsed = false }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        selectedTabRaw = FloatingTab.subtasks.rawValue
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            subtaskInputFocused = true
+                        }
+                    }
+                }
                 commentVM.onSent = { Task { await commentsVM.refresh() } }
             }
             

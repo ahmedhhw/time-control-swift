@@ -54,7 +54,25 @@ final class TaskPaletteWindowManager {
 
     func show(viewModel: TodoViewModel) {
         dismiss()
+        let panelWidth: CGFloat = 340
+        let panelHeight: CGFloat = 360
+        _showPanel(viewModel: viewModel, origin: originNearMouse(width: panelWidth, height: panelHeight),
+                   panelWidth: panelWidth, panelHeight: panelHeight)
+    }
 
+    func showCentered(viewModel: TodoViewModel) {
+        dismiss()
+        let panelWidth: CGFloat = 340
+        let panelHeight: CGFloat = 360
+        let screen = NSScreen.main ?? NSScreen.screens[0]
+        let origin = CGPoint(
+            x: screen.visibleFrame.midX - panelWidth / 2,
+            y: screen.visibleFrame.midY - panelHeight / 2
+        )
+        _showPanel(viewModel: viewModel, origin: origin, panelWidth: panelWidth, panelHeight: panelHeight)
+    }
+
+    private func _showPanel(viewModel: TodoViewModel, origin: CGPoint, panelWidth: CGFloat, panelHeight: CGFloat) {
         let tasks = TaskPaletteWindowManager.availableTasks(for: viewModel)
         let currentTaskId = viewModel.todos.first(where: { $0.isRunning })?.id ?? UUID()
         print("[TaskPalette] todos=\(viewModel.todos.count) tasks=\(tasks.count)")
@@ -78,10 +96,6 @@ final class TaskPaletteWindowManager {
                 self?.dismiss()
             }
         )
-
-        let panelWidth: CGFloat = 340
-        let panelHeight: CGFloat = 360
-        let origin = originNearMouse(width: panelWidth, height: panelHeight)
 
         let newPanel = NSPanel(
             contentRect: NSRect(origin: origin, size: CGSize(width: panelWidth, height: panelHeight)),

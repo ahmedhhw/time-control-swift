@@ -10,9 +10,10 @@ func makeTodo(
     text: String = "Test task",
     isCompleted: Bool = false,
     estimatedTime: TimeInterval = 0,
-    subtasks: [Subtask] = []
+    subtasks: [Subtask] = [],
+    adoWorkItemId: String? = nil
 ) -> TodoItem {
-    TodoItem(text: text, isCompleted: isCompleted, estimatedTime: estimatedTime, subtasks: subtasks)
+    TodoItem(text: text, isCompleted: isCompleted, estimatedTime: estimatedTime, subtasks: subtasks, adoWorkItemId: adoWorkItemId)
 }
 
 func makeSubtask(title: String = "Subtask", isCompleted: Bool = false) -> Subtask {

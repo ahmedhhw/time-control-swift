@@ -274,6 +274,13 @@ struct ContentView: View {
             viewModel.dropdownSortOption = DropdownSortOption(rawValue: dropdownSortOptionRaw) ?? .recentlyPlayed
             viewModel.isAdvancedMode = isAdvancedMode
             FloatingWindowManager.shared.onOpenNotesViewer = { openNotesViewerWindow() }
+            NotificationCenter.default.addObserver(
+                forName: .openHistoryWindow,
+                object: nil,
+                queue: .main
+            ) { _ in
+                openHistoryWindow()
+            }
             Task { await viewModel.refreshADOComments() }
         }
         .onChange(of: activateReminders) { viewModel.activateReminders = $0 }
@@ -499,6 +506,7 @@ struct ContentView: View {
         }
 
         historyWindow = window
+        FloatingWindowManager.shared.historyWindowRef = window
         window.orderFrontRegardless()
     }
 

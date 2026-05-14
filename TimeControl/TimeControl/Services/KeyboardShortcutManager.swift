@@ -33,6 +33,18 @@ final class KeyboardShortcutManager {
         KeyboardShortcuts.onKeyDown(for: .openNotesViewer) { [weak self] in
             DispatchQueue.main.async { self?.performToggleNotesViewer() }
         }
+        KeyboardShortcuts.onKeyDown(for: .openADOComment) { [weak self] in
+            DispatchQueue.main.async { self?.performOpenADOComment() }
+        }
+        KeyboardShortcuts.onKeyDown(for: .openSubtaskInput) { [weak self] in
+            DispatchQueue.main.async { self?.performOpenSubtaskInput() }
+        }
+        KeyboardShortcuts.onKeyDown(for: .openHistory) { [weak self] in
+            DispatchQueue.main.async { self?.performOpenHistory() }
+        }
+        KeyboardShortcuts.onKeyDown(for: .showMainWindow) { [weak self] in
+            DispatchQueue.main.async { self?.performShowMainWindow() }
+        }
     }
 
     func performToggleTimerKeepWindow(viewModel: TodoViewModel) {
@@ -54,7 +66,7 @@ final class KeyboardShortcutManager {
     }
 
     func performShowTaskSwitcher(viewModel: TodoViewModel) {
-        TaskPaletteWindowManager.shared.show(viewModel: viewModel)
+        TaskPaletteWindowManager.shared.showCentered(viewModel: viewModel)
     }
 
     func performShowQuickTimer(viewModel: TodoViewModel) {
@@ -100,5 +112,47 @@ final class KeyboardShortcutManager {
         let mgr = FloatingWindowManager.shared
         guard mgr.isWindowOpen else { return }
         mgr.onToggleCollapse?()
+    }
+
+    func performOpenADOComment() {
+        let mgr = FloatingWindowManager.shared
+        guard mgr.isWindowOpen else { return }
+        guard let task = mgr.currentTask,
+              let adoId = task.adoWorkItemId, !adoId.isEmpty else {
+            hud.show(message: "No ADO link on this task")
+            return
+        }
+        mgr.activateFloatingWindow()
+        mgr.onOpenADOAndFocusComment?()
+    }
+
+    func performOpenSubtaskInput() {
+        let mgr = FloatingWindowManager.shared
+        guard mgr.isWindowOpen else { return }
+        mgr.activateFloatingWindow()
+        mgr.onOpenSubtasksAndFocusInput?()
+    }
+
+    func performOpenHistory() {
+        let mgr = FloatingWindowManager.shared
+        if let win = mgr.historyWindowRef, win.isVisible {
+            if win.isKeyWindow {
+                win.close()
+            } else {
+                NotificationCenter.default.post(name: .openHistoryWindow, object: nil)
+            }
+        } else {
+            NotificationCenter.default.post(name: .openHistoryWindow, object: nil)
+        }
+    }
+
+    func performShowMainWindow() {
+        guard let mainWindow = NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible }) else { return }
+        if mainWindow.isKeyWindow {
+            mainWindow.orderOut(nil)
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            mainWindow.makeKeyAndOrderFront(nil)
+        }
     }
 }

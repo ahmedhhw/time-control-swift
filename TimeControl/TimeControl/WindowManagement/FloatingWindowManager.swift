@@ -19,6 +19,7 @@ class FloatingWindowManager: ObservableObject {
     /// so the Settings sheet can push live opacity updates to the open notes window.
     weak var notesWindowRef: NSWindow?
     weak var notesViewerWindowRef: NSWindow?
+    weak var historyWindowRef: NSWindow?
     var onOpenNotesViewer: (() -> Void)?
     @Published var currentTask: TodoItem?
     @Published var allTodos: [TodoItem] = []
@@ -26,6 +27,8 @@ class FloatingWindowManager: ObservableObject {
     var onTaskSwitch: ((TodoItem) -> Void)?
     var onOpenNotes: (() -> Void)?
     var onToggleCollapse: (() -> Void)?
+    var onOpenADOAndFocusComment: (() -> Void)?
+    var onOpenSubtasksAndFocusInput: (() -> Void)?
     weak var viewModel: TodoViewModel?
     
     func showFloatingWindow(for task: TodoItem, viewModel: TodoViewModel) {
@@ -198,6 +201,11 @@ class FloatingWindowManager: ObservableObject {
         window.orderFrontRegardless()
     }
 
+    func activateFloatingWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        floatingWindow?.makeKeyAndOrderFront(nil)
+    }
+
     func closeFloatingWindow() {
         floatingWindow?.close()
         clearWindowState()
@@ -210,6 +218,8 @@ class FloatingWindowManager: ObservableObject {
         onTaskSwitch = nil
         onOpenNotes = nil
         onToggleCollapse = nil
+        onOpenADOAndFocusComment = nil
+        onOpenSubtasksAndFocusInput = nil
         windowDelegate = nil
         viewModel = nil
     }

@@ -269,13 +269,17 @@ struct KeyboardShortcutsSection: View {
                 .font(.title3)
                 .fontWeight(.semibold)
 
-            KeyboardShortcuts.Recorder("Toggle Task Timer", name: .toggleTimer)
-            KeyboardShortcuts.Recorder("Quick Task Switcher", name: .taskSwitcher)
-            KeyboardShortcuts.Recorder("Set Timer", name: .setTimer)
-            KeyboardShortcuts.Recorder("Open Notes", name: .openNotes)
-            KeyboardShortcuts.Recorder("Open Notes Viewer", name: .openNotesViewer)
-            KeyboardShortcuts.Recorder("Complete Task", name: .completeTask)
+            KeyboardShortcuts.Recorder("Toggle Task Timer",             name: .toggleTimer)
+            KeyboardShortcuts.Recorder("Quick Task Switcher",           name: .taskSwitcher)
+            KeyboardShortcuts.Recorder("Set Timer",                     name: .setTimer)
+            KeyboardShortcuts.Recorder("Open Notes",                    name: .openNotes)
+            KeyboardShortcuts.Recorder("Open Notes Viewer",             name: .openNotesViewer)
+            KeyboardShortcuts.Recorder("Complete Task",                  name: .completeTask)
             KeyboardShortcuts.Recorder("Collapse Floating Task Window", name: .toggleFloatingWindowCollapse)
+            KeyboardShortcuts.Recorder("Open ADO Comment",              name: .openADOComment)
+            KeyboardShortcuts.Recorder("Open Subtask Input",            name: .openSubtaskInput)
+            KeyboardShortcuts.Recorder("Open History",                  name: .openHistory)
+            KeyboardShortcuts.Recorder("Show Main Window",              name: .showMainWindow)
 
             Button("Reset shortcuts to defaults") {
                 KeyboardShortcuts.reset(
@@ -285,7 +289,11 @@ struct KeyboardShortcutsSection: View {
                     .openNotes,
                     .openNotesViewer,
                     .completeTask,
-                    .toggleFloatingWindowCollapse
+                    .toggleFloatingWindowCollapse,
+                    .openADOComment,
+                    .openSubtaskInput,
+                    .openHistory,
+                    .showMainWindow
                 )
             }
             .buttonStyle(.bordered)

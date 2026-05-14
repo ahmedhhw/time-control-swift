@@ -183,6 +183,16 @@ private struct MentionAwareEditor: NSViewRepresentable {
         scrollView.layer?.borderColor = NSColor.separatorColor.cgColor
 
         textView.textStorage?.setAttributedString(NSMutableAttributedString(attributedString: vm.commentBody))
+
+        context.coordinator.focusObserver = NotificationCenter.default.addObserver(
+            forName: .focusADOCommentField,
+            object: nil,
+            queue: .main
+        ) { [weak scrollView] _ in
+            guard let tv = scrollView?.documentView as? NSTextView else { return }
+            tv.window?.makeFirstResponder(tv)
+        }
+
         return scrollView
     }
 
@@ -196,9 +206,16 @@ private struct MentionAwareEditor: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: MentionAwareEditor
+        var focusObserver: NSObjectProtocol?
 
         init(_ parent: MentionAwareEditor) {
             self.parent = parent
+        }
+
+        deinit {
+            if let token = focusObserver {
+                NotificationCenter.default.removeObserver(token)
+            }
         }
 
         func textDidChange(_ notification: Notification) {
