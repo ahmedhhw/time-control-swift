@@ -161,6 +161,7 @@ private struct MentionAwareEditor: NSViewRepresentable {
         let textView = MentionTextView()
         textView.mentionKeyHandler = context.coordinator.handleKey(event:)
         textView.imagePasteHandler = context.coordinator.handleImagePaste(data:rawFilename:textView:)
+        textView.submitHandler = context.coordinator.handleSend
         textView.delegate = context.coordinator
         textView.isRichText = true
         textView.typingAttributes = ADOCommentViewModel.defaultTypingAttributes
@@ -236,6 +237,14 @@ private struct MentionAwareEditor: NSViewRepresentable {
             }
         }
 
+        func handleSend() {
+            MainActor.assumeIsolated {
+                let hasContent = !parent.vm.commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !parent.vm.pastedImages.isEmpty
+                guard hasContent && !parent.vm.phase.isSending && parent.vm.mentionQuery == nil else { return }
+                Task { await parent.vm.send() }
+            }
+        }
+
         // keyDown is always called on the main thread, so MainActor.assumeIsolated is safe here.
         func handleKey(event: NSEvent) -> Bool {
             MainActor.assumeIsolated {
@@ -263,6 +272,7 @@ private struct MentionAwareEditor: NSViewRepresentable {
 private class MentionTextView: NSTextView {
     var mentionKeyHandler: ((NSEvent) -> Bool)?
     var imagePasteHandler: ((Data, String, MentionTextView) -> Void)?
+    var submitHandler: (() -> Void)?
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
@@ -279,6 +289,13 @@ private class MentionTextView: NSTextView {
         if event.modifierFlags.contains(.command),
            Self.eventIsPasteShortcut(event),
            tryConsumeImagePaste() {
+            return true
+        }
+        // ⌘Return / ⌘↩ — send comment
+        if event.modifierFlags.contains(.command),
+           (event.keyCode == 36 || event.keyCode == 76),
+           let handler = submitHandler {
+            handler()
             return true
         }
         return super.performKeyEquivalent(with: event)
