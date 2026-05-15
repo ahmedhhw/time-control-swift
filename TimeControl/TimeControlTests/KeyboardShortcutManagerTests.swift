@@ -491,6 +491,7 @@ final class KeyboardShortcutManagerTests: XCTestCase {
 
     func testResetNewShortcuts_restoresDefaults_doesNotCrash() {
         KeyboardShortcuts.setShortcut(.init(.a, modifiers: .control), for: .openADOComment)
+        KeyboardShortcuts.setShortcut(.init(.a, modifiers: .control), for: .sendADOComment)
         KeyboardShortcuts.setShortcut(.init(.a, modifiers: .control), for: .openSubtaskInput)
         KeyboardShortcuts.setShortcut(.init(.a, modifiers: .control), for: .openHistory)
         KeyboardShortcuts.setShortcut(.init(.a, modifiers: .control), for: .showMainWindow)
@@ -498,16 +499,26 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         XCTAssertNoThrow(
             KeyboardShortcuts.reset(
                 .openADOComment,
+                .sendADOComment,
                 .openSubtaskInput,
                 .openHistory,
                 .showMainWindow
             )
         )
 
-        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openADOComment),   .init(.w, modifiers: .option))
-        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openSubtaskInput), .init(.r, modifiers: .option))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openADOComment),   .init(.c, modifiers: .option))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .sendADOComment),   .init(.return, modifiers: .command))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openSubtaskInput), .init(.s, modifiers: .option))
         XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openHistory),      .init(.h, modifiers: .option))
-        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .showMainWindow),   .init(.b, modifiers: .option))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .showMainWindow),   .init(.m, modifiers: .option))
+    }
+
+    func testSendADOCommentShortcut_defaultIsCmdReturn() {
+        KeyboardShortcuts.reset(.sendADOComment)
+        XCTAssertEqual(
+            KeyboardShortcuts.getShortcut(for: .sendADOComment),
+            .init(.return, modifiers: .command)
+        )
     }
 
     // MARK: - showCentered / performShowTaskSwitcher (Phase 1)

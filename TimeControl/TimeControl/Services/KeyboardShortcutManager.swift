@@ -36,6 +36,9 @@ final class KeyboardShortcutManager {
         KeyboardShortcuts.onKeyDown(for: .openADOComment) { [weak self] in
             DispatchQueue.main.async { self?.performOpenADOComment() }
         }
+        KeyboardShortcuts.onKeyDown(for: .sendADOComment) { [weak self] in
+            DispatchQueue.main.async { self?.performSendADOComment() }
+        }
         KeyboardShortcuts.onKeyDown(for: .openSubtaskInput) { [weak self] in
             DispatchQueue.main.async { self?.performOpenSubtaskInput() }
         }
@@ -134,6 +137,12 @@ final class KeyboardShortcutManager {
         guard mgr.isWindowOpen else { return }
         mgr.activateFloatingWindow()
         mgr.onOpenSubtasksAndFocusInput?()
+    }
+
+    func performSendADOComment() {
+        let mgr = FloatingWindowManager.shared
+        guard mgr.isWindowOpen else { return }
+        mgr.onSendADOComment?()
     }
 
     func performOpenHistory() {

@@ -277,6 +277,7 @@ struct KeyboardShortcutsSection: View {
             KeyboardShortcuts.Recorder("Complete Task",                  name: .completeTask)
             KeyboardShortcuts.Recorder("Collapse Floating Task Window", name: .toggleFloatingWindowCollapse)
             KeyboardShortcuts.Recorder("Open ADO Comment",              name: .openADOComment)
+            KeyboardShortcuts.Recorder("Send ADO Comment",              name: .sendADOComment)
             KeyboardShortcuts.Recorder("Open Subtask Input",            name: .openSubtaskInput)
             KeyboardShortcuts.Recorder("Open History",                  name: .openHistory)
             KeyboardShortcuts.Recorder("Show Main Window",              name: .showMainWindow)
@@ -292,6 +293,7 @@ struct KeyboardShortcutsSection: View {
                     .completeTask,
                     .toggleFloatingWindowCollapse,
                     .openADOComment,
+                    .sendADOComment,
                     .openSubtaskInput,
                     .openHistory,
                     .showMainWindow,

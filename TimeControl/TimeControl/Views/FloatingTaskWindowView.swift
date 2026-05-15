@@ -739,6 +739,14 @@ struct FloatingTaskWindowView: View {
                         }
                     }
                 }
+                FloatingWindowManager.shared.onSendADOComment = {
+                    guard commentVM.phase == .open,
+                          commentVM.mentionQuery == nil,
+                          !commentVM.commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !commentVM.pastedImages.isEmpty,
+                          commentVM.phase != .sending
+                    else { return }
+                    Task { await commentVM.send() }
+                }
                 commentVM.onSent = { Task { await commentsVM.refresh() } }
             }
             

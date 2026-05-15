@@ -28,6 +28,7 @@ class FloatingWindowManager: ObservableObject {
     var onOpenNotes: (() -> Void)?
     var onToggleCollapse: (() -> Void)?
     var onOpenADOAndFocusComment: (() -> Void)?
+    var onSendADOComment: (() -> Void)?
     var onOpenSubtasksAndFocusInput: (() -> Void)?
     weak var viewModel: TodoViewModel?
     
@@ -219,6 +220,7 @@ class FloatingWindowManager: ObservableObject {
         onOpenNotes = nil
         onToggleCollapse = nil
         onOpenADOAndFocusComment = nil
+        onSendADOComment = nil
         onOpenSubtasksAndFocusInput = nil
         windowDelegate = nil
         viewModel = nil
