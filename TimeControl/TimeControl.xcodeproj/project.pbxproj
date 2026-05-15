@@ -162,6 +162,12 @@
 		WO000002000000000000001 /* WindowOpacityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000002000000000000000 /* WindowOpacityStoreTests.swift */; };
 		WO000003000000000000001 /* WindowOpacityApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000003000000000000000 /* WindowOpacityApplier.swift */; };
 		WO000004000000000000001 /* WindowOpacityApplierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WO000004000000000000000 /* WindowOpacityApplierTests.swift */; };
+		CP001001000000000000001 /* AppAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP001001000000000000000 /* AppAction.swift */; };
+		CP002001000000000000001 /* CommandPaletteWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP002001000000000000000 /* CommandPaletteWindowManager.swift */; };
+		CP003001000000000000001 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP003001000000000000000 /* CommandPaletteView.swift */; };
+		CP004001000000000000001 /* AppActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP004001000000000000000 /* AppActionTests.swift */; };
+		CP005001000000000000001 /* CommandPaletteWindowManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP005001000000000000000 /* CommandPaletteWindowManagerTests.swift */; };
+		CP006001000000000000001 /* CommandPaletteViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP006001000000000000000 /* CommandPaletteViewTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -342,6 +348,12 @@
 		WO000002000000000000000 /* WindowOpacityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityStoreTests.swift; sourceTree = "<group>"; };
 		WO000003000000000000000 /* WindowOpacityApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityApplier.swift; sourceTree = "<group>"; };
 		WO000004000000000000000 /* WindowOpacityApplierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOpacityApplierTests.swift; sourceTree = "<group>"; };
+		CP001001000000000000000 /* AppAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAction.swift; sourceTree = "<group>"; };
+		CP002001000000000000000 /* CommandPaletteWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteWindowManager.swift; sourceTree = "<group>"; };
+		CP003001000000000000000 /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
+		CP004001000000000000000 /* AppActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppActionTests.swift; sourceTree = "<group>"; };
+		CP005001000000000000000 /* CommandPaletteWindowManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteWindowManagerTests.swift; sourceTree = "<group>"; };
+		CP006001000000000000000 /* CommandPaletteViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteViewTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -399,6 +411,7 @@
 				KSM00001000000000000001 /* KeyboardShortcutManager.swift */,
 				SN000001000000000000001 /* ShortcutNames.swift */,
 				NN000001000000000000001 /* NotificationNames.swift */,
+				CP001001000000000000000 /* AppAction.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -449,6 +462,7 @@
 				HUD00001000000000000001 /* HUDToastView.swift */,
 				TPP00001000000000000001 /* TaskPalettePanel.swift */,
 				QTW00001000000000000001 /* QuickTimerWindow.swift */,
+				CP003001000000000000000 /* CommandPaletteView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -467,6 +481,7 @@
 				EE000004000000000000001 /* NotificationWindowManager.swift */,
 				IA000003000000000000000 /* IdlePromptWindowManager.swift */,
 				TW000002000000000000000 /* TaskPaletteWindowManager.swift */,
+				CP002001000000000000000 /* CommandPaletteWindowManager.swift */,
 			);
 			path = WindowManagement;
 			sourceTree = "<group>";
@@ -538,6 +553,9 @@
 				TC000003000000000000000 /* SessionDiscardTests.swift */,
 				HTT00001000000000000001 /* HUDToastTests.swift */,
 				TPP00002000000000000001 /* TaskPalettePanelTests.swift */,
+				CP004001000000000000000 /* AppActionTests.swift */,
+				CP005001000000000000000 /* CommandPaletteWindowManagerTests.swift */,
+				CP006001000000000000000 /* CommandPaletteViewTests.swift */,
 			);
 			path = TimeControlTests;
 			sourceTree = "<group>";
@@ -734,6 +752,9 @@
 				IP000002000000000000001 /* IdlePromptAutoDismissTests.swift in Sources */,
 				TW000001000000000000001 /* TaskPaletteWindowManagerTests.swift in Sources */,
 				IS000001000000000000001 /* IdlePromptStartTaskWiringTests.swift in Sources */,
+				CP004001000000000000001 /* AppActionTests.swift in Sources */,
+				CP005001000000000000001 /* CommandPaletteWindowManagerTests.swift in Sources */,
+				CP006001000000000000001 /* CommandPaletteViewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -818,6 +839,9 @@
 				IA000003000000000000001 /* IdlePromptWindowManager.swift in Sources */,
 				TW000002000000000000001 /* TaskPaletteWindowManager.swift in Sources */,
 				IA000004000000000000001 /* IdlePromptView.swift in Sources */,
+				CP001001000000000000001 /* AppAction.swift in Sources */,
+				CP002001000000000000001 /* CommandPaletteWindowManager.swift in Sources */,
+				CP003001000000000000001 /* CommandPaletteView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

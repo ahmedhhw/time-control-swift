@@ -19,6 +19,7 @@ final class KeyboardShortcutManagerTests: XCTestCase {
     override func tearDown() {
         TaskPaletteWindowManager.shared.dismiss()
         QuickTimerWindowManager.shared.dismiss()
+        CommandPaletteWindowManager.shared.dismiss()
         FloatingWindowManager.shared.onOpenNotes = nil
         FloatingWindowManager.shared.onToggleCollapse = nil
         FloatingWindowManager.shared.onOpenADOAndFocusComment = nil
@@ -527,5 +528,49 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         sut.performShowTaskSwitcher(viewModel: vm)
 
         XCTAssertTrue(TaskPaletteWindowManager.shared.isVisible)
+    }
+
+    // MARK: - performShowCommandPalette
+
+    func testPerformShowCommandPalette_makesPaletteVisible() {
+        let (vm, _, _) = makeViewModel()
+
+        sut.performShowCommandPalette(viewModel: vm)
+
+        XCTAssertTrue(CommandPaletteWindowManager.shared.isVisible)
+    }
+
+    // MARK: - commandPalette shortcut default
+
+    func testCommandPaletteShortcut_defaultIsCmdShiftL() {
+        KeyboardShortcuts.reset(.commandPalette)
+        XCTAssertEqual(
+            KeyboardShortcuts.getShortcut(for: .commandPalette),
+            .init(.l, modifiers: [.command, .shift])
+        )
+    }
+
+    func testResetCommandPaletteShortcut_restoresDefault() {
+        KeyboardShortcuts.setShortcut(.init(.a, modifiers: .control), for: .commandPalette)
+        KeyboardShortcuts.reset(.commandPalette)
+        XCTAssertEqual(
+            KeyboardShortcuts.getShortcut(for: .commandPalette),
+            .init(.l, modifiers: [.command, .shift])
+        )
+    }
+
+    func testSetup_registersCommandPaletteWithoutCrashing() {
+        let (vm, _, _) = makeViewModel()
+        let manager = KeyboardShortcutManager()
+        XCTAssertNoThrow(manager.setup(viewModel: vm))
+    }
+
+    func testResetAllShortcuts_includesCommandPalette_doesNotCrash() {
+        KeyboardShortcuts.setShortcut(.init(.a, modifiers: .control), for: .commandPalette)
+        XCTAssertNoThrow(KeyboardShortcuts.reset(.commandPalette))
+        XCTAssertEqual(
+            KeyboardShortcuts.getShortcut(for: .commandPalette),
+            .init(.l, modifiers: [.command, .shift])
+        )
     }
 }

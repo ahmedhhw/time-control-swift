@@ -17,4 +17,5 @@ extension KeyboardShortcuts.Name {
     static let openSubtaskInput = Self("openSubtaskInput", default: .init(.r, modifiers: .option))
     static let openHistory      = Self("openHistory",      default: .init(.h, modifiers: .option))
     static let showMainWindow   = Self("showMainWindow",   default: .init(.b, modifiers: .option))
+    static let commandPalette   = Self("commandPalette",   default: .init(.l, modifiers: [.command, .shift]))
 }

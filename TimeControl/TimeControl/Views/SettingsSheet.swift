@@ -280,6 +280,7 @@ struct KeyboardShortcutsSection: View {
             KeyboardShortcuts.Recorder("Open Subtask Input",            name: .openSubtaskInput)
             KeyboardShortcuts.Recorder("Open History",                  name: .openHistory)
             KeyboardShortcuts.Recorder("Show Main Window",              name: .showMainWindow)
+            KeyboardShortcuts.Recorder("Command Palette",               name: .commandPalette)
 
             Button("Reset shortcuts to defaults") {
                 KeyboardShortcuts.reset(
@@ -293,7 +294,8 @@ struct KeyboardShortcutsSection: View {
                     .openADOComment,
                     .openSubtaskInput,
                     .openHistory,
-                    .showMainWindow
+                    .showMainWindow,
+                    .commandPalette
                 )
             }
             .buttonStyle(.bordered)

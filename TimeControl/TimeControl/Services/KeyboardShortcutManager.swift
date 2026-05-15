@@ -45,6 +45,9 @@ final class KeyboardShortcutManager {
         KeyboardShortcuts.onKeyDown(for: .showMainWindow) { [weak self] in
             DispatchQueue.main.async { self?.performShowMainWindow() }
         }
+        KeyboardShortcuts.onKeyDown(for: .commandPalette) { [weak self] in
+            DispatchQueue.main.async { self?.performShowCommandPalette(viewModel: viewModel) }
+        }
     }
 
     func performToggleTimerKeepWindow(viewModel: TodoViewModel) {
@@ -144,6 +147,10 @@ final class KeyboardShortcutManager {
         } else {
             NotificationCenter.default.post(name: .openHistoryWindow, object: nil)
         }
+    }
+
+    func performShowCommandPalette(viewModel: TodoViewModel) {
+        CommandPaletteWindowManager.shared.show(viewModel: viewModel)
     }
 
     func performShowMainWindow() {
