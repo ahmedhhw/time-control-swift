@@ -207,6 +207,10 @@ class FloatingWindowManager: ObservableObject {
         floatingWindow?.makeKeyAndOrderFront(nil)
     }
 
+    func bringFloatingWindowToFront() {
+        floatingWindow?.makeKeyAndOrderFront(nil)
+    }
+
     func closeFloatingWindow() {
         floatingWindow?.close()
         clearWindowState()

@@ -128,7 +128,7 @@ final class KeyboardShortcutManager {
             hud.show(message: "No ADO link on this task")
             return
         }
-        mgr.activateFloatingWindow()
+        mgr.bringFloatingWindowToFront()
         mgr.onOpenADOAndFocusComment?()
     }
 
@@ -148,11 +148,7 @@ final class KeyboardShortcutManager {
     func performOpenHistory() {
         let mgr = FloatingWindowManager.shared
         if let win = mgr.historyWindowRef, win.isVisible {
-            if win.isKeyWindow {
-                win.close()
-            } else {
-                NotificationCenter.default.post(name: .openHistoryWindow, object: nil)
-            }
+            win.close()
         } else {
             NotificationCenter.default.post(name: .openHistoryWindow, object: nil)
         }
@@ -163,8 +159,8 @@ final class KeyboardShortcutManager {
     }
 
     func performShowMainWindow() {
-        guard let mainWindow = NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible }) else { return }
-        if mainWindow.isKeyWindow {
+        guard let mainWindow = NSApp.windows.first(where: { !($0 is NSPanel) && $0.title != "History" }) else { return }
+        if mainWindow.isVisible {
             mainWindow.orderOut(nil)
         } else {
             NSApp.activate(ignoringOtherApps: true)
