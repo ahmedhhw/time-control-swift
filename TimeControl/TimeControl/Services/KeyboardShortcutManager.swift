@@ -135,7 +135,7 @@ final class KeyboardShortcutManager {
     func performOpenSubtaskInput() {
         let mgr = FloatingWindowManager.shared
         guard mgr.isWindowOpen else { return }
-        mgr.activateFloatingWindow()
+        mgr.bringFloatingWindowToFront()
         mgr.onOpenSubtasksAndFocusInput?()
     }
 

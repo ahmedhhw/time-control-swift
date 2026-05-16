@@ -44,7 +44,7 @@ final class CommandPaletteWindowManager {
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let origin = CGPoint(
             x: screen.visibleFrame.midX - width / 2,
-            y: screen.visibleFrame.midY + 60
+            y: screen.visibleFrame.midY - height / 2
         )
 
         let paletteView = StandaloneCommandPaletteView(
