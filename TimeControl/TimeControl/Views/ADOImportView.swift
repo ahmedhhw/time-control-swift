@@ -69,10 +69,9 @@ struct ADOImportView: View {
     private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                assignedSection
-                mentionedSection
-                Divider()
                 fetchByIdSection
+                Divider()
+                assignedSection
             }
             .padding()
         }
@@ -110,7 +109,10 @@ struct ADOImportView: View {
                     .foregroundColor(.secondary)
                     .font(.subheadline)
             } else {
-                workItemList(visibleAssignedItems)
+                ScrollView {
+                    workItemList(visibleAssignedItems)
+                }
+                .frame(maxHeight: 240)
             }
         }
     }
