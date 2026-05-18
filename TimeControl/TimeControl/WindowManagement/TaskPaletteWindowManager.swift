@@ -11,6 +11,7 @@ import SwiftUI
 private struct StandaloneTaskPaletteView: View {
     let tasks: [TodoItem]
     let currentTaskId: UUID
+    let unreadADOTaskIds: Set<UUID>
     let onSelect: (TodoItem) -> Void
     let onCreate: (String) -> Void
     let onDismiss: () -> Void
@@ -25,6 +26,8 @@ private struct StandaloneTaskPaletteView: View {
             searchText: $searchText,
             selectedIndex: $selectedIndex,
             currentTaskId: currentTaskId,
+            showElapsedTime: true,
+            unreadADOTaskIds: unreadADOTaskIds,
             onSelect: onSelect,
             onCreate: onCreate,
             onDismiss: onDismiss
@@ -80,6 +83,7 @@ final class TaskPaletteWindowManager {
         let paletteView = StandaloneTaskPaletteView(
             tasks: tasks,
             currentTaskId: currentTaskId,
+            unreadADOTaskIds: viewModel.unreadADOTaskIds,
             onSelect: { [weak self] task in
                 viewModel.switchToTask(task)
                 self?.dismiss()

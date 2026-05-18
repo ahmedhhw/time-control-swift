@@ -119,6 +119,7 @@ private struct TaskPalettePanelContent: View {
                 selectedIndex: $selectedIndex,
                 currentTaskId: currentTaskId,
                 showElapsedTime: true,
+                unreadADOTaskIds: viewModel.unreadADOTaskIds,
                 onSelect: { task in
                     viewModel.switchToTask(task)
                     onDismiss()

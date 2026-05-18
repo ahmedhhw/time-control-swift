@@ -238,6 +238,8 @@ struct FloatingTaskWindowView: View {
                 searchText: $paletteSearch,
                 selectedIndex: $paletteSelectedIndex,
                 currentTaskId: localTask.id,
+                showElapsedTime: true,
+                unreadADOTaskIds: viewModel.unreadADOTaskIds,
                 onSelect: { selectedTask in
                     let wasComplete = taskMarkedComplete
                     windowManager.switchToTask(selectedTask)
@@ -2154,6 +2156,7 @@ struct TaskPaletteView: View {
     @Binding var selectedIndex: Int
     let currentTaskId: UUID
     var showElapsedTime: Bool = false
+    var unreadADOTaskIds: Set<UUID> = []
     let onSelect: (TodoItem) -> Void
     let onCreate: (String) -> Void
     let onDismiss: () -> Void
@@ -2208,7 +2211,8 @@ struct TaskPaletteView: View {
                                 isCurrent: task.id == currentTaskId,
                                 isADO: task.adoWorkItemId != nil,
                                 isCreate: false,
-                                elapsedTime: showElapsedTime ? TaskPaletteElapsedTime.label(task: task) : nil
+                                elapsedTime: showElapsedTime ? TaskPaletteElapsedTime.label(task: task) : nil,
+                                hasUnreadADO: unreadADOTaskIds.contains(task.id)
                             ) {
                                 onSelect(task)
                             }
@@ -2294,6 +2298,7 @@ struct TaskPaletteView: View {
         isADO: Bool,
         isCreate: Bool,
         elapsedTime: String? = nil,
+        hasUnreadADO: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -2321,13 +2326,20 @@ struct TaskPaletteView: View {
                 }
 
                 if isADO {
-                    Text("ADO")
-                        .font(.caption2).bold()
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Color.blue.opacity(0.14))
-                        .cornerRadius(6)
+                    HStack(spacing: 4) {
+                        Text(PaletteRowBadgeHelper.badgeLabel(hasUnreadADO: hasUnreadADO))
+                            .font(.caption2).bold()
+                            .foregroundColor(.blue)
+                        if hasUnreadADO {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.blue.opacity(0.14))
+                    .cornerRadius(6)
                 }
             }
             .padding(.horizontal, 12)
@@ -2339,3 +2351,10 @@ struct TaskPaletteView: View {
     }
 }
 
+// MARK: - Testable helpers
+
+enum PaletteRowBadgeHelper {
+    static func badgeLabel(hasUnreadADO: Bool) -> String {
+        hasUnreadADO ? " ADO " : "ADO"
+    }
+}
