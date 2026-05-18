@@ -22,6 +22,7 @@ struct ContentView: View {
     @FocusState private var newTaskInputFocused: Bool
     @State private var notesViewerWindow: NSWindow?
     @State private var historyWindow: NSWindow?
+    @State private var showingADOInbox: Bool = false
 
     // Subtask promotion state
     @State private var subtaskToPromote: SubtaskToPromote?
@@ -58,6 +59,7 @@ struct ContentView: View {
                 showingSettings: $viewModel.showingSettings,
                 showingADOImport: $viewModel.showingADOImport,
                 sortOption: $viewModel.sortOption,
+                showingADOInbox: $showingADOInbox,
                 newTaskInputFocused: $newTaskInputFocused,
                 isRefreshingADO: viewModel.isRefreshingADOComments,
                 unreadADOCount: viewModel.unreadADOTaskIds.count,
@@ -77,6 +79,10 @@ struct ContentView: View {
                     Task { await viewModel.refreshADOComments() }
                 }
             )
+            .popover(isPresented: $showingADOInbox, arrowEdge: .top) {
+                ADOInboxPopover(showingADOInbox: $showingADOInbox)
+                    .environmentObject(viewModel)
+            }
             // Main content area with incomplete todos
             if viewModel.todos.isEmpty {
                 VStack {

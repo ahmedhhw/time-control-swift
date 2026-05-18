@@ -202,6 +202,12 @@ class FloatingWindowManager: ObservableObject {
         window.orderFrontRegardless()
     }
 
+    /// Called by the ADO inbox "Start Task" action. Switches the floating window
+    /// to the ADO tab and focuses the reply field, reusing the existing keyboard-shortcut path.
+    func openADOTabAndFocusComment() {
+        onOpenADOAndFocusComment?()
+    }
+
     func activateFloatingWindow() {
         NSApp.activate(ignoringOtherApps: true)
         floatingWindow?.makeKeyAndOrderFront(nil)

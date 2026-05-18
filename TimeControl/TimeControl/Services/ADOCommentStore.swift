@@ -5,9 +5,17 @@
 
 import Foundation
 
+// MARK: - Protocol
+
+protocol ADOUnreadCommentsStoreProtocol {
+    func lastSeenCommentId(for taskId: UUID) -> Int?
+    func markSeen(commentId: Int, for taskId: UUID)
+    func hasUnread(latestCommentId: Int, for taskId: UUID) -> Bool
+}
+
 // MARK: - ADOUnreadCommentsStore
 
-final class ADOUnreadCommentsStore {
+final class ADOUnreadCommentsStore: ADOUnreadCommentsStoreProtocol {
     private let defaults: UserDefaults
     private let key = "ado.unread.lastSeenCommentId"
 
