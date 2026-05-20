@@ -1375,7 +1375,9 @@ class TodoViewModel: ObservableObject {
         }
 
         todos[todoIndex].notes = notes
-        FloatingWindowManager.shared.updateTask(todos[todoIndex])
+        if FloatingWindowManager.shared.currentTask?.id == taskId {
+            FloatingWindowManager.shared.updateTask(todos[todoIndex])
+        }
 
         if let storage = sqliteStorage {
             saveDebounceTimer?.invalidate()
