@@ -69,9 +69,10 @@ struct ADOImportView: View {
     private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                fetchByIdSection
-                Divider()
                 assignedSection
+                mentionedSection
+                Divider()
+                fetchByIdSection
             }
             .padding()
         }

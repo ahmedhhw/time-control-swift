@@ -69,85 +69,99 @@ struct TaskListToolbar: View {
                           : "Refresh ADO comments")
                 }
 
-                // ADO Comment Inbox — always visible
-                Button(action: { showingADOInbox = true }) {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "tray.and.arrow.down.fill")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                        if unreadADOCount > 0 {
-                            Circle()
-                                .fill(Color.orange)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 2, y: -2)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .help(unreadADOCount > 0
-                      ? "ADO Comment Inbox (\(unreadADOCount) unread)"
-                      : "ADO Comment Inbox")
-
-                // Advanced actions menu — only in advanced mode
-                if isAdvancedMode {
-                    Menu {
-                        Button(action: onToggleExpandAll) {
-                            Label(
-                                areAllTasksExpanded ? "Collapse All" : "Expand All",
-                                systemImage: areAllTasksExpanded
-                                    ? "arrow.up.left.and.arrow.down.right"
-                                    : "arrow.down.right.and.arrow.up.left"
-                            )
-                        }
-                        Button(action: { showingMassOperations = true }) {
-                            Label("Mass Operations", systemImage: "square.grid.3x3.fill")
-                        }
-                        Button(action: onExportAllTasks) {
-                            Label("Export All Tasks", systemImage: "square.and.arrow.up")
-                        }
-                        Divider()
-                        Button(action: { showingSettings = true }) {
-                            Label("Settings", systemImage: "gear")
-                        }
-                        Button(action: onOpenNotesViewer) {
-                            Label("Notes", systemImage: "note.text")
-                        }
-                        Button(action: onOpenHistory) {
-                            Label("History", systemImage: "calendar")
-                        }
-                        Button(action: { showingADOImport = true }) {
-                            Label("Import from ADO", systemImage: "arrow.down.circle")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .help("More options")
-                }
             }
             .padding()
             .padding(.bottom, -8)
-
+            
             // Advanced mode toggle
             HStack {
                 Toggle("Advanced mode", isOn: $isAdvancedMode)
                     .toggleStyle(.switch)
                     .font(.body)
-                Spacer()
+                
+                if isAdvancedMode {
+                    Spacer()
+                    
+                    Button(action: onToggleExpandAll) {
+                        HStack {
+                            Image(systemName: areAllTasksExpanded ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                            Text(areAllTasksExpanded ? "Collapse All" : "Expand All")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button(action: {
+                        showingMassOperations = true
+                    }) {
+                        HStack {
+                            Image(systemName: "square.grid.3x3.fill")
+                            Text("Mass Operations")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button(action: onExportAllTasks) {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Export All Tasks")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        HStack {
+                            Image(systemName: "gear")
+                            Text("Settings")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button(action: onOpenNotesViewer) {
+                        HStack {
+                            Image(systemName: "note.text")
+                            Text("Notes")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button(action: onOpenHistory) {
+                        HStack {
+                            Image(systemName: "calendar")
+                            Text("History")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button(action: { showingADOImport = true }) {
+                        HStack {
+                            Image(systemName: "arrow.down.circle")
+                            Text("Import from ADO")
+                        }
+                        .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                } else {
+                    Spacer()
+                }
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
-
-            // Sort picker — only in advanced mode
+            
+            // Sort options (only shown when advanced mode is on)
             if isAdvancedMode {
                 HStack {
                     Text("Sort by:")
                         .font(.body)
                         .foregroundColor(.secondary)
-
+                    
                     Picker("Sort", selection: $sortOption) {
                         ForEach(TaskSortOption.allCases) { option in
                             Text(option.rawValue).tag(option)
@@ -155,19 +169,21 @@ struct TaskListToolbar: View {
                     }
                     .pickerStyle(.menu)
                     .font(.body)
-
+                    
                     Spacer()
                 }
                 .padding(.horizontal)
                 .padding(.bottom)
             }
-
+            
             Divider()
         }
     }
 }
 
 // MARK: - NewTaskTextField
+// Separate view so we can conditionally wire a FocusState binding without
+// requiring an always-present binding in TaskListToolbar's caller sites.
 
 private struct NewTaskTextField: View {
     @Binding var text: String
