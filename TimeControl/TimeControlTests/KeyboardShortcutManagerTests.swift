@@ -367,7 +367,7 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         NotificationCenter.default.removeObserver(token)
     }
 
-    func testPerformOpenHistory_windowVisibleNotKey_postsNotification() {
+    func testPerformOpenHistory_windowVisible_closesWindow() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
             styleMask: [.titled],
@@ -375,18 +375,12 @@ final class KeyboardShortcutManagerTests: XCTestCase {
             defer: false
         )
         window.orderFrontRegardless()
-        XCTAssertFalse(window.isKeyWindow)
+        XCTAssertTrue(window.isVisible)
         FloatingWindowManager.shared.historyWindowRef = window
-        let expectation = XCTestExpectation(description: "openHistoryWindow notification posted")
-        let token = NotificationCenter.default.addObserver(
-            forName: .openHistoryWindow, object: nil, queue: .main
-        ) { _ in expectation.fulfill() }
 
         sut.performOpenHistory()
 
-        wait(for: [expectation], timeout: 1.0)
-        NotificationCenter.default.removeObserver(token)
-        window.close()
+        XCTAssertFalse(window.isVisible)
     }
 
     func testPerformOpenHistory_windowVisibleAndKey_closesWindow_doesNotPostNotification() throws {
@@ -506,11 +500,11 @@ final class KeyboardShortcutManagerTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openADOComment),   .init(.c, modifiers: .option))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openADOComment),   .init(.a, modifiers: [.command, .shift]))
         XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .sendADOComment),   .init(.return, modifiers: .command))
-        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openSubtaskInput), .init(.s, modifiers: .option))
-        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openHistory),      .init(.h, modifiers: .option))
-        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .showMainWindow),   .init(.m, modifiers: .option))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openSubtaskInput), .init(.t, modifiers: [.command, .shift]))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .openHistory),      .init(.h, modifiers: [.command, .shift]))
+        XCTAssertEqual(KeyboardShortcuts.getShortcut(for: .showMainWindow),   .init(.m, modifiers: [.command, .shift]))
     }
 
     func testSendADOCommentShortcut_defaultIsCmdReturn() {

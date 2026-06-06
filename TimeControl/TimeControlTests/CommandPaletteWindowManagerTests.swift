@@ -136,10 +136,10 @@ final class CommandPaletteWindowManagerTests: XCTestCase {
     }
 
     @MainActor
-    func testFormatShortcut_openHistory_containsOptionSymbol() {
+    func testFormatShortcut_openHistory_containsShiftSymbol() {
         KeyboardShortcuts.reset(.openHistory)
         let result = CommandPaletteWindowManager.formatShortcut(for: .openHistory)
-        XCTAssertTrue(result?.contains("⌥") ?? false)
+        XCTAssertTrue(result?.contains("⇧") ?? false)
     }
 
     @MainActor
