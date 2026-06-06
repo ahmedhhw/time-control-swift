@@ -72,6 +72,7 @@
 		AA000006000000000000002 /* NotesViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000006000000000000001 /* NotesViewerView.swift */; };
 		HTE00001000000000000002 /* HighlightingTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = HTE00001000000000000001 /* HighlightingTextEditor.swift */; };
 		HTE00002000000000000002 /* HighlightingTextEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HTE00002000000000000001 /* HighlightingTextEditorTests.swift */; };
+		NP000001000000000000002 /* NotePreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NP000001000000000000001 /* NotePreviewTests.swift */; };
 		AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001000000000000000 /* ADOBulkFetchTests.swift */; };
 		AC000001000000000000001 /* ADOCommentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000001000000000000000 /* ADOCommentStore.swift */; };
 		AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000002000000000000000 /* ADOCommentViewModel.swift */; };
@@ -284,6 +285,7 @@
 		AA000006000000000000001 /* NotesViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesViewerView.swift; sourceTree = "<group>"; };
 		HTE00001000000000000001 /* HighlightingTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingTextEditor.swift; sourceTree = "<group>"; };
 		HTE00002000000000000001 /* HighlightingTextEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingTextEditorTests.swift; sourceTree = "<group>"; };
+		NP000001000000000000001 /* NotePreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePreviewTests.swift; sourceTree = "<group>"; };
 		AB000001000000000000000 /* ADOBulkFetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOBulkFetchTests.swift; sourceTree = "<group>"; };
 		AC000001000000000000000 /* ADOCommentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentStore.swift; sourceTree = "<group>"; };
 		AC000002000000000000000 /* ADOCommentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModel.swift; sourceTree = "<group>"; };
@@ -534,6 +536,7 @@
 				A10000000000000000001FE /* HistorySessionFilterTests.swift */,
 				NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */,
 				HTE00002000000000000001 /* HighlightingTextEditorTests.swift */,
+				NP000001000000000000001 /* NotePreviewTests.swift */,
 				WO000002000000000000000 /* WindowOpacityStoreTests.swift */,
 				WO000004000000000000000 /* WindowOpacityApplierTests.swift */,
 				ST000002000000000000000 /* SubtitleTextStrokeTests.swift */,
@@ -734,6 +737,7 @@
 				A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */,
 				NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */,
 				HTE00002000000000000002 /* HighlightingTextEditorTests.swift in Sources */,
+				NP000001000000000000002 /* NotePreviewTests.swift in Sources */,
 				WO000002000000000000001 /* WindowOpacityStoreTests.swift in Sources */,
 				WO000004000000000000001 /* WindowOpacityApplierTests.swift in Sources */,
 				ST000002000000000000001 /* SubtitleTextStrokeTests.swift in Sources */,

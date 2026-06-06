@@ -1,6 +1,6 @@
 <!-- autobot-status
 stage: 4
-iteration: 1
+iteration: 2
 gate: pending
 mode: autonomous
 updated: 2026-06-05
@@ -330,16 +330,30 @@ Update call site in `body`: `notePreview(todo.notes)` → `matchPreview(body: to
 
 ---
 
+### Implementation Ledger — Iteration 2
+
+- testMatchPreview_emptyBody_returnsEmpty: red → green ✓
+- testMatchPreview_whitespaceBody_returnsEmpty: red → green ✓
+- testMatchPreview_noQuery_returnsFirstLine: red → green ✓
+- testMatchPreview_blankQuery_returnsFirstLine: red → green ✓
+- testMatchPreview_noQuery_skipsLeadingBlankLines: red → green ✓
+- testMatchPreview_queryMatchesSecondLine_returnsSecondLine: red → green ✓
+- testMatchPreview_queryMatchesCaseInsensitive: red → green ✓
+- testMatchPreview_queryNoMatch_fallsBackToFirstLine: red → green ✓
+- testMatchPreview_shortMatchingLine_notTruncated: red → green ✓
+- testMatchPreview_longMatchingLine_truncatedWithEllipsis: red → green ✓
+- testMatchPreview_longMatchingLine_resultIsReasonableLength: red → green ✓
+
 ## ✋ Manual Testing Gate — Iteration 2
 
 > STOP. Do not proceed until every item is confirmed.
 
-- [ ] No search query — sidebar previews show the top of each note as before
-- [ ] Type a search query — sidebar previews jump to the line containing the match
-- [ ] Match is on a long line — preview is truncated with `…` around the match
-- [ ] Query matches no line in a note — preview falls back to the top of the note
-- [ ] Regression: yellow highlights in note body still work (Iteration 1)
-- [ ] Regression: editing notes still persists after switching tasks and back
+- [x] No search query — sidebar previews show the top of each note as before
+- [x] Type a search query — sidebar previews jump to the line containing the match
+- [x] Match is on a long line — preview is truncated with `…` around the match
+- [x] Query matches no line in a note — preview falls back to the top of the note
+- [x] Regression: yellow highlights in note body still work (Iteration 1)
+- [x] Regression: editing notes still persists after switching tasks and back
 
-**Confirmed by user:** —
+**Confirmed by user:** 2026-06-05
 **How to confirm:** Check every box, then reply "Iteration 2 confirmed" or describe what failed.

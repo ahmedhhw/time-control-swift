@@ -161,6 +161,39 @@ struct NotesViewerView: View {
     }
 }
 
+// MARK: - Note preview helper
+
+enum NotePreview {
+    static func matchPreview(body: String, query: String) -> String {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
+        let lines = trimmed.components(separatedBy: .newlines)
+        let firstNonEmpty = lines.first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? ""
+
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return firstNonEmpty }
+
+        let matchLine = lines.first(where: { $0.lowercased().contains(q.lowercased()) })
+        let line = (matchLine ?? firstNonEmpty).trimmingCharacters(in: .whitespaces)
+
+        guard line.count > 60 else { return line }
+
+        // Truncate around the match
+        let nsLine = line as NSString
+        let matchRange = nsLine.range(of: q, options: .caseInsensitive)
+        guard matchRange.location != NSNotFound else { return String(line.prefix(60)) + "…" }
+
+        let matchMid = matchRange.location + matchRange.length / 2
+        let start = max(0, matchMid - 30)
+        let end = min(nsLine.length, start + 65)
+        let snippet = nsLine.substring(with: NSRange(location: start, length: end - start))
+        let prefix = start > 0 ? "…" : ""
+        let suffix = end < nsLine.length ? "…" : ""
+        return prefix + snippet + suffix
+    }
+}
+
 // MARK: - Sidebar Row
 
 private struct TaskNotesSidebarRow: View {
@@ -183,7 +216,7 @@ private struct TaskNotesSidebarRow: View {
                     .foregroundColor(isSelected ? .primary : .primary)
             }
 
-            Text(notePreview(todo.notes))
+            Text(NotePreview.matchPreview(body: todo.notes, query: searchQuery))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
@@ -192,19 +225,7 @@ private struct TaskNotesSidebarRow: View {
         .contentShape(Rectangle())
     }
 
-    private func notePreview(_ notes: String) -> String {
-        let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return "" }
-        // If searching, try to show the line that matches
-        if !searchQuery.isEmpty {
-            let query = searchQuery.lowercased()
-            let lines = trimmed.components(separatedBy: .newlines)
-            if let match = lines.first(where: { $0.lowercased().contains(query) }) {
-                return match.trimmingCharacters(in: .whitespaces)
-            }
-        }
-        return trimmed
-    }
+
 }
 
 // MARK: - Detail View
