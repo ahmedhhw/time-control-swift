@@ -70,6 +70,8 @@
 		AA000004000000000000002 /* MassOperationsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000004000000000000001 /* MassOperationsSheet.swift */; };
 		AA000005000000000000002 /* FloatingTaskWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000005000000000000001 /* FloatingTaskWindowView.swift */; };
 		AA000006000000000000002 /* NotesViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000006000000000000001 /* NotesViewerView.swift */; };
+		HTE00001000000000000002 /* HighlightingTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = HTE00001000000000000001 /* HighlightingTextEditor.swift */; };
+		HTE00002000000000000002 /* HighlightingTextEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HTE00002000000000000001 /* HighlightingTextEditorTests.swift */; };
 		AB000001000000000000001 /* ADOBulkFetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001000000000000000 /* ADOBulkFetchTests.swift */; };
 		AC000001000000000000001 /* ADOCommentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000001000000000000000 /* ADOCommentStore.swift */; };
 		AC000002000000000000001 /* ADOCommentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC000002000000000000000 /* ADOCommentViewModel.swift */; };
@@ -280,6 +282,8 @@
 		AA000004000000000000001 /* MassOperationsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MassOperationsSheet.swift; sourceTree = "<group>"; };
 		AA000005000000000000001 /* FloatingTaskWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingTaskWindowView.swift; sourceTree = "<group>"; };
 		AA000006000000000000001 /* NotesViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesViewerView.swift; sourceTree = "<group>"; };
+		HTE00001000000000000001 /* HighlightingTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingTextEditor.swift; sourceTree = "<group>"; };
+		HTE00002000000000000001 /* HighlightingTextEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingTextEditorTests.swift; sourceTree = "<group>"; };
 		AB000001000000000000000 /* ADOBulkFetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOBulkFetchTests.swift; sourceTree = "<group>"; };
 		AC000001000000000000000 /* ADOCommentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentStore.swift; sourceTree = "<group>"; };
 		AC000002000000000000000 /* ADOCommentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADOCommentViewModel.swift; sourceTree = "<group>"; };
@@ -434,6 +438,7 @@
 				9D1052B82F46DA0000B7B24D /* NewTaskPopupView.swift */,
 				9D1052B92F46DA0000B7B24D /* NotesEditorView.swift */,
 				AA000006000000000000001 /* NotesViewerView.swift */,
+				HTE00001000000000000001 /* HighlightingTextEditor.swift */,
 				CC000001000000000000001 /* HistoryView.swift */,
 				CC000002000000000000001 /* HistorySessionProcessor.swift */,
 				9D1052BA2F46DA0000B7B24D /* PauseTaskConfirmationView.swift */,
@@ -528,6 +533,7 @@
 				FF00000B000000000000001 /* NewTaskStickyModeTests.swift */,
 				A10000000000000000001FE /* HistorySessionFilterTests.swift */,
 				NW000002000000000000000 /* NotesWindowFrameStoreTests.swift */,
+				HTE00002000000000000001 /* HighlightingTextEditorTests.swift */,
 				WO000002000000000000000 /* WindowOpacityStoreTests.swift */,
 				WO000004000000000000000 /* WindowOpacityApplierTests.swift */,
 				ST000002000000000000000 /* SubtitleTextStrokeTests.swift */,
@@ -727,6 +733,7 @@
 				FF00000B000000000000002 /* NewTaskStickyModeTests.swift in Sources */,
 				A10000000000000000001FF /* HistorySessionFilterTests.swift in Sources */,
 				NW000002000000000000001 /* NotesWindowFrameStoreTests.swift in Sources */,
+				HTE00002000000000000002 /* HighlightingTextEditorTests.swift in Sources */,
 				WO000002000000000000001 /* WindowOpacityStoreTests.swift in Sources */,
 				WO000004000000000000001 /* WindowOpacityApplierTests.swift in Sources */,
 				ST000002000000000000001 /* SubtitleTextStrokeTests.swift in Sources */,
@@ -783,6 +790,7 @@
 				9D1052D02F46DA0000B7B24D /* ReminderAlertView.swift in Sources */,
 				9D1052D12F46DA0000B7B24D /* NotesEditorView.swift in Sources */,
 				AA000006000000000000002 /* NotesViewerView.swift in Sources */,
+				HTE00001000000000000002 /* HighlightingTextEditor.swift in Sources */,
 				CC000001000000000000002 /* HistoryView.swift in Sources */,
 				CC000002000000000000002 /* HistorySessionProcessor.swift in Sources */,
 				9D1052D22F46DA0000B7B24D /* TimerPickerSheet.swift in Sources */,

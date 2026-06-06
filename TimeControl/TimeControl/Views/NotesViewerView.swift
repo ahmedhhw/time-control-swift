@@ -225,6 +225,7 @@ private struct NotesDetailView: View {
     }
 
 
+
     private var formattedDate: String {
         if let completedAt = todo.completedAt {
             let date = Date(timeIntervalSince1970: completedAt)
@@ -263,11 +264,7 @@ private struct NotesDetailView: View {
 
             Divider()
 
-            TextEditor(text: $editedNotes)
-                .font(.body)
-                .scrollContentBackground(.hidden)
-                .background(Color(NSColor.textBackgroundColor))
-                .padding(8)
+            HighlightingTextEditor(text: $editedNotes, searchQuery: searchQuery)
                 .onChange(of: editedNotes) { newValue in
                     saveTimer?.invalidate()
                     saveTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { _ in
