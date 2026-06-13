@@ -24,7 +24,11 @@ struct ADOWorkItem {
     }
 }
 
-final class ADOService {
+protocol ADOServiceProtocol {
+    func fetchComments(org: String, project: String, id: Int, pat: String) async throws -> [ADOComment]
+}
+
+final class ADOService: ADOServiceProtocol {
 
     enum ADOError: Error, Equatable {
         case unauthorized

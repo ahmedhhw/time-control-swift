@@ -15,6 +15,7 @@ struct TaskListToolbar: View {
     @Binding var showingSettings: Bool
     @Binding var showingADOImport: Bool
     @Binding var sortOption: TaskSortOption
+    @Binding var showingADOInbox: Bool
     var newTaskInputFocused: FocusState<Bool>.Binding? = nil
     var isRefreshingADO: Bool = false
     var unreadADOCount: Int = 0
@@ -25,10 +26,10 @@ struct TaskListToolbar: View {
     let onOpenNotesViewer: () -> Void
     let onOpenHistory: () -> Void
     var onRefreshADO: (() -> Void)? = nil
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            // Text fields and buttons in a single row
+            // Top row: text field, add, ADO refresh, inbox, advanced menu
             HStack {
                 NewTaskTextField(text: $filterText, focused: newTaskInputFocused, onSubmit: onAddTodo)
 
